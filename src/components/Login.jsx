@@ -52,7 +52,7 @@ export default function Login() {
       if (data.success === "1" && data.token) {
         localStorage.setItem("token", data.token);
         setMessage("Login successful!");
-        setTimeout(() => (window.location.href = "/"), 800);
+        setTimeout(() => (window.location.href = "/Home.jsx"), 800);
       } else {
         localStorage.removeItem("token");
         setMessage("Invalid email or password.");
