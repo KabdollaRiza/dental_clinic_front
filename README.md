@@ -35,7 +35,9 @@ dental_clinic_1/
 Available Routes
 
 /register - Register.jsx	
+
 /login - Login.jsx	
+
 / - Redirects to /register
 
 ## Color palette:
