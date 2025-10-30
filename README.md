@@ -2,21 +2,21 @@
 
 ## Project Structure
 
-dental_clinic_1/
-│ 
-├──public/
-│   └──index.html
-├── src/
-│   ├── components/
-│   │   ├── Login.jsx
-│   │   └── Register.jsx
-│   ├── App.jsx
-│   ├── index.js
-│   └── index.css
-│
-├── package.json
-├── package-lock.json
-└── README.md
+```dental_clinic_1/```
+```│ ```
+```├──public/```
+```│   └──index.html```
+```├── src/```
+```│   ├── components/```
+```│   │   ├── Login.jsx```
+```│   │   └── Register.jsx```
+```│   ├── App.jsx```
+```│   ├── index.js```
+```│   └── index.css```
+```│```
+```├── package.json```
+```├── package-lock.json```
+```└── README.md```
 
 ## Installation
 
