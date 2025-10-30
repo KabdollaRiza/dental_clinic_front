@@ -23,8 +23,7 @@
 1. **Clone or create the project**
    ```bash
    git clone https://github.com/KabdollaRiza/dental_clinic_front.git
-   cd dental_clinic_1
-   cd my-app
+   cd dental_clinic_front
 
 2. **Install dependencies**
 ### `npm install`
