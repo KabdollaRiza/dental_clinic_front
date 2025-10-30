@@ -16,7 +16,7 @@
 │
 ├── package.json
 ├── package-lock.json
-└── README.md```
+└── README.md
 
 ## Installation
 
@@ -32,7 +32,7 @@
 3. **Start the development server**
 ### `npm start`
 
-Available Routes
+## Available Routes
 
 /register - Register.jsx	
 
