@@ -1,13 +1,27 @@
+import React from "react";
+import "../index.css"; 
+
 export default function Home() {
-    const API_BASE = typeof window !== "undefined" && window.location.hostname === "localhost"
-      ? "http://localhost:5000"
-      : "";
   return (
-    <div>
-      <h1>Welcome to the Home Page</h1>
-      <p>This is the main landing page of the application.</p>
-      <button className="btn"><a href="/login">Login</a></button>
-      <button className="btn"><a href="/register">Register</a></button>
+    <div className="page-wrapper">
+      <header className="site-header">
+      <div className="logo">
+        <a href="/home" className="logo-link">DC</a>
+      </div>
+        <nav className="nav-links">
+          <a href="/login">Sign in</a>
+          <a href="/register">Sign up</a>
+        </nav>
+      </header>
+
+      <main className="container">
+        <h1 className="main-title">DENTAL CLINIC MANAGEMENT SYSTEM</h1>
+        <p className="subtitle">Welcome to our website!</p>
+      </main>
+
+      <footer className="site-footer">
+        <p className="team_name">Team: Interstellar</p>
+      </footer>
     </div>
   );
 }
