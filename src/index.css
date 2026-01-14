@@ -92,6 +92,18 @@ body {
   background-color: #ECF4E8;
 }
 
+.gender-container {
+  display: flex;
+  justify-content: space-around;
+  margin: 10px 0;
+  width: 100%;
+}
+
+.gender-container input {
+  width: auto !important; 
+  margin-right: 5px;
+}
+
 .checkbox-container {
   display: flex !important;
   flex-direction: row !important;
