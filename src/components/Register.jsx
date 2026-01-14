@@ -82,89 +82,87 @@ export default function Register() {
     }
   };
 
-  return (
-    <div className="container">
-      <form className="register_form" onSubmit={handleSubmit}>
-        <h2>Create Account</h2>
+    return (
+    <div className="page-wrapper">
+      <header className="site-header">
+      <div className="logo">
+      <a href="/home" className="logo-link">DC</a>
+      </div>
+        <nav className="nav-links">
+          <a href="/login">Sign in</a>
+          <a href="/register">Sign up</a>
+        </nav>
+      </header>
 
-        <input
-          type="text"
-          name="name"
-          placeholder="Name"
-          value={formData.name}
-          onChange={(e)=>{
-            const value = e.target.value;
-            if(/^[A-Za-z\s]*$/.test(value)){
-              handleChange(e);
-            }
-          }}
-          required
-        />
-        <input
-          type="email"
-          name="email"
-          placeholder="Email"
-          value={formData.email}
-          onChange={handleChange}
-          required
-        />
-        <input
-          type="number"
-          name="age"
-          placeholder="Age"
-          value={formData.age}
-          onChange={handleChange}
-          min="0"
-          step="1"
-          required
-        />
-        <div className="gender">
-          <label>
-            <input
-              type="radio"
-              name="gender"
-              value="Female"
-              onChange={handleChange}
-              required
-            />{" "}
-            Female
-          </label>
-          <label>
-            <input
-              type="radio"
-              name="gender"
-              value="Male"
-              onChange={handleChange}
-            />{" "}
-            Male
-          </label>
-        </div>
-        <input
-          type="password"
-          name="password"
-          placeholder="Password"
-          value={formData.password}
-          onChange={handleChange}
-          required
-        />
-        <label>
+      <main className="container">
+        <form className="register_form" style={{width: '380px'}} onSubmit={handleSubmit}>
+          <h2>Create Account</h2>
+
           <input
-            type="checkbox"
-            name="push_consent"
-            checked={formData.push_consent}
+            type="text"
+            name="name"
+            placeholder="Name"
+            value={formData.name}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (/^[A-Za-z\s]*$/.test(value)) handleChange(e);
+            }}
+            required
+          />
+          <input
+            type="email"
+            name="email"
+            placeholder="Email"
+            value={formData.email}
             onChange={handleChange}
-          />{" "}
-          I agree to receive notifications
-        </label>
+            required
+          />
+          <input
+            type="number"
+            name="age"
+            placeholder="Age"
+            value={formData.age}
+            onChange={handleChange}
+            required
+          />
 
-        <button type="submit">Register</button>
+          <div className="gender-container" style={{display: 'flex', justifyContent: 'space-around', margin: '10px 0'}}>
+            <label><input type="radio" name="gender" value="Female" onChange={handleChange} required /> Female</label>
+            <label><input type="radio" name="gender" value="Male" onChange={handleChange} /> Male</label>
+          </div>
 
-        {message && <p className="message">{message}</p>}
+          <input
+            type="password"
+            name="password"
+            placeholder="Password"
+            value={formData.password}
+            onChange={handleChange}
+            required
+          />
 
-        <p className="login-link">
-          Already have an account? <a href="/login">Login</a>
-        </p>
-      </form>
+          <label className="checkbox-container">
+            <input
+              type="checkbox"
+              name="push_consent"
+              checked={formData.push_consent}
+              onChange={handleChange}
+            />
+            <span>I agree to receive notifications</span>
+          </label>
+
+          <button type="submit">Sign up</button>
+
+          {message && <p className="message">{message}</p>}
+
+          <p className="login-link">
+            Already have an account? <a href="/login" style={{color: '#93BFC7'}}>Sign in</a>
+          </p>
+        </form>
+      </main>
+
+      <footer className="site-footer">
+        Team: Interstellar
+      </footer>
     </div>
   );
 }
