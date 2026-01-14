@@ -64,35 +64,51 @@ export default function Login() {
     }
   };
 
-  return (
-    <div className="container">
-      <form className="register_form" onSubmit={handleSubmit}>
-        <h2>Login</h2>
-        <input
-          type="email"
-          name="email"
-          placeholder="Email"
-          value={formData.email}
-          onChange={handleChange}
-          required
-        />
-        <input
-          type="password"
-          name="password"
-          placeholder="Password"
-          value={formData.password}
-          onChange={handleChange}
-          required
-        />
+    return (
+      <div className="page-wrapper">
+        <header className="site-header">
+             <div className="logo">
+             <a href="/home" className="logo-link">DC</a>
+             </div>
+          <nav className="nav-links">
+            <a href="/login">Sign in</a>
+            <a href="/register">Sign up</a>
+          </nav>
+        </header>
 
-        <button type="submit">Login</button>
+        <main className="container">
+          <form className="register_form" onSubmit={handleSubmit}>
+            <h2>Welcome back!</h2>
+            <input
+              type="email"
+              name="email"
+              placeholder="Email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+            />
+            <input
+              type="password"
+              name="password"
+              placeholder="Password"
+              value={formData.password}
+              onChange={handleChange}
+              required
+            />
 
-        {message && <p className="message">{message}</p>}
+            <button type="submit">Sign in</button>
 
-        <p className="login-link">
-          Don’t have an account? <a href="/register">Register</a>
-        </p>
-      </form>
-    </div>
-  );
+            {message && <p className="message">{message}</p>}
+
+            <p className="login-link">
+              Don’t have an account? <a href="/register" style={{color: '#93BFC7'}}>Sign up</a>
+            </p>
+          </form>
+        </main>
+
+        <footer className="site-footer">
+          Team: Interstellar
+        </footer>
+      </div>
+    );
 }
