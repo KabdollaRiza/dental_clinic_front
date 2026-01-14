@@ -1,80 +1,135 @@
 body {
+  margin: 0;
   font-family: "Poppins", sans-serif;
+  background-color: #ffffff;
+}
+
+.page-wrapper {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
 .container {
+  flex: 1; 
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   text-align: center;
+}
+
+.main-title {
+  font-size: 42px;
+  font-weight: 700;
+  color: #2F4858; 
+  margin-bottom: 10px;
+}
+
+.subtitle {
+  font-size: 22px;
+  color: #93BFC7; 
+  font-weight: 600;
+}
+
+.site-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 40px;
+  background-color: #f0f4f0; 
+}
+
+.logo {
+  font-size: 32px;
+  font-weight: bold;
+  color: #2F4858;
+  text-decoration: none;
+}
+.logo-link {
+  text-decoration: none; 
+  color: inherit;        
+  display: block;       
+}
+
+.nav-links a {
+  margin-left: 25px;
+  text-decoration: none;
+  color: #2F4858;
+  font-weight: bold;
+}
+
+.site-footer {
+  background-color: #f0f4f0;
+  text-align: center;
+  padding: 15px;
+  margin-top: auto; 
+  color: #2F4858;
+}
+
+.team_name {
+  font-weight: 600;
 }
 
 .register_form {
   display: flex;
   flex-direction: column;
-  background-color: transparent;
-  border: 3px solid #93BFC7;
+  background-color: #ffffff;
+  border: 2px solid #93BFC7;
   border-radius: 20px;
-  width: 320px;
-  padding: 30px;
-  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+  width: 350px;
+  padding: 40px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
 }
 
-.register_form h2 {
-  color: #2F4858;
-  margin-bottom: 20px;
-}
-
-.register_form input[type="text"],
-.register_form input[type="email"],
-.register_form input[type="password"],
-.register_form input[type="number"] {
-  width: 300px;
-  padding: 10px;
-  margin: 10px 0;
+.register_form input {
+  box-sizing: border-box; 
+  width: 100% !important; 
+  padding: 12px;
+  margin: 8px 0;
   border: 1px solid #ABE7B2;
   border-radius: 10px;
   background-color: #ECF4E8;
-  outline: none;
 }
 
-input:-webkit-autofill {
-  background-color: #ECF4E8 !important;
-  box-shadow: 0 0 0 1000px #ECF4E8 inset !important;
+.checkbox-container {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 10px;                    
+  margin: 15px 0;
+  cursor: pointer;
+  width: 100%;
 }
 
-.register_form input[type="text"]:hover,
-.register_form input[type="email"]:hover,
-.register_form input[type="password"]:hover,
-.register_form input[type="number"]:hover{
-  border-color: #2F4858;
+.checkbox-container input {
+  width: auto !important;       
+  margin: 0 !important;          
+  cursor: pointer;
+}
+
+.site-footer {
+  text-align: center;
+  padding: 20px;
+  background-color: #f0f4ef;
+  color: #2F4858;
+  font-weight: 500;
 }
 
 .register_form button {
-  background-color: transparent;
+  background-color: #ffffff;
   color: #93BFC7;
-  font-weight: bold;
   border: 2px solid #93BFC7;
-  padding: 10px;
-  width: 100%;
-  margin-top: 15px;
+  padding: 12px;
   border-radius: 10px;
   cursor: pointer;
-  font-size: 16px;
+  margin-top: 10px;
   transition: 0.3s;
+  font-size: 18px;
+  font-weight: bold;
 }
 
 .register_form button:hover {
-  background-color: rgba(147, 191, 199, 0.2); 
-}
-
-.login-link {
-  margin-top: 15px;
-}
-
-.message {
-  margin-top: 10px;
-  color: #2F4858;
-  font-weight: 500;
+  background-color: #93BFC7;
+  color: white;
 }
