@@ -1,0 +1,17 @@
+stages:
+  - build
+
+variables:
+  GIT_SSL_NO_VERIFY: "true"
+
+build:
+  stage: build
+  image: node:18
+  script:
+    - npm install
+    - npm run build
+  artifacts:
+    paths:
+      - dist/
+  only:
+    - main
