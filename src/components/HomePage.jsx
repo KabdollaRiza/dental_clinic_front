@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { COLORS } from "./constants";
 import { T } from "./translation";
+import { useResponsive } from "./useResponsive";
 
 const API_BASE =
   typeof window !== "undefined" && window.location.hostname === "localhost"
@@ -39,6 +40,7 @@ function SkeletonCard() {
 
 export default function HomePage({ setPage, lang = "EN" }) {
   const tx = T[lang]?.home || T.EN.home;
+  const { isMobile, isTablet } = useResponsive();
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -63,6 +65,11 @@ export default function HomePage({ setPage, lang = "EN" }) {
 
   const displayed = showAll ? services : services.slice(0, 6);
 
+  const gridCols = isMobile ? "1fr" : isTablet ? "repeat(2, 1fr)" : "repeat(3, 1fr)";
+  const heroPadding = isMobile ? "32px 20px" : isTablet ? "0 0 0 40px" : "0 0 0 80px";
+  const heroTitleSize = isMobile ? 32 : isTablet ? 42 : 58;
+  const sectionPadding = isMobile ? "48px 16px 24px" : isTablet ? "56px 40px 24px" : "64px 80px 24px";
+
   return (
     <main style={{ flex: 1, display: "flex", flexDirection: "column", background: "#F8F9FF" }}>
       <style>{`
@@ -73,40 +80,63 @@ export default function HomePage({ setPage, lang = "EN" }) {
       `}</style>
 
       {/* HERO */}
-      <section style={{ display: "flex", alignItems: "center", minHeight: 520, padding: "0 0 0 80px", background: "linear-gradient(135deg, #EEF2FF 0%, #F0F4FF 50%, #E8F5F0 100%)", overflow: "hidden", position: "relative" }}>
-        <div style={{ flex: "0 0 45%", paddingRight: 48, zIndex: 1, paddingTop: 60, paddingBottom: 60 }}>
-          <h1 style={{ fontSize: 58, fontWeight: 900, color: "#0F172A", lineHeight: 1.08, marginBottom: 24, letterSpacing: -2, fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+      <section style={{
+        display: "flex",
+        flexDirection: isMobile ? "column" : "row",
+        alignItems: isMobile ? "stretch" : "center",
+        minHeight: isMobile ? "auto" : 520,
+        padding: isMobile ? "0" : "0",
+        background: "linear-gradient(135deg, #EEF2FF 0%, #F0F4FF 50%, #E8F5F0 100%)",
+        overflow: "hidden",
+        position: "relative",
+      }}>
+        <div style={{
+          flex: isMobile ? "unset" : "0 0 45%",
+          padding: isMobile ? "40px 20px 32px" : isTablet ? "60px 32px 60px 40px" : "60px 48px 60px 80px",
+          zIndex: 1,
+          order: isMobile ? 2 : 1,
+        }}>
+          <h1 style={{ fontSize: heroTitleSize, fontWeight: 900, color: "#0F172A", lineHeight: 1.08, marginBottom: 24, letterSpacing: isMobile ? -0.5 : -2, fontFamily: "'Georgia', 'Times New Roman', serif" }}>
             {tx.heroTitle}
           </h1>
-          <p style={{ fontSize: 16, color: "#64748B", lineHeight: 1.75, marginBottom: 40, maxWidth: 400 }}>
+          <p style={{ fontSize: isMobile ? 14 : 16, color: "#64748B", lineHeight: 1.75, marginBottom: 32, maxWidth: isMobile ? "100%" : 400 }}>
             {tx.heroSub}
           </p>
           <button
             className="hero-btn"
-            style={{ padding: "16px 40px", background: COLORS.primary, color: "#fff", border: "none", borderRadius: 12, fontSize: 17, fontWeight: 700, cursor: "pointer", transition: "all 0.2s", boxShadow: "0 6px 24px rgba(59,91,219,0.4)", letterSpacing: 0.2 }}
+            style={{ padding: isMobile ? "13px 28px" : "16px 40px", background: COLORS.primary, color: "#fff", border: "none", borderRadius: 12, fontSize: isMobile ? 15 : 17, fontWeight: 700, cursor: "pointer", transition: "all 0.2s", boxShadow: "0 6px 24px rgba(59,91,219,0.4)", letterSpacing: 0.2 }}
             onClick={() => setPage("booking")}
           >
             {tx.heroBtn}
           </button>
         </div>
-        <div style={{ flex: "0 0 55%", alignSelf: "stretch", overflow: "hidden", borderRadius: "20px 0 0 20px", marginLeft: "auto" }}>
+
+        <div style={{
+          flex: isMobile ? "unset" : "0 0 55%",
+          height: isMobile ? 220 : "auto",
+          alignSelf: isMobile ? "stretch" : "stretch",
+          overflow: "hidden",
+          borderRadius: isMobile ? 0 : "20px 0 0 20px",
+          marginLeft: isMobile ? 0 : "auto",
+          order: isMobile ? 1 : 2,
+        }}>
           <img
             src="https://images.unsplash.com/photo-1629909615184-74f495363b67?w=1000&q=85"
             alt="Dental Clinic"
-            style={{ width: "100%", height: "100%", minHeight: 520, objectFit: "cover", objectPosition: "center", display: "block" }}
+            style={{ width: "100%", height: "100%", minHeight: isMobile ? 220 : 520, objectFit: "cover", objectPosition: "center", display: "block" }}
             onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=1000&q=85"; }}
           />
         </div>
       </section>
 
       {/* SERVICES */}
-      <section style={{ padding: "64px 80px 24px" }}>
-        <h2 style={{ textAlign: "center", fontSize: 36, fontWeight: 800, color: "#0F172A", marginBottom: 48, letterSpacing: -0.5 }}>
+      <section style={{ padding: sectionPadding }}>
+        <h2 style={{ textAlign: "center", fontSize: isMobile ? 26 : 36, fontWeight: 800, color: "#0F172A", marginBottom: 32, letterSpacing: -0.5 }}>
           {tx.servicesTitle}
         </h2>
 
         {loading && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 24 }}>
+          <div style={{ display: "grid", gridTemplateColumns: gridCols, gap: 24 }}>
             {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
           </div>
         )}
@@ -128,7 +158,7 @@ export default function HomePage({ setPage, lang = "EN" }) {
         )}
 
         {!loading && !error && services.length > 0 && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 24 }}>
+          <div style={{ display: "grid", gridTemplateColumns: gridCols, gap: 24 }}>
             {displayed.map((sv, i) => {
               const cfg = getCfg(i);
               return (

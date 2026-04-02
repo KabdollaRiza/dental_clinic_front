@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { COLORS } from "./constants";
 import { ADMIN_T } from "./translation";
 import { GlobeIcon } from "./Icons";
+import { useResponsive } from "./useResponsive";
 
 const API_BASE =
   typeof window !== "undefined" && window.location.hostname === "localhost"
@@ -185,14 +186,24 @@ const Icon = ({ d, size = 16 }) => (
 );
 
 function Modal({ title, onClose, children }) {
+  const { isMobile } = useResponsive();
+  const modalStyle = isMobile
+    ? { ...s.modal, maxWidth: "100%", margin: "0 8px", borderRadius: 12 }
+    : s.modal;
+  const headerStyle = isMobile
+    ? { ...s.modalHeader, padding: "18px 20px 14px" }
+    : s.modalHeader;
+  const bodyStyle = isMobile
+    ? { ...s.modalBody, padding: "16px 20px 24px" }
+    : s.modalBody;
   return (
     <div style={s.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div style={s.modal}>
-        <div style={s.modalHeader}>
-          <span style={s.modalTitle}>{title}</span>
+      <div style={modalStyle}>
+        <div style={headerStyle}>
+          <span style={{ ...s.modalTitle, fontSize: isMobile ? 17 : 20 }}>{title}</span>
           <button style={s.closeBtn} onClick={onClose}>×</button>
         </div>
-        <div style={s.modalBody}>{children}</div>
+        <div style={bodyStyle}>{children}</div>
       </div>
     </div>
   );
@@ -355,6 +366,7 @@ function ClinicsTab({ clinics, setClinics, setPage, tx, addresses, setAddresses 
           text={tx.noClinics}
         />
       ) : (
+        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
         <table style={s.table} cellSpacing={0}>
           <thead style={s.thead}>
             <tr>
@@ -388,6 +400,7 @@ function ClinicsTab({ clinics, setClinics, setPage, tx, addresses, setAddresses 
             ))}
           </tbody>
         </table>
+        </div>
       )}
 
       {/* Edit Clinic Modal */}
@@ -530,6 +543,7 @@ function DoctorsTab({ doctors, setDoctors, clinics, services, tx }) {
       {doctors.length === 0 ? (
         <Empty icon="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z" text={tx.noDoctors} />
       ) : (
+        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
         <table style={s.table} cellSpacing={0}>
           <thead style={s.thead}><tr>
             <th style={s.th}>{tx.colName}</th><th style={s.th}>{tx.colEmail}</th>
@@ -548,6 +562,7 @@ function DoctorsTab({ doctors, setDoctors, clinics, services, tx }) {
             </tr>
           ))}</tbody>
         </table>
+        </div>
       )}
       {editDoc && (
         <Modal title="Edit Doctor" onClose={() => { setEditDoc(null); setEditDocMsg(""); }}>
@@ -663,6 +678,7 @@ function ServicesTab({ services, setServices, clinics, tx }) {
       {services.length === 0 ? (
         <Empty icon="M12 2a10 10 0 100 20A10 10 0 0012 2zM12 8v4l3 3" text={tx.noServices} />
       ) : (
+        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
         <table style={s.table} cellSpacing={0}>
           <thead style={s.thead}><tr>
             <th style={s.th}>{tx.colName}</th><th style={s.th}>{tx.colDesc}</th>
@@ -684,6 +700,7 @@ function ServicesTab({ services, setServices, clinics, tx }) {
             </tr>
           ))}</tbody>
         </table>
+        </div>
       )}
       {editSvc && (
         <Modal title="Edit Service" onClose={() => { setEditSvc(null); setEditSvcMsg(""); }}>
@@ -811,6 +828,7 @@ function AddressesTab({ addresses, setAddresses, clinics, tx }) {
       {addresses.length === 0 ? (
         <Empty icon="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z" text={tx.noAddresses} />
       ) : (
+        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
         <table style={s.table} cellSpacing={0}>
           <thead style={s.thead}><tr>
             <th style={s.th}>{tx.country}</th>
@@ -838,6 +856,7 @@ function AddressesTab({ addresses, setAddresses, clinics, tx }) {
             </tr>
           ))}</tbody>
         </table>
+        </div>
       )}
 
       {open && (
@@ -957,8 +976,9 @@ function AppointmentsTab({ appointments, setAppointments, addresses, doctors, se
 
   const del = async (id) => {
     try {
-      const res = await authFetch(`${API_BASE}/api/appointments/${id}`, { method: "DELETE" });
-      if (!res.ok) return;
+      const res = await authFetch(`${API_BASE}/api/appointment/${id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (data.success !== "1") return;
       setAppointments(prev => prev.filter(a => a.id !== id));
     } catch(e) { console.error(e); }
   };
@@ -984,7 +1004,8 @@ function AppointmentsTab({ appointments, setAppointments, addresses, doctors, se
       </div>
 
       {/* ── Weekly calendar grid ── */}
-      <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}>
+      <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+      <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.05)", minWidth: 600 }}>
         {/* Day headers */}
         <div style={{ display: "grid", gridTemplateColumns: "64px repeat(7, 1fr)", borderBottom: `1px solid ${C.border}`, background: "#F8F9FF" }}>
           <div />
@@ -1028,6 +1049,7 @@ function AppointmentsTab({ appointments, setAppointments, addresses, doctors, se
             })}
           </div>
         ))}
+      </div>
       </div>
 
       {/* ── New Appointment Modal ── */}
@@ -1231,6 +1253,7 @@ function ScheduleTab({ doctors, addresses }) {
             : schedules.length === 0
             ? <p style={{ padding: 24, color: C.muted, fontSize: 14 }}>No working hours set for this doctor yet.</p>
             : (
+              <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
               <table style={s.table} cellSpacing={0}>
                 <thead>
                   <tr style={{ background: "#F8F9FF" }}>
@@ -1250,6 +1273,7 @@ function ScheduleTab({ doctors, addresses }) {
                   ))}
                 </tbody>
               </table>
+              </div>
             )
           }
         </div>
@@ -1450,9 +1474,14 @@ export default function AdminDashboard({ setPage, lang: propLang, setLang: propS
     schedule:     0,
   };
 
+  const { isMobile } = useResponsive();
+  const adminBarStyle = { ...s.adminBar, padding: isMobile ? "0 16px" : "0 48px", height: isMobile ? 58 : 72 };
+  const tabsRowStyle  = { ...s.tabsRow, padding: isMobile ? "0 8px" : "0 48px", overflowX: "auto", flexWrap: "nowrap", WebkitOverflowScrolling: "touch" };
+  const wrapStyle     = { ...s.wrap,    padding: isMobile ? "0 16px 40px" : "0 48px 56px" };
+
   return (
     <main style={s.page}>
-      <div style={s.adminBar}>
+      <div style={adminBarStyle}>
         <div style={s.adminLeft}>
           <div
             style={{ display: "flex", alignItems: "center", gap: 14, cursor: "pointer" }}
@@ -1509,7 +1538,7 @@ export default function AdminDashboard({ setPage, lang: propLang, setLang: propS
         </div>
       </div>
 
-      <div style={s.tabsRow}>
+      <div style={tabsRowStyle}>
         {TABS.map((t) => (
           <button key={t.key} style={s.tab(tab === t.key)} onClick={() => setTab(t.key)}>
             <Icon d={t.icon} size={15} />
@@ -1518,7 +1547,7 @@ export default function AdminDashboard({ setPage, lang: propLang, setLang: propS
         ))}
       </div>
 
-      <div style={s.wrap}>
+      <div style={wrapStyle}>
         {tab === "clinics"      && <ClinicsTab      clinics={clinics}           setClinics={setClinics} setPage={setPage} tx={tx} addresses={addresses} setAddresses={setAddresses} />}
         {tab === "doctors"      && <DoctorsTab       doctors={doctors}           setDoctors={setDoctors}     clinics={clinics} services={services} tx={tx} />}
         {tab === "services"     && <ServicesTab      services={services}         setServices={setServices}   clinics={clinics} tx={tx} />}

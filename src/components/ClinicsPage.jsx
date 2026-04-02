@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { COLORS } from "./constants";
 import { T } from "./translation";
+import { useResponsive } from "./useResponsive";
 
 const API_BASE =
   typeof window !== "undefined" && window.location.hostname === "localhost"
@@ -105,6 +106,7 @@ function ClinicCard({ clinic, index, onViewServices, tx }) {
 
 export default function ClinicsPage({ setPage, lang = "EN" }) {
   const tx = T[lang]?.clinics || T.EN.clinics;
+  const { isMobile, isTablet } = useResponsive();
   const [clinics, setClinics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -152,6 +154,10 @@ export default function ClinicsPage({ setPage, lang = "EN" }) {
     setPage("booking");
   };
 
+  const heroPadding = isMobile ? "32px 16px 28px" : isTablet ? "40px 40px 28px" : "56px 80px 40px";
+  const sectionPadding = isMobile ? "28px 16px 40px" : isTablet ? "32px 40px 48px" : "40px 80px 60px";
+  const gridCols = isMobile ? "1fr" : isTablet ? "repeat(2, 1fr)" : "repeat(3, 1fr)";
+
   return (
     <main style={{ flex: 1, display: "flex", flexDirection: "column", background: "#F8F9FF" }}>
       <style>{`
@@ -160,14 +166,14 @@ export default function ClinicsPage({ setPage, lang = "EN" }) {
         .view-services-btn:hover { background: #2f4abf !important; }
       `}</style>
 
-      <section style={{ padding: "56px 80px 40px", textAlign: "center", background: "linear-gradient(135deg, #EEF2FF 0%, #F8F9FF 60%, #ECFDF5 100%)" }}>
-        <h1 style={{ fontSize: 40, fontWeight: 900, color: "#0F172A", marginBottom: 12, letterSpacing: -0.5 }}>
+      <section style={{ padding: heroPadding, textAlign: "center", background: "linear-gradient(135deg, #EEF2FF 0%, #F8F9FF 60%, #ECFDF5 100%)" }}>
+        <h1 style={{ fontSize: isMobile ? 28 : 40, fontWeight: 900, color: "#0F172A", marginBottom: 12, letterSpacing: -0.5 }}>
           {tx.title}
         </h1>
-        <p style={{ fontSize: 16, color: "#64748B", marginBottom: 36 }}>{tx.subtitle}</p>
+        <p style={{ fontSize: isMobile ? 14 : 16, color: "#64748B", marginBottom: 28 }}>{tx.subtitle}</p>
 
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, flexWrap: "wrap" }}>
-          <div style={{ position: "relative", width: 280 }}>
+        <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "stretch" : "center", justifyContent: "center", gap: 12 }}>
+          <div style={{ position: "relative", width: isMobile ? "100%" : 280 }}>
             <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }}><SearchIcon /></span>
             <input
               style={{ width: "100%", padding: "11px 14px 11px 40px", border: "1.5px solid #E5E7EB", borderRadius: 10, fontSize: 14, color: "#0F172A", outline: "none", background: "#fff", boxSizing: "border-box" }}
@@ -188,9 +194,9 @@ export default function ClinicsPage({ setPage, lang = "EN" }) {
         </div>
       </section>
 
-      <section style={{ padding: "40px 80px 60px" }}>
+      <section style={{ padding: sectionPadding }}>
         {loading && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 28 }}>
+          <div style={{ display: "grid", gridTemplateColumns: gridCols, gap: 28 }}>
             {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
           </div>
         )}
@@ -215,7 +221,7 @@ export default function ClinicsPage({ setPage, lang = "EN" }) {
             <p style={{ fontSize: 14, color: "#94A3B8", marginBottom: 24 }}>
               {filtered.length} {tx.found}
             </p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 28 }}>
+            <div style={{ display: "grid", gridTemplateColumns: gridCols, gap: 28 }}>
               {filtered.map((clinic, i) => (
                 <ClinicCard key={clinic.id} clinic={clinic} index={i} onViewServices={handleViewServices} tx={tx} />
               ))}

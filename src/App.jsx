@@ -10,13 +10,17 @@ import AdminDashboard from "./components/AdminDashboard";
 import ClinicsPage from "./components/ClinicsPage";
 import DoctorDashboard from "./components/DoctorDashboard";
 import ServicesPage from "./components/ServicesPage";
+import ChatWidget from "./components/ChatWidget";
+import PatientLoginPage from "./components/PatientLoginPage";
+import PatientRegisterPage from "./components/PatientRegisterPage";
+import PatientDashboardPage from "./components/PatientDashboardPage";
 
 export default function App() {
   const [page, setPage] = useState("home");
   const [lang, setLang] = useState("RU");
 
-  const noFooter  = page === "admin" || page === "doctor";
-  const noHeader  = page === "admin" || page === "doctor";
+  const noFooter  = page === "admin" || page === "doctor" || page === "patientDashboard";
+  const noHeader  = page === "admin" || page === "doctor" || page === "patientDashboard";
 
   return (
     <div style={{ fontFamily: "'DM Sans', 'Segoe UI', sans-serif", background: COLORS.bg, minHeight: "100vh", display: "flex", flexDirection: "column" }}>
@@ -30,8 +34,12 @@ export default function App() {
       {page === "services"  && <ServicesPage setPage={setPage} lang={lang} />}
       {page === "admin"    && <AdminDashboard key="admin-dashboard" setPage={setPage} lang={lang} setLang={setLang} />}
       {page === "doctor"   && <DoctorDashboard setPage={setPage} lang={lang} />}
+{page === "patientLogin"      && <PatientLoginPage      setPage={setPage} lang={lang} />}
+      {page === "patientRegister"   && <PatientRegisterPage   setPage={setPage} lang={lang} />}
+      {page === "patientDashboard"  && <PatientDashboardPage  setPage={setPage} lang={lang} />}
       
       {!noFooter && <Footer lang={lang} />}
+      {page !== "admin" && page !== "doctor" && <ChatWidget />}
     </div>
   );
 }

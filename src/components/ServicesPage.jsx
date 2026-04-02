@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { COLORS } from "./constants";
 import { T } from "./translation";
+import { useResponsive } from "./useResponsive";
 
 const API_BASE = typeof window !== "undefined" && window.location.hostname === "localhost"
     ? "http://localhost:8080" : "";
@@ -11,9 +12,10 @@ const PriceIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="no
 
 export default function ServicesPage({ setPage, lang = "EN" }) {
   const tx = T[lang]?.services || T.EN.services;
+  const { isMobile, isTablet } = useResponsive();
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   const [search, setSearch] = useState("");
   const [clinic, setClinic] = useState("All");
   const [maxPrice, setMaxPrice] = useState("");
@@ -45,23 +47,34 @@ export default function ServicesPage({ setPage, lang = "EN" }) {
 
   const clinicsList = ["All", ...new Set(services.map(s => s.clinic_name).filter(Boolean))];
 
+  const filterGridCols = isMobile ? "1fr" : isTablet ? "1fr 1fr" : "1fr 1fr 1fr";
+  const cardGridCols = isMobile ? "1fr" : isTablet ? "repeat(2, 1fr)" : "repeat(auto-fill, minmax(350px, 1fr))";
+  const pagePadding = isMobile ? "28px 16px" : isTablet ? "36px 32px" : "40px 20px";
+
   return (
-    <main style={{ flex: 1, background: "#F8F9FF", minHeight: "100vh", padding: "40px 20px" }}>
+    <main style={{ flex: 1, background: "#F8F9FF", minHeight: "100vh", padding: pagePadding }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        
-        <header style={{ marginBottom: 40 }}>
-          <h1 style={{ fontSize: 32, fontWeight: 800, color: "#0F172A", marginBottom: 8 }}>{tx.title}</h1>
-          <p style={{ color: "#64748B" }}>{tx.subtitle}</p>
+
+        <header style={{ marginBottom: 32 }}>
+          <h1 style={{ fontSize: isMobile ? 26 : 32, fontWeight: 800, color: "#0F172A", marginBottom: 8 }}>{tx.title}</h1>
+          <p style={{ color: "#64748B", fontSize: isMobile ? 14 : 16 }}>{tx.subtitle}</p>
         </header>
 
-        <section style={{ background: "#fff", padding: "32px", borderRadius: 16, border: "1px solid #E5E7EB", marginBottom: 32, boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 24, marginBottom: 24 }}>
+        <section style={{ background: "#fff", padding: isMobile ? "20px 16px" : "32px", borderRadius: 16, border: "1px solid #E5E7EB", marginBottom: 32, boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: filterGridCols, gap: isMobile ? 16 : 24, marginBottom: 20 }}>
             <FilterInput label={tx.searchLabel} icon={<SearchIcon />} value={search} onChange={setSearch} placeholder={tx.searchPh} />
             <FilterSelect label={tx.clinicLabel} icon={<ClinicIcon />} value={clinic} onChange={setClinic} options={clinicsList} />
-            <FilterInput label={tx.priceLabel} icon={<PriceIcon />} value={maxPrice} onChange={setMaxPrice} placeholder={tx.pricePh} type="number" />
+            {!isMobile && (
+              <FilterInput label={tx.priceLabel} icon={<PriceIcon />} value={maxPrice} onChange={setMaxPrice} placeholder={tx.pricePh} type="number" />
+            )}
           </div>
-          
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {isMobile && (
+            <div style={{ marginBottom: 20 }}>
+              <FilterInput label={tx.priceLabel} icon={<PriceIcon />} value={maxPrice} onChange={setMaxPrice} placeholder={tx.pricePh} type="number" />
+            </div>
+          )}
+
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <span style={{ fontSize: 14, fontWeight: 600, color: "#64748B" }}>{tx.sortBy}:</span>
             <SortBtn active={sortBy === "name"} onClick={() => setSortBy("name")}>{tx.sortName}</SortBtn>
             <SortBtn active={sortBy === "priceLow"} onClick={() => setSortBy("priceLow")}>{tx.sortPriceLow}</SortBtn>
@@ -74,12 +87,12 @@ export default function ServicesPage({ setPage, lang = "EN" }) {
           {tx.showing} <strong>{filtered.length}</strong> {tx.servicesCount}
         </p>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))", gap: 24 }}>
+        <div style={{ display: "grid", gridTemplateColumns: cardGridCols, gap: 24 }}>
           {filtered.map(s => (
             <ServiceCard key={s.id} service={s} tx={tx} onBook={() => setPage("booking")} />
           ))}
         </div>
-        
+
         {filtered.length === 0 && !loading && (
             <div style={{ textAlign: 'center', padding: '40px', color: '#64748B' }}>Услуги не найдены</div>
         )}
@@ -91,24 +104,24 @@ export default function ServicesPage({ setPage, lang = "EN" }) {
 const FilterInput = ({ label, icon, value, onChange, placeholder, type="text" }) => (
   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
     <label style={{ fontSize: 13, fontWeight: 600, color: "#1E293B", display: "flex", alignItems: "center", gap: 6 }}>{icon} {label}</label>
-    <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} 
-           style={{ padding: "12px 16px", borderRadius: 10, border: "1px solid #E2E8F0", outline: "none", fontSize: 14 }} />
+    <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+           style={{ padding: "12px 16px", borderRadius: 10, border: "1px solid #E2E8F0", outline: "none", fontSize: 14, boxSizing: "border-box", width: "100%" }} />
   </div>
 );
 
 const FilterSelect = ({ label, icon, value, onChange, options }) => (
   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
     <label style={{ fontSize: 13, fontWeight: 600, color: "#1E293B", display: "flex", alignItems: "center", gap: 6 }}>{icon} {label}</label>
-    <select value={value} onChange={e => onChange(e.target.value)} 
-            style={{ padding: "12px 16px", borderRadius: 10, border: "1px solid #E2E8F0", background: "#fff", outline: "none", fontSize: 14, cursor: "pointer" }}>
+    <select value={value} onChange={e => onChange(e.target.value)}
+            style={{ padding: "12px 16px", borderRadius: 10, border: "1px solid #E2E8F0", background: "#fff", outline: "none", fontSize: 14, cursor: "pointer", width: "100%", boxSizing: "border-box" }}>
       {options.map(o => <option key={o} value={o}>{o}</option>)}
     </select>
   </div>
 );
 
 const SortBtn = ({ children, active, onClick }) => (
-  <button onClick={onClick} style={{ 
-    padding: "8px 20px", borderRadius: 8, border: "none", fontSize: 14, cursor: "pointer", transition: "all 0.2s",
+  <button onClick={onClick} style={{
+    padding: "7px 14px", borderRadius: 8, border: "none", fontSize: 13, cursor: "pointer", transition: "all 0.2s",
     background: active ? COLORS.primary : "#F1F5F9", color: active ? "#fff" : "#64748B", fontWeight: 600
   }}>{children}</button>
 );
@@ -119,7 +132,7 @@ function ServiceCard({ service, tx, onBook }) {
       <div style={{ width: 48, height: 48, background: "#EFF6FF", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={COLORS.primary} strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
       </div>
-      
+
       <div>
         <h3 style={{ fontSize: 20, fontWeight: 700, color: "#1E293B", marginBottom: 12 }}>{service.name}</h3>
         <div style={{ height: 2, width: 32, background: "#E2E8F0", marginBottom: 16 }} />
@@ -128,19 +141,19 @@ function ServiceCard({ service, tx, onBook }) {
 
       <div style={{ fontSize: 14, color: "#94A3B8", display: "flex", flexDirection: "column", gap: 8, marginTop: "auto" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 16 }}>📍</span> 
+            <span style={{ fontSize: 16 }}>📍</span>
             <span style={{ fontWeight: 500, color: "#475569" }}>{service.clinic_name || "Клиника не указана"}</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 16 }}>🕒</span> 
+            <span style={{ fontSize: 16 }}>🕒</span>
             <span>{service.duration} {tx.min}</span>
         </div>
       </div>
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 16, paddingTop: 16, borderTop: "1px solid #F1F5F9" }}>
         <div style={{ fontSize: 22, fontWeight: 800, color: "#0F172A" }}>{service.price} ₸</div>
-        <button onClick={onBook} style={{ 
-            padding: "10px 24px", background: COLORS.primary, color: "#fff", 
+        <button onClick={onBook} style={{
+            padding: "10px 24px", background: COLORS.primary, color: "#fff",
             border: "none", borderRadius: 12, fontWeight: 700, cursor: "pointer",
             boxShadow: `0 4px 14px ${COLORS.primary}40`
         }}>{tx.bookNow}</button>

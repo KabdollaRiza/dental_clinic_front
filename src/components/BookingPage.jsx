@@ -1,33 +1,10 @@
 import { useState, useEffect } from "react";
 import { COLORS } from "./constants";
 import { T } from "./translation";
+import { useResponsive } from "./useResponsive";
 
 const API_BASE = typeof window !== "undefined" && window.location.hostname === "localhost"
   ? "http://localhost:8080" : "";
-
-const bs = {
-  page:     { flex: 1, display: "flex", flexDirection: "column", background: COLORS.bg },
-  wrap:     { maxWidth: 860, margin: "0 auto", padding: "36px 24px", width: "100%" },
-  backLink: { display: "inline-flex", alignItems: "center", gap: 6, color: COLORS.primary, fontSize: 14, fontWeight: 500, cursor: "pointer", marginBottom: 24 },
-  title:    { fontSize: 28, fontWeight: 800, color: COLORS.text, marginBottom: 6 },
-  sub:      { fontSize: 15, color: COLORS.muted, marginBottom: 36 },
-  card:     { background: COLORS.white, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: "28px", marginBottom: 24, boxShadow: "0 2px 8px rgba(0,0,0,0.04)" },
-  stepHead: { display: "flex", alignItems: "center", gap: 10, marginBottom: 18 },
-  stepNum:  (active) => ({ width: 28, height: 28, borderRadius: "50%", background: active ? COLORS.primary : COLORS.border, color: active ? "#fff" : COLORS.muted, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, flexShrink: 0 }),
-  stepTitle:{ fontSize: 16, fontWeight: 700, color: COLORS.text },
-  select:   { width: "100%", padding: "12px 16px", border: `1.5px solid ${COLORS.border}`, borderRadius: 8, fontSize: 14, color: COLORS.text, background: COLORS.white, outline: "none", cursor: "pointer", boxSizing: "border-box" },
-  input:    { width: "100%", padding: "12px 14px", border: `1.5px solid ${COLORS.border}`, borderRadius: 8, fontSize: 14, color: COLORS.text, outline: "none", boxSizing: "border-box", background: COLORS.white, transition: "border 0.2s" },
-  label:    { display: "block", fontSize: 13, fontWeight: 600, color: COLORS.text, marginBottom: 7 },
-  fg:       { marginBottom: 18 },
-  row:      { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 0 },
-  svcGrid:  { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 },
-  svcCard:  (sel) => ({ border: `2px solid ${sel ? COLORS.primary : COLORS.border}`, borderRadius: 12, padding: "18px 20px", cursor: "pointer", background: sel ? COLORS.primaryLight : COLORS.white, transition: "all 0.15s" }),
-  slotGrid: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 },
-  slotBtn:  (sel) => ({ padding: "10px 0", border: `2px solid ${sel ? COLORS.primary : COLORS.border}`, borderRadius: 8, background: sel ? COLORS.primary : COLORS.white, color: sel ? "#fff" : COLORS.text, fontSize: 13, fontWeight: 600, cursor: "pointer", textAlign: "center", transition: "all 0.15s" }),
-  submitBtn:(en) => ({ width: "100%", padding: "14px", border: "none", borderRadius: 10, background: en ? COLORS.primary : "#C9D0E0", color: en ? "#fff" : "#8a94a8", fontSize: 15, fontWeight: 700, cursor: en ? "pointer" : "not-allowed", marginTop: 8 }),
-  muted:    { fontSize: 13, color: COLORS.muted, padding: "8px 0" },
-  warn:     { fontSize: 13, color: "#F59E0B", padding: "8px 0" },
-};
 
 const fmtTime = (iso) => {
   if (!iso) return "—";
@@ -37,11 +14,12 @@ const fmtTime = (iso) => {
 
 export default function BookingPage({ setPage, lang = "EN" }) {
   const tx = T[lang]?.booking || T.EN.booking;
+  const { isMobile } = useResponsive();
 
   const [clinics,   setClinics]   = useState([]);
   const [services,  setServices]  = useState([]);
   const [doctors,   setDoctors]   = useState([]);
-  const [addresses, setAddresses] = useState([]); 
+  const [addresses, setAddresses] = useState([]);
   const [slots,     setSlots]     = useState([]);
 
   const [clinicId,         setClinicId]         = useState("");
@@ -58,6 +36,37 @@ export default function BookingPage({ setPage, lang = "EN" }) {
   const [message,      setMessage]      = useState("");
   const [submitting,   setSubmitting]   = useState(false);
 
+  // Responsive style values
+  const wrapPadding = isMobile ? "24px 16px" : "36px 24px";
+  const cardPadding = isMobile ? "20px 16px" : "28px";
+  const twoColGrid  = isMobile ? "1fr" : "1fr 1fr";
+  const svcGridCols = isMobile ? "1fr" : "1fr 1fr";
+  const slotGridCols = isMobile ? "repeat(3, 1fr)" : "repeat(4, 1fr)";
+
+  const bs = {
+    page:     { flex: 1, display: "flex", flexDirection: "column", background: COLORS.bg },
+    wrap:     { maxWidth: 860, margin: "0 auto", padding: wrapPadding, width: "100%", boxSizing: "border-box" },
+    backLink: { display: "inline-flex", alignItems: "center", gap: 6, color: COLORS.primary, fontSize: 14, fontWeight: 500, cursor: "pointer", marginBottom: 24 },
+    title:    { fontSize: isMobile ? 22 : 28, fontWeight: 800, color: COLORS.text, marginBottom: 6 },
+    sub:      { fontSize: isMobile ? 13 : 15, color: COLORS.muted, marginBottom: 28 },
+    card:     { background: COLORS.white, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: cardPadding, marginBottom: 24, boxShadow: "0 2px 8px rgba(0,0,0,0.04)" },
+    stepHead: { display: "flex", alignItems: "center", gap: 10, marginBottom: 18 },
+    stepNum:  (active) => ({ width: 28, height: 28, borderRadius: "50%", background: active ? COLORS.primary : COLORS.border, color: active ? "#fff" : COLORS.muted, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, flexShrink: 0 }),
+    stepTitle:{ fontSize: isMobile ? 14 : 16, fontWeight: 700, color: COLORS.text },
+    select:   { width: "100%", padding: "12px 16px", border: `1.5px solid ${COLORS.border}`, borderRadius: 8, fontSize: 14, color: COLORS.text, background: COLORS.white, outline: "none", cursor: "pointer", boxSizing: "border-box" },
+    input:    { width: "100%", padding: "12px 14px", border: `1.5px solid ${COLORS.border}`, borderRadius: 8, fontSize: 14, color: COLORS.text, outline: "none", boxSizing: "border-box", background: COLORS.white, transition: "border 0.2s" },
+    label:    { display: "block", fontSize: 13, fontWeight: 600, color: COLORS.text, marginBottom: 7 },
+    fg:       { marginBottom: 18 },
+    row:      { display: "grid", gridTemplateColumns: twoColGrid, gap: 16, marginBottom: 0 },
+    svcGrid:  { display: "grid", gridTemplateColumns: svcGridCols, gap: 14 },
+    svcCard:  (sel) => ({ border: `2px solid ${sel ? COLORS.primary : COLORS.border}`, borderRadius: 12, padding: "18px 20px", cursor: "pointer", background: sel ? COLORS.primaryLight : COLORS.white, transition: "all 0.15s" }),
+    slotGrid: { display: "grid", gridTemplateColumns: slotGridCols, gap: 10 },
+    slotBtn:  (sel) => ({ padding: "10px 0", border: `2px solid ${sel ? COLORS.primary : COLORS.border}`, borderRadius: 8, background: sel ? COLORS.primary : COLORS.white, color: sel ? "#fff" : COLORS.text, fontSize: 13, fontWeight: 600, cursor: "pointer", textAlign: "center", transition: "all 0.15s" }),
+    submitBtn:(en) => ({ width: "100%", padding: "14px", border: "none", borderRadius: 10, background: en ? COLORS.primary : "#C9D0E0", color: en ? "#fff" : "#8a94a8", fontSize: 15, fontWeight: 700, cursor: en ? "pointer" : "not-allowed", marginTop: 8 }),
+    muted:    { fontSize: 13, color: COLORS.muted, padding: "8px 0" },
+    warn:     { fontSize: 13, color: "#F59E0B", padding: "8px 0" },
+  };
+
   useEffect(() => {
     const load = async (path, setter) => {
       try {
@@ -71,6 +80,16 @@ export default function BookingPage({ setPage, lang = "EN" }) {
     load("/api/clinics",  setClinics);
     load("/api/services", setServices);
     load("/api/doctors",  setDoctors);
+
+    // Pre-fill name & email if patient is logged in
+    const token = localStorage.getItem("patient_token");
+    if (token) {
+      try {
+        const claims = JSON.parse(atob(token.split(".")[1]));
+        if (claims.name  || claims.Name)  setName(claims.name  || claims.Name);
+        if (claims.email || claims.Email) setEmail(claims.email || claims.Email);
+      } catch (_) {}
+    }
   }, []);
 
   const handleClinicChange = async (id) => {
@@ -95,7 +114,6 @@ export default function BookingPage({ setPage, lang = "EN" }) {
               if (label) return { ...a, _label: label };
             }
           } catch (_) {}
-          // Fallback: use is_main flag for a readable label
           branchCount++;
           return { ...a, _label: a.is_main ? "Main Branch" : `Branch ${branchCount}` };
         })
@@ -134,7 +152,6 @@ export default function BookingPage({ setPage, lang = "EN" }) {
     if (!doctorId || !clinicAddressId || !serviceId || !slotId || !date || !name || !email) return;
     setSubmitting(true);
     try {
-      const token = localStorage.getItem("token") || "";
       const payload = {
         doctor_id:         doctorId,
         clinic_address_id: clinicAddressId,
@@ -144,6 +161,8 @@ export default function BookingPage({ setPage, lang = "EN" }) {
         name:              name,
         email:             email,
       };
+      const rawToken = localStorage.getItem("patient_token") || localStorage.getItem("token") || "";
+      const token = rawToken.startsWith("Bearer ") ? rawToken.slice(7) : rawToken;
       const headers = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
       const res = await fetch(`${API_BASE}/api/appointment`, {
@@ -288,7 +307,7 @@ export default function BookingPage({ setPage, lang = "EN" }) {
             </div>
 
             {allReady && (
-              <div style={{ background: COLORS.primaryLight, borderRadius: 10, padding: "14px 18px", marginBottom: 16, fontSize: 14 }}>
+              <div style={{ background: COLORS.primaryLight, borderRadius: 10, padding: "14px 18px", marginBottom: 16, fontSize: isMobile ? 13 : 14 }}>
                 <b>Summary:</b> {selectedSvc?.name} · {date} · {fmtTime(slots.find(s => s.id === slotId)?.slot_start)} – {fmtTime(slots.find(s => s.id === slotId)?.slot_end)}
               </div>
             )}
