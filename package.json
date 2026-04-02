@@ -16,7 +16,9 @@
   "scripts": {
     "start": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dev": "vite",
+    "test": "echo \"No tests\" && exit 0"
   },
   "eslintConfig": {
     "extends": [
