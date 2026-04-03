@@ -440,7 +440,7 @@ export const ADMIN_T = {
     colAddress: "Address", colClinic: "Clinic",
     modalAddAddress: "Add Address", addressLabel: "Address", addressPh: "Enter full address",
     // Appointments
-    manageAppointments: "Manage Appointments", addAppointment: "+ Add Appointment",
+    manageAppointments: "Manage Appointments", addAppointment: "Add Appointment",
     noAppointments: 'No appointments yet. Click "Add Appointment" to get started.',
     colPatient: "Patient", colDoctor: "Doctor", colService: "Service",
     colDate: "Date", colTime: "Time",
@@ -493,7 +493,7 @@ export const ADMIN_T = {
     noAddresses: "Мекенжай жоқ.",
     colAddress: "Мекенжай", colClinic: "Клиника",
     modalAddAddress: "Мекенжай қосу", addressLabel: "Мекенжай", addressPh: "Толық мекенжайды енгізіңіз",
-    manageAppointments: "Жазылымдарды басқару", addAppointment: "+ Жазылым қосу",
+    manageAppointments: "Жазылымдарды басқару", addAppointment: "Жазылым қосу",
     noAppointments: 'Жазылым жоқ. "Жазылым қосу" батырмасын басыңыз.',
     colPatient: "Пациент", colDoctor: "Дәрігер", colService: "Қызмет",
     colDate: "Күні", colTime: "Уақыты",
