@@ -15,6 +15,7 @@ export default function ServicesPage({ setPage, lang = "EN" }) {
   const { isMobile, isTablet } = useResponsive();
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const [search, setSearch] = useState("");
   const [clinic, setClinic] = useState("All");
@@ -25,9 +26,10 @@ export default function ServicesPage({ setPage, lang = "EN" }) {
     const fetchData = async () => {
       try {
         const r = await fetch(`${API_BASE}/api/services`);
+        if (!r.ok) { setError("Failed to load services."); return; }
         const d = await r.json();
         setServices(Array.isArray(d) ? d : d.data || []);
-      } catch (_) {}
+      } catch (_) { setError("Network error. Please try again."); }
       finally { setLoading(false); }
     };
     fetchData();
@@ -93,8 +95,11 @@ export default function ServicesPage({ setPage, lang = "EN" }) {
           ))}
         </div>
 
-        {filtered.length === 0 && !loading && (
-            <div style={{ textAlign: 'center', padding: '40px', color: '#64748B' }}>Услуги не найдены</div>
+        {error && (
+          <div style={{ textAlign: "center", padding: "40px", color: "#ef4444" }}>{error}</div>
+        )}
+        {!error && filtered.length === 0 && !loading && (
+          <div style={{ textAlign: "center", padding: "40px", color: "#64748B" }}>Услуги не найдены</div>
         )}
       </div>
     </main>
@@ -104,7 +109,7 @@ export default function ServicesPage({ setPage, lang = "EN" }) {
 const FilterInput = ({ label, icon, value, onChange, placeholder, type="text" }) => (
   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
     <label style={{ fontSize: 13, fontWeight: 600, color: "#1E293B", display: "flex", alignItems: "center", gap: 6 }}>{icon} {label}</label>
-    <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+    <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} min={type === "number" ? "0" : undefined}
            style={{ padding: "12px 16px", borderRadius: 10, border: "1px solid #E2E8F0", outline: "none", fontSize: 14, boxSizing: "border-box", width: "100%" }} />
   </div>
 );
