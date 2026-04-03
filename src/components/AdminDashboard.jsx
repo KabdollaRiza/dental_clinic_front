@@ -1456,7 +1456,6 @@ export default function AdminDashboard({ setPage, lang: propLang, setLang: propS
     } catch (_) {}
   };
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadAll(); }, []);
 
   const counts = {
