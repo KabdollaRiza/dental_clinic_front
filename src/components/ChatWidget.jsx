@@ -193,7 +193,7 @@ export default function ChatWidget() {
       } else {
         addMessage("system", `⚠️ Не удалось создать запись: ${data.message || "попробуйте ещё раз."}`);
       }
-    } catch (e) {
+    } catch (_e) {
       addMessage("system", "⚠️ Ошибка сети при создании записи.");
     }
   };
@@ -245,7 +245,7 @@ export default function ChatWidget() {
       if (booking) {
         await handleBooking(booking);
       }
-    } catch (e) {
+    } catch (_e) {
       addMessage("assistant", "Извините, произошла ошибка. Попробуйте позже.");
     } finally {
       setLoading(false);

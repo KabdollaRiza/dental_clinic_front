@@ -27,7 +27,7 @@ export default function ServicesPage({ setPage, lang = "EN" }) {
         const r = await fetch(`${API_BASE}/api/services`);
         const d = await r.json();
         setServices(Array.isArray(d) ? d : d.data || []);
-      } catch (e) { console.error(e); }
+      } catch (_) {}
       finally { setLoading(false); }
     };
     fetchData();

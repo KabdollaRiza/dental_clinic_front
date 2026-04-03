@@ -99,6 +99,7 @@ export default function PatientDashboardPage({ setPage, lang = "EN" }) {
       setDoctors(docList);
       setServices(svcList);
     }).finally(() => setLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const getName = (arr, id) => arr.find(x => (x.id || x.Id) === id)?.name || arr.find(x => (x.id || x.Id) === id)?.Name || "—";

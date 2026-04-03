@@ -1,8 +1,18 @@
 stages:
+  - lint
   - build
 
 variables:
   GIT_SSL_NO_VERIFY: "true"
+
+lint:
+  stage: lint
+  image: node:20
+  script:
+    - npm install
+    - npm run lint
+  only:
+    - main
 
 build:
   stage: build

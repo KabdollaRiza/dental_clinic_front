@@ -111,10 +111,6 @@ const s = {
     background: "#FEE2E2", color: "#DC2626", border: "none",
     borderRadius: 7, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", marginLeft: 6,
   },
-  editBtn: {
-    background: "#EEF2FF", color: "#3B5BDB", border: "none",
-    borderRadius: 7, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer",
-  },
   badge: (color) => ({
     display: "inline-block",
     background: color ? color + "22" : C.primaryLight,
@@ -261,7 +257,7 @@ const TABS = [
 ];
 
 // CLINICS TAB
-function ClinicsTab({ clinics, setClinics, setPage, tx, addresses, setAddresses }) {
+function ClinicsTab({ clinics, setClinics, tx, addresses, setAddresses }) {
   const [open, setOpen] = useState(false);
   const [editClinic, setEditClinic] = useState(null);
   const [editForm2,  setEditForm2]  = useState({});
@@ -297,13 +293,11 @@ function ClinicsTab({ clinics, setClinics, setPage, tx, addresses, setAddresses 
         is_active:   form.is_active,
         address_id:  form.address_id,
       };
-      console.log("POST /api/clinics payload:", JSON.stringify(payload));
       const res = await authFetch(`${API_BASE}/api/clinics`, {
         method: "POST",
         body: JSON.stringify(payload),
       });
       const data = await res.json().catch(() => ({}));
-      console.log("POST /api/clinics response:", res.status, JSON.stringify(data));
       if (handle401(res.status, setMsg)) return;
       if (!res.ok) {
         setMsg("err:" + (data.message || data.error || "Failed to add clinic"));
@@ -350,7 +344,7 @@ function ClinicsTab({ clinics, setClinics, setPage, tx, addresses, setAddresses 
     try {
       await authFetch(`${API_BASE}/api/clinics/${id}`, { method: "DELETE" });
       setClinics((prev) => prev.filter((c) => c.id !== id));
-    } catch (e) { console.error(e); }
+    } catch (_) {}
   };
 
   return (
@@ -641,19 +635,29 @@ function ServicesTab({ services, setServices, clinics, tx }) {
         duration: parseInt(form.duration, 10) || 0,
         clinic_id: form.clinic_id, is_active: form.is_active,
       };
-      console.log("POST /api/services payload:", JSON.stringify(payload));
       const res = await authFetch(`${API_BASE}/api/services`, {
         method: "POST",
         body: JSON.stringify(payload),
       });
       const data = await res.json().catch(() => ({}));
-      console.log("POST /api/services response:", res.status, JSON.stringify(data));
       if (!res.ok) { setMsg("err:" + (data.message || data.error || JSON.stringify(data))); return; }
       setServices((prev) => [...prev, { ...payload, id: data.data?.id || data.data?.Id || data.service_id || data.id || data.Id || String(Date.now()) }]);
       setMsg("ok:" + tx.addedOk);
       setTimeout(() => { setOpen(false); setForm(EMPTY); setMsg(""); }, 1200);
     } catch (e) { setMsg("err:" + e.message); }
     finally { setSaving(false); }
+  };
+
+  const updateService = async () => {
+    if (!editSvc) return;
+    try {
+      const payload = { name: editSvcForm.name, description: editSvcForm.description, price: parseFloat(editSvcForm.price)||0, duration: parseInt(editSvcForm.duration,10)||0, is_active: editSvcForm.is_active };
+      const res = await authFetch(`${API_BASE}/api/services/${editSvc.id}`, { method: "PUT", body: JSON.stringify(payload) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setEditSvcMsg("err:" + (data.message || "Failed")); return; }
+      setServices(prev => prev.map(sv => sv.id === editSvc.id ? { ...sv, ...payload } : sv));
+      setEditSvcMsg("ok:Updated!"); setTimeout(() => { setEditSvc(null); setEditSvcMsg(""); }, 1000);
+    } catch (e) { setEditSvcMsg("err:" + e.message); }
   };
 
   const del = async (id) => {
@@ -789,7 +793,6 @@ function AddressesTab({ addresses, setAddresses, clinics, tx }) {
         method: "POST", body: JSON.stringify(payload),
       });
       const raw  = await res.text();
-      console.log("POST /api/address status:", res.status, "body:", raw);
       const data = (() => { try { return JSON.parse(raw); } catch(_){return {};} })();
       if (!res.ok) {
         setMsg("err:" + res.status + ": " + (data.message || data.error || raw || "Failed")); return;
@@ -815,7 +818,7 @@ function AddressesTab({ addresses, setAddresses, clinics, tx }) {
         await authFetch(`${API_BASE}/api/address/${id}`, { method: "DELETE" });
       }
       setAddresses(prev => prev.filter(a => a.id !== id));
-    } catch (e) { console.error(e); }
+    } catch (_) {}
   };
 
   return (
@@ -980,7 +983,7 @@ function AppointmentsTab({ appointments, setAppointments, addresses, doctors, se
       const data = await res.json().catch(() => ({}));
       if (data.success !== "1") return;
       setAppointments(prev => prev.filter(a => a.id !== id));
-    } catch(e) { console.error(e); }
+    } catch (_) {}
   };
 
   const assignedAddresses = addresses.filter(a => a.clinic_id);
@@ -1374,7 +1377,6 @@ export default function AdminDashboard({ setPage, lang: propLang, setLang: propS
   const [appointments, setAppointments] = useState([]);
 
   const normalize = (item) => {
-    console.log("[normalize] raw item keys:", Object.keys(item), "| values:", JSON.stringify(item).slice(0, 200));
     const id =
       item.data?.id        || item.data?.Id        ||
       item.id              || item.Id              || item.ID              ||
@@ -1387,30 +1389,21 @@ export default function AdminDashboard({ setPage, lang: propLang, setLang: propS
       Object.values(item).find(v => typeof v === "string" && /^[0-9a-f-]{36}$/i.test(v)) ||
       "";
 
-    console.log("[normalize] resolved id:", id);
     return { ...item, id, name: item.name || item.Name || "" };
   };
   const loadAll = async () => {
     const load = async (path, setter, key) => {
       try {
         const r = await authFetch(`${API_BASE}${path}`);
-        if (!r.ok) {
-          console.warn(`[load] ${path} returned ${r.status}`);
-          return;
-        }
+        if (!r.ok) return;
         const d = await r.json();
-        console.log(`[load] ${path} raw response:`, JSON.stringify(d).slice(0, 300));
         let list = Array.isArray(d) ? d
           : Array.isArray(d.data) ? d.data
           : d.data && typeof d.data === 'object' ? [d.data]
           : Array.isArray(d[key]) ? d[key]
           : [];
-        const normalized = list.map(normalize);
-        console.log(`[load] ${path} → ${normalized.length} items, ids:`, normalized.map(x => x.id));
-        setter(normalized);
-      } catch (e) {
-        console.error(`[load] ${path} error:`, e);
-      }
+        setter(list.map(normalize));
+      } catch (_) {}
     };
     await load("/api/clinics", setClinics, "clinics");
     await Promise.all([
@@ -1463,6 +1456,7 @@ export default function AdminDashboard({ setPage, lang: propLang, setLang: propS
     } catch (_) {}
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadAll(); }, []);
 
   const counts = {

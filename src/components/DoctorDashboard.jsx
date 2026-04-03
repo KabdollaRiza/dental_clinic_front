@@ -1,10 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { COLORS } from "./constants";
 import { SmileIcon } from "./Icons";
-
-const API_BASE =
-  typeof window !== "undefined" && window.location.hostname === "localhost"
-    ? "http://localhost:8080" : "";
 
 const P = COLORS;
 
@@ -175,11 +171,6 @@ const CalIcon = () => (
     <path d="M16 2v4M8 2v4M3 10h18" stroke={P.primary} strokeWidth="2" strokeLinecap="round"/>
   </svg>
 );
-const PatientsIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-  </svg>
-);
 const EyeIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="2"/>
@@ -221,7 +212,6 @@ function PatientModal({ patient, onClose }) {
   });
 
   const hc = (e) => setEditData({ ...editData, [e.target.name]: e.target.value });
-  const color = avatarColor(patient.name);
 
   return (
     <div style={st.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -472,7 +462,7 @@ function PatientsView() {
   );
 }
 
-export default function DoctorDashboard({ setPage, lang = "EN" }) {
+export default function DoctorDashboard({ setPage, lang: _lang = "EN" }) {
   const [view, setView] = useState("schedule");
 
   const doctorName = "Dr. Riza Kabdolla";

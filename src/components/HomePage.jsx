@@ -66,7 +66,6 @@ export default function HomePage({ setPage, lang = "EN" }) {
   const displayed = showAll ? services : services.slice(0, 6);
 
   const gridCols = isMobile ? "1fr" : isTablet ? "repeat(2, 1fr)" : "repeat(3, 1fr)";
-  const heroPadding = isMobile ? "32px 20px" : isTablet ? "0 0 0 40px" : "0 0 0 80px";
   const heroTitleSize = isMobile ? 32 : isTablet ? 42 : 58;
   const sectionPadding = isMobile ? "48px 16px 24px" : isTablet ? "56px 40px 24px" : "64px 80px 24px";
 
