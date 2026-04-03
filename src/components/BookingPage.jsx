@@ -61,7 +61,7 @@ export default function BookingPage({ setPage, lang = "EN" }) {
     svcGrid:  { display: "grid", gridTemplateColumns: svcGridCols, gap: 14 },
     svcCard:  (sel) => ({ border: `2px solid ${sel ? COLORS.primary : COLORS.border}`, borderRadius: 12, padding: "18px 20px", cursor: "pointer", background: sel ? COLORS.primaryLight : COLORS.white, transition: "all 0.15s" }),
     slotGrid: { display: "grid", gridTemplateColumns: slotGridCols, gap: 10 },
-    slotBtn:  (sel) => ({ padding: "10px 0", border: `2px solid ${sel ? COLORS.primary : COLORS.border}`, borderRadius: 8, background: sel ? COLORS.primary : COLORS.white, color: sel ? "#fff" : COLORS.text, fontSize: 13, fontWeight: 600, cursor: "pointer", textAlign: "center", transition: "all 0.15s" }),
+    slotBtn:  (sel, booked) => ({ padding: "10px 0", border: `2px solid ${booked ? "#E5E7EB" : sel ? COLORS.primary : COLORS.border}`, borderRadius: 8, background: booked ? "#F3F4F6" : sel ? COLORS.primary : COLORS.white, color: booked ? "#C1C7D0" : sel ? "#fff" : COLORS.text, fontSize: 13, fontWeight: 600, cursor: booked ? "not-allowed" : "pointer", textAlign: "center", transition: "all 0.15s" }),
     submitBtn:(en) => ({ width: "100%", padding: "14px", border: "none", borderRadius: 10, background: en ? COLORS.primary : "#C9D0E0", color: en ? "#fff" : "#8a94a8", fontSize: 15, fontWeight: 700, cursor: en ? "pointer" : "not-allowed", marginTop: 8 }),
     muted:    { fontSize: 13, color: COLORS.muted, padding: "8px 0" },
     warn:     { fontSize: 13, color: "#F59E0B", padding: "8px 0" },
@@ -81,6 +81,16 @@ export default function BookingPage({ setPage, lang = "EN" }) {
     load("/api/services", setServices);
     load("/api/doctors",  setDoctors);
 
+    // Pre-select clinic if coming from ClinicsPage
+    try {
+      const saved = sessionStorage.getItem("selectedClinic");
+      if (saved) {
+        const clinic = JSON.parse(saved);
+        if (clinic?.id) handleClinicChange(clinic.id);
+        sessionStorage.removeItem("selectedClinic");
+      }
+    } catch (_) {}
+
     // Pre-fill name & email if patient is logged in
     const token = localStorage.getItem("patient_token");
     if (token) {
@@ -94,7 +104,7 @@ export default function BookingPage({ setPage, lang = "EN" }) {
 
   const handleClinicChange = async (id) => {
     setClinicId(id);
-    setClinicAddressId(""); setSlotId(""); setSlots([]);
+    setClinicAddressId(""); setServiceId(""); setSlotId(""); setSlots([]);
     if (!id) { setAddresses([]); return; }
     try {
       const r = await fetch(`${API_BASE}/api/clinics/${id}/address`);
@@ -104,20 +114,19 @@ export default function BookingPage({ setPage, lang = "EN" }) {
       const token = localStorage.getItem("token") || "";
       const authHeaders = token ? { "Authorization": `Bearer ${token}` } : {};
       let branchCount = 0;
-      const enriched = await Promise.all(
-        list.map(async (a) => {
-          try {
-            const ar = await fetch(`${API_BASE}/api/address/${a.address_id}`, { headers: authHeaders });
-            if (ar.ok) {
-              const ad = await ar.json();
-              const label = [ad.street, ad.building, ad.city].filter(Boolean).join(", ");
-              if (label) return { ...a, _label: label };
-            }
-          } catch (_) {}
-          branchCount++;
-          return { ...a, _label: a.is_main ? "Main Branch" : `Branch ${branchCount}` };
-        })
-      );
+      const enriched = [];
+      for (const a of list) {
+        try {
+          const ar = await fetch(`${API_BASE}/api/address/${a.address_id}`, { headers: authHeaders });
+          if (ar.ok) {
+            const ad = await ar.json();
+            const label = [ad.street, ad.building, ad.city].filter(Boolean).join(", ");
+            if (label) { enriched.push({ ...a, _label: label }); continue; }
+          }
+        } catch (_) {}
+        branchCount++;
+        enriched.push({ ...a, _label: a.is_main ? "Main Branch" : `Branch ${branchCount}` });
+      }
       setAddresses(enriched);
     } catch (_) { setAddresses([]); }
   };
@@ -130,7 +139,7 @@ export default function BookingPage({ setPage, lang = "EN" }) {
       const r = await fetch(url);
       if (r.ok) {
         const d = await r.json();
-        const raw = Array.isArray(d) ? d : [];
+        const raw = Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : []);
         const seen = new Set();
         setSlots(raw.filter(sl => { if (seen.has(sl.slot_start)) return false; seen.add(sl.slot_start); return true; }));
       } else { setSlots([]); }
@@ -162,7 +171,7 @@ export default function BookingPage({ setPage, lang = "EN" }) {
         email:             email,
       };
       const rawToken = localStorage.getItem("patient_token") || localStorage.getItem("token") || "";
-      const token = rawToken.startsWith("Bearer ") ? rawToken.slice(7) : rawToken;
+      const token = rawToken.replace(/^Bearer\s+/i, "");
       const headers = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
       const res = await fetch(`${API_BASE}/api/appointment`, {
@@ -173,7 +182,11 @@ export default function BookingPage({ setPage, lang = "EN" }) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { setMessage(data.message || data.error || "Booking failed."); return; }
       setMessage(tx.success);
-      setTimeout(() => setPage("home"), 2500);
+      setTimeout(() => {
+        setClinicId(""); setClinicAddressId(""); setServiceId(""); setDoctorId("");
+        setDate(""); setSlotId(""); setSlots([]); setName(""); setEmail("");
+        setPage("home");
+      }, 2500);
     } catch (e) { setMessage(e.message || "Network error"); }
     finally { setSubmitting(false); }
   };
@@ -279,12 +292,17 @@ export default function BookingPage({ setPage, lang = "EN" }) {
                 : slots.length === 0
                 ? <p style={bs.warn}>⚠ No available slots for this date. Try a different date or doctor.</p>
                 : <div style={bs.slotGrid}>
-                    {slots.map(sl => (
-                      <button key={sl.id} style={bs.slotBtn(slotId === sl.id)}
-                        onClick={() => setSlotId(sl.id)}>
-                        {fmtTime(sl.slot_start)}
-                      </button>
-                    ))}
+                    {slots.map(sl => {
+                      const booked = sl.is_booked || sl.booked || sl.status === "booked" || sl.status === "unavailable";
+                      return (
+                        <button key={sl.id} style={bs.slotBtn(slotId === sl.id, booked)}
+                          onClick={() => { if (!booked) setSlotId(sl.id); }}
+                          disabled={booked}
+                          title={booked ? "Already booked" : ""}>
+                          {fmtTime(sl.slot_start)}
+                        </button>
+                      );
+                    })}
                   </div>
               }
             </div>
