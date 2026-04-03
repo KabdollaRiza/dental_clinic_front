@@ -3,11 +3,22 @@ import { COLORS, styles } from "./constants";
 import { PersonIcon, DoctorIcon, AdminIcon } from "./Icons";
 import { T } from "./translation";
 
+const EyeIcon = ({ show }) => (
+  <svg width="16" height="16" fill="none" stroke="#94A3B8" strokeWidth="1.8" viewBox="0 0 24 24" style={{ cursor: "pointer", flexShrink: 0 }}>
+    {show
+      ? <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></>
+      : <><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></>
+    }
+  </svg>
+);
+
 export default function RegisterPage({ setPage, lang = "EN" }) {
   const tx = T[lang]?.register || T.EN.register;
   const API_BASE = typeof window !== "undefined" && window.location.hostname === "localhost" ? "http://localhost:8080" : "";
   const [role, setRole] = useState("Doctor");
   const [formData, setFormData] = useState({ name: "", email: "", phone: "", specialization: "", password: "", confirm: "" });
+  const [showPw, setShowPw] = useState(false);
+  const [showCf, setShowCf] = useState(false);
   const [message, setMessage] = useState("");
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -87,15 +98,20 @@ export default function RegisterPage({ setPage, lang = "EN" }) {
           )}
 
           {[
-            { label: tx.password, name: "password", ph: tx.passwordPh },
-            { label: tx.confirm, name: "confirm", ph: tx.confirmPh },
-          ].map(({ label, name, ph }) => (
+            { label: tx.password, name: "password", ph: tx.passwordPh, show: showPw, toggle: () => setShowPw(v => !v) },
+            { label: tx.confirm,  name: "confirm",  ph: tx.confirmPh,  show: showCf, toggle: () => setShowCf(v => !v) },
+          ].map(({ label, name, ph, show, toggle }) => (
             <div key={name} style={styles.formGroup}>
               <label style={styles.label}>{label}</label>
-              <input style={styles.input} type="password" name={name} placeholder={ph}
-                value={formData[name]} onChange={handleChange}
-                onFocus={(e) => (e.target.style.borderColor = COLORS.primary)}
-                onBlur={(e) => (e.target.style.borderColor = COLORS.border)} required />
+              <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                <input style={{ ...styles.input, paddingRight: 40 }} type={show ? "text" : "password"} name={name} placeholder={ph}
+                  value={formData[name]} onChange={handleChange}
+                  onFocus={(e) => (e.target.style.borderColor = COLORS.primary)}
+                  onBlur={(e) => (e.target.style.borderColor = COLORS.border)} required />
+                <span onClick={toggle} style={{ position: "absolute", right: 12 }}>
+                  <EyeIcon show={show} />
+                </span>
+              </div>
             </div>
           ))}
 
