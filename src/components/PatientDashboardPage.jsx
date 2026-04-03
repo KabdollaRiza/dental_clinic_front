@@ -75,6 +75,7 @@ export default function PatientDashboardPage({ setPage, lang = "EN" }) {
   const [doctors,      setDoctors]      = useState([]);
   const [services,     setServices]     = useState([]);
   const [loading,      setLoading]      = useState(true);
+  const [loadError,    setLoadError]    = useState("");
 
   const raw     = localStorage.getItem("patient_token") || "";
   const token   = raw.startsWith("Bearer ") ? raw.slice(7) : raw;
@@ -98,7 +99,8 @@ export default function PatientDashboardPage({ setPage, lang = "EN" }) {
       setAppointments(list);
       setDoctors(docList);
       setServices(svcList);
-    }).finally(() => setLoading(false));
+    }).catch(() => setLoadError("Failed to load your data. Please refresh."))
+      .finally(() => setLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -243,6 +245,8 @@ export default function PatientDashboardPage({ setPage, lang = "EN" }) {
     <div style={{ flex: 1, padding: isMobile ? "20px 16px" : "32px 36px", background: COLORS.bg, minHeight: isMobile ? "auto" : "calc(100vh - 72px)" }}>
       {loading ? (
         <div style={{ textAlign: "center", padding: 60, color: COLORS.muted }}>{tx.loading}</div>
+      ) : loadError ? (
+        <div style={{ textAlign: "center", padding: 60, color: "#ef4444" }}>{loadError}</div>
       ) : tab === "appointments" ? (
         <>
           <h2 style={{ fontSize: isMobile ? 17 : 20, fontWeight: 800, color: COLORS.text, marginBottom: 16 }}>{tx.upcoming}</h2>
