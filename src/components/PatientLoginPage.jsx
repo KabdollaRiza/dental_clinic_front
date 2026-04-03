@@ -48,14 +48,17 @@ export default function PatientLoginPage({ setPage, lang = "EN" }) {
   const submit = async () => {
     if (!email.trim() || !password.trim()) { setMsg(tx.fillAll); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setMsg(tx.invalidEmail); return; }
+    if (password.length < 8) { setMsg("Password must be at least 8 characters."); return; }
     setLoading(true); setMsg("");
     try {
       const res = await fetch(`${API_BASE}/api/login`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), password, role: "patient" }),
+        body: JSON.stringify({ email: email.trim(), password }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { setMsg(data.message || data.error || "Login failed."); return; }
+      const role = (data.role || data.Role || "").toLowerCase();
+      if (role !== "patient") { setMsg("Access denied. This portal is for patients only."); return; }
       const token = data.token || data.access_token || data.Token || "";
       if (token) localStorage.setItem("patient_token", token);
       setMsg(tx.success);
