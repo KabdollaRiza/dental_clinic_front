@@ -1079,7 +1079,7 @@ function AppointmentsTab({ appointments, setAppointments, addresses, doctors, se
                       <option value="">— Select address —</option>
                       {assignedAddresses.map(a => (
                         <option key={a.id} value={a.id}>
-                          {[a.street, a.building, a.city].filter(Boolean).join(", ") || a.id.slice(0,8)}
+                          {[a.address_name, a.address_building].filter(Boolean).join(", ") || a.id.slice(0, 8)}
                         </option>
                       ))}
                     </Sel>
@@ -1213,7 +1213,7 @@ function ScheduleTab({ doctors, addresses }) {
   const getAddrLabel = (id) => {
     const a = addresses.find(x => x.id === id);
     if (!a) return id?.slice(0, 8) || "—";
-    return [a.street, a.building, a.city].filter(Boolean).join(", ") || id?.slice(0, 8);
+    return [a.address_name, a.address_building].filter(Boolean).join(", ") || id?.slice(0, 8);
   };
 
   return (
@@ -1290,7 +1290,7 @@ function ScheduleTab({ doctors, addresses }) {
               <option value="">— Select address —</option>
               {addresses.map(a => (
                 <option key={a.id} value={a.id}>
-                  {[a.street, a.building, a.city].filter(Boolean).join(", ") || a.id}
+                  {[a.address_name, a.address_building].filter(Boolean).join(", ") || a.id}
                 </option>
               ))}
             </Sel>
@@ -1437,14 +1437,16 @@ export default function AdminDashboard({ setPage, lang: propLang, setLang: propS
                 if (dr.ok) {
                   const detail = await dr.json();
                   allAddresses.push({
-                    id:       clinicAddressId, 
-                    addr_id:  addressId,       
-                    clinic_id: clinicId,
-                    is_main:  entry.is_main,
-                    country:  detail.country  || "",
-                    city:     detail.city     || "",
-                    street:   detail.street   || "",
-                    building: detail.building || "",
+                    id:           clinicAddressId,
+                    addr_id:      addressId,
+                    clinic_id:    clinicId,
+                    is_main:      entry.is_main,
+                    address_name:     entry.address_name     || "",
+                    address_building: entry.address_building || "",
+                    country:      detail.country  || "",
+                    city:         detail.city     || "",
+                    street:       detail.street   || "",
+                    building:     detail.building || "",
                   });
                 }
               } catch (_) {}

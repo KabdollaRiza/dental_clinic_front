@@ -111,22 +111,10 @@ export default function BookingPage({ setPage, lang = "EN" }) {
       if (!r.ok) { setAddresses([]); return; }
       const d = await r.json();
       const list = Array.isArray(d) ? d : (Array.isArray(d.data) ? d.data : []);
-      const token = localStorage.getItem("token") || "";
-      const authHeaders = token ? { "Authorization": `Bearer ${token}` } : {};
-      let branchCount = 0;
-      const enriched = [];
-      for (const a of list) {
-        try {
-          const ar = await fetch(`${API_BASE}/api/address/${a.address_id}`, { headers: authHeaders });
-          if (ar.ok) {
-            const ad = await ar.json();
-            const label = [ad.street, ad.building, ad.city].filter(Boolean).join(", ");
-            if (label) { enriched.push({ ...a, _label: label }); continue; }
-          }
-        } catch (_) {}
-        branchCount++;
-        enriched.push({ ...a, _label: a.is_main ? "Main Branch" : `Branch ${branchCount}` });
-      }
+      const enriched = list.map(a => {
+        const label = [a.address_name, a.address_building].filter(Boolean).join(", ");
+        return { ...a, _label: label || a.id };
+      });
       setAddresses(enriched);
     } catch (_) { setAddresses([]); }
   };
@@ -219,7 +207,7 @@ export default function BookingPage({ setPage, lang = "EN" }) {
                 <option value="">— Select branch —</option>
                 {addresses.map(a => (
                   <option key={a.id} value={a.id}>
-                    {a.is_main ? "★ " : ""}{a._label || a.id}
+                    {a._label || a.id}
                   </option>
                 ))}
               </select>
