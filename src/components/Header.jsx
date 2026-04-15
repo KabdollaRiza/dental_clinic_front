@@ -10,9 +10,9 @@ const LANGUAGES = [
 ];
 
 const NAV_LABELS = {
-  EN: { appointments: "My Appointments", login: "Login", clinics: "Clinics", services: "Services", portal: "Patient Portal" },
-  KZ: { appointments: "Жазылымдарым",   login: "Кіру",  clinics: "Клиникалар", services: "Қызметтер", portal: "Пациент порталы" },
-  RU: { appointments: "Мои записи",      login: "Войти", clinics: "Клиники",    services: "Услуги",    portal: "Портал пациента" },
+  EN: { appointments: "My Appointments", login: "Login", clinics: "Clinics", doctors: "Our Doctors", services: "Services", portal: "Patient Portal" },
+  KZ: { appointments: "Жазылымдарым",   login: "Кіру",  clinics: "Клиникалар", doctors: "Дәрігерлер", services: "Қызметтер", portal: "Пациент порталы" },
+  RU: { appointments: "Мои записи",      login: "Войти", clinics: "Клиники",    doctors: "Наши врачи", services: "Услуги",    portal: "Портал пациента" },
 };
 
 const h = {
@@ -61,7 +61,7 @@ export default function Header({ page, setPage, lang, setLang }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const ref  = useRef(null);
   const { isMobile } = useResponsive();
-  const showFullNav = ["home", "clinics", "services", "booking"].includes(page);
+  const showFullNav = ["home", "clinics", "doctors", "services", "booking"].includes(page);
   const t    = NAV_LABELS[lang] || NAV_LABELS.EN;
   const cur  = LANGUAGES.find((l) => l.code === lang) || LANGUAGES[0];
 
@@ -102,6 +102,7 @@ export default function Header({ page, setPage, lang, setLang }) {
             <nav style={h.nav}>
               <button style={h.outlineBtn(page === "login")}   onClick={() => setPage("login")}>{t.login}</button>
               <button style={h.outlineBtn(page === "clinics")} onClick={() => setPage("clinics")}>{t.clinics}</button>
+              <button style={h.outlineBtn(page === "doctors")} onClick={() => setPage("doctors")}>{t.doctors}</button>
               <button style={h.outlineBtn(page === "services")} onClick={() => setPage("services")}>{t.services}</button>
               <button style={h.outlineBtn(page === "patientLogin" || page === "patientDashboard")} onClick={() => handleNavClick("patientPortal")}>{t.portal}</button>
             </nav>
@@ -154,6 +155,7 @@ export default function Header({ page, setPage, lang, setLang }) {
           <div style={h.mobileMenuPanel} onClick={(e) => e.stopPropagation()}>
             <button style={h.mobileNavBtn(page === "login")}    onClick={() => handleNavClick("login")}>{t.login}</button>
             <button style={h.mobileNavBtn(page === "clinics")}  onClick={() => handleNavClick("clinics")}>{t.clinics}</button>
+            <button style={h.mobileNavBtn(page === "doctors")}  onClick={() => handleNavClick("doctors")}>{t.doctors}</button>
             <button style={h.mobileNavBtn(page === "services")} onClick={() => handleNavClick("services")}>{t.services}</button>
             <button style={h.mobileNavBtn(page === "patientLogin" || page === "patientDashboard")} onClick={() => handleNavClick("patientPortal")}>{t.portal}</button>
           </div>

@@ -14,6 +14,7 @@ import ChatWidget from "./components/ChatWidget";
 import PatientLoginPage from "./components/PatientLoginPage";
 import PatientRegisterPage from "./components/PatientRegisterPage";
 import PatientDashboardPage from "./components/PatientDashboardPage";
+import DoctorsPage from "./components/DoctorsPage";
 
 export default function App() {
   const [page, setPage] = useState("home");
@@ -21,6 +22,7 @@ export default function App() {
 
   const noFooter  = page === "admin" || page === "doctor" || page === "patientDashboard";
   const noHeader  = page === "admin" || page === "doctor" || page === "patientDashboard";
+
 
   return (
     <div style={{ fontFamily: "'DM Sans', 'Segoe UI', sans-serif", background: COLORS.bg, minHeight: "100vh", display: "flex", flexDirection: "column" }}>
@@ -32,6 +34,7 @@ export default function App() {
       {page === "booking"  && <BookingPage  setPage={setPage} lang={lang} />}
       {page === "clinics"  && <ClinicsPage  setPage={setPage} lang={lang} />}
       {page === "services"  && <ServicesPage setPage={setPage} lang={lang} />}
+      {page === "doctors"   && <DoctorsPage  setPage={setPage} lang={lang} />}
       {page === "admin"    && <AdminDashboard key="admin-dashboard" setPage={setPage} lang={lang} setLang={setLang} />}
       {page === "doctor"   && <DoctorDashboard setPage={setPage} lang={lang} />}
 {page === "patientLogin"      && <PatientLoginPage      setPage={setPage} lang={lang} />}

@@ -113,6 +113,26 @@ export const T = {
       team: "Team: Interstellar",
     },
 
+    // DoctorsPage
+    doctors: {
+      badge: "Meet Our Experts",
+      title: "Our Dental Professionals",
+      subtitle: "Highly qualified specialists dedicated to providing exceptional dental care with the latest technology and techniques",
+      statDoctors: "Expert Doctors",
+      statPatients: "Happy Patients",
+      statYears: "Years Experience",
+      statRating: "Average Rating",
+      noDoctors: "No doctors available at the moment.",
+      retry: "Retry",
+      ctaTitle: "Ready to Transform Your Smile?",
+      ctaSubtitle: "Schedule a consultation with one of our expert dentists today and take the first step towards a healthier, brighter smile.",
+      ctaBtn: "Schedule Free Consultation",
+      // HomePage carousel
+      meetTitle: "Meet Our Expert Doctors",
+      meetSubtitle: "Our team of experienced dental professionals is dedicated to providing you with the best care",
+      yearsExp: "years",
+    },
+
     // ServicesPage
     services: {
       title: "Our Medical Services",
@@ -245,6 +265,25 @@ export const T = {
       team: "Команда: Interstellar",
     },
 
+    // DoctorsPage
+    doctors: {
+      badge: "Біздің сарапшылар",
+      title: "Біздің стоматологиялық мамандар",
+      subtitle: "Жоғары білікті мамандар заманауи технологиялар мен әдістерді қолдана отырып тіс емдеу қызметтерін ұсынады",
+      statDoctors: "Дәрігер-маман",
+      statPatients: "Бақытты пациент",
+      statYears: "Жыл тәжірибе",
+      statRating: "Орташа рейтинг",
+      noDoctors: "Дәрігерлер қазір қол жетімді емес.",
+      retry: "Қайталау",
+      ctaTitle: "Күлімдеуіңізді өзгертуге дайынсыз ба?",
+      ctaSubtitle: "Бүгін біздің сарапшы стоматологтарымызбен кеңесу жазылыңыз.",
+      ctaBtn: "Тегін кеңес алу",
+      meetTitle: "Біздің сарапшы дәрігерлер",
+      meetSubtitle: "Тәжірибелі стоматологтар командасы сізге ең жақсы қызмет көрсетуге бағытталған",
+      yearsExp: "жыл",
+    },
+
     // ServicesPage
     services: {
       title: "Біздің медициналық қызметтер",
@@ -375,6 +414,25 @@ export const T = {
       address: "Адрес: Астана, Казахстан",
       copy: "© 2026 Стоматологическая клиника. Все права защищены.",
       team: "Команда: Interstellar",
+    },
+
+    // DoctorsPage
+    doctors: {
+      badge: "Познакомьтесь с нашими экспертами",
+      title: "Наши стоматологические специалисты",
+      subtitle: "Высококвалифицированные специалисты, использующие новейшие технологии для обеспечения исключительного ухода",
+      statDoctors: "Врачей-экспертов",
+      statPatients: "Довольных пациентов",
+      statYears: "Лет опыта",
+      statRating: "Средний рейтинг",
+      noDoctors: "Врачи пока недоступны.",
+      retry: "Повторить",
+      ctaTitle: "Готовы преобразить улыбку?",
+      ctaSubtitle: "Запишитесь на консультацию к одному из наших экспертов и сделайте первый шаг к здоровой улыбке.",
+      ctaBtn: "Записаться на консультацию",
+      meetTitle: "Познакомьтесь с нашими врачами",
+      meetSubtitle: "Команда опытных стоматологов, посвящённых вашему здоровью",
+      yearsExp: "лет",
     },
 
     // ServicesPage

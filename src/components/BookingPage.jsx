@@ -128,8 +128,7 @@ export default function BookingPage({ setPage, lang = "EN" }) {
       if (r.ok) {
         const d = await r.json();
         const raw = Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : []);
-        const seen = new Set();
-        setSlots(raw.filter(sl => { if (seen.has(sl.slot_start)) return false; seen.add(sl.slot_start); return true; }));
+        setSlots(raw);
       } else { setSlots([]); }
     } catch (_) { setSlots([]); }
     finally { setLoadingSlots(false); }
@@ -280,17 +279,12 @@ export default function BookingPage({ setPage, lang = "EN" }) {
                 : slots.length === 0
                 ? <p style={bs.warn}>⚠ No available slots for this date. Try a different date or doctor.</p>
                 : <div style={bs.slotGrid}>
-                    {slots.map(sl => {
-                      const booked = sl.is_booked || sl.booked || sl.status === "booked" || sl.status === "unavailable";
-                      return (
-                        <button key={sl.id} style={bs.slotBtn(slotId === sl.id, booked)}
-                          onClick={() => { if (!booked) setSlotId(sl.id); }}
-                          disabled={booked}
-                          title={booked ? "Already booked" : ""}>
-                          {fmtTime(sl.slot_start)}
-                        </button>
-                      );
-                    })}
+                    {slots.map(sl => (
+                      <button key={sl.id} style={bs.slotBtn(slotId === sl.id, false)}
+                        onClick={() => setSlotId(sl.id)}>
+                        {fmtTime(sl.slot_start)}
+                      </button>
+                    ))}
                   </div>
               }
             </div>
@@ -314,7 +308,7 @@ export default function BookingPage({ setPage, lang = "EN" }) {
 
             {allReady && (
               <div style={{ background: COLORS.primaryLight, borderRadius: 10, padding: "14px 18px", marginBottom: 16, fontSize: isMobile ? 13 : 14 }}>
-                <b>Summary:</b> {selectedSvc?.name} · {date} · {fmtTime(slots.find(s => s.id === slotId)?.slot_start)} – {fmtTime(slots.find(s => s.id === slotId)?.slot_end)}
+                <b>Summary:</b> {selectedSvc?.name} · {date} · {fmtTime(slots.find(s => s.id === slotId)?.slot_start)} – {(() => { const sl = slots.find(s => s.id === slotId); if (!sl || !selectedSvc?.duration) return "—"; const end = new Date(new Date(sl.slot_start).getTime() + selectedSvc.duration * 60000); return end.toISOString().match(/T(\d{2}:\d{2})/)?.[1] || "—"; })()}
               </div>
             )}
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { COLORS } from "./constants";
 import { T } from "./translation";
 import { useResponsive } from "./useResponsive";
@@ -15,6 +15,10 @@ const PALETTE = [
   { color: "#F59E0B", bg: "#FFFBEB", icon: "M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" },
   { color: "#EC4899", bg: "#FDF2F8", icon: "M6 3h12M6 8h12M6 13l3 3-3 3M18 13l-3 3 3 3" },
 ];
+
+const SPEC_COLORS = ["#3B5BDB", "#10B981", "#EC4899", "#F59E0B", "#8B5CF6", "#EF4444"];
+const MOCK_RATINGS = [4.9, 5.0, 4.8, 4.7, 4.9, 4.8];
+const MOCK_REVIEWS = [248, 312, 195, 167, 203, 189];
 
 function getCfg(i) { return PALETTE[i % PALETTE.length]; }
 
@@ -38,13 +42,39 @@ function SkeletonCard() {
   );
 }
 
+function DoctorAvatar({ name, size = 80 }) {
+  const initials = name ? name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase() : "DR";
+  return (
+    <div style={{ width: size, height: size, borderRadius: "50%", background: "linear-gradient(135deg, #3B5BDB 0%, #6B8EFF 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: size * 0.3, fontWeight: 800, color: "#fff", flexShrink: 0, margin: "0 auto" }}>
+      {initials}
+    </div>
+  );
+}
+
+function StarRatingSmall({ rating }) {
+  return (
+    <span style={{ display: "inline-flex", gap: 1 }}>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <svg key={i} width="12" height="12" viewBox="0 0 24 24">
+          <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" fill={i < Math.floor(rating) ? "#F59E0B" : "#E5E7EB"} />
+        </svg>
+      ))}
+    </span>
+  );
+}
+
 export default function HomePage({ setPage, lang = "EN" }) {
   const tx = T[lang]?.home || T.EN.home;
+  const dtx = T[lang]?.doctors || T.EN.doctors;
   const { isMobile, isTablet } = useResponsive();
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showAll, setShowAll] = useState(false);
+
+  const [doctors, setDoctors] = useState([]);
+  const [carouselIdx, setCarouselIdx] = useState(0);
+  const carouselRef = useRef(null);
 
   const fetchServices = () => {
     setLoading(true); setError("");
@@ -63,11 +93,41 @@ export default function HomePage({ setPage, lang = "EN" }) {
 
   useEffect(() => { fetchServices(); }, []);
 
+  useEffect(() => {
+    fetch(`${API_BASE}/api/doctors`)
+      .then((r) => r.ok ? r.json() : Promise.reject())
+      .then((d) => {
+        const list = Array.isArray(d) ? d : (d.doctors || d.data || []);
+        setDoctors(list);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Auto-advance carousel
+  useEffect(() => {
+    if (doctors.length < 2) return;
+    const id = setInterval(() => {
+      setCarouselIdx((i) => (i + 1) % doctors.length);
+    }, 4000);
+    return () => clearInterval(id);
+  }, [doctors.length]);
+
+  const prevDoc = () => setCarouselIdx((i) => (i - 1 + doctors.length) % doctors.length);
+  const nextDoc = () => setCarouselIdx((i) => (i + 1) % doctors.length);
+
   const displayed = showAll ? services : services.slice(0, 6);
 
   const gridCols = isMobile ? "1fr" : isTablet ? "repeat(2, 1fr)" : "repeat(3, 1fr)";
   const heroTitleSize = isMobile ? 32 : isTablet ? 42 : 58;
   const sectionPadding = isMobile ? "48px 16px 24px" : isTablet ? "56px 40px 24px" : "64px 80px 24px";
+
+  // Carousel: show center + 2 side cards
+  const visibleDocs = doctors.length > 0
+    ? [-1, 0, 1].map((offset) => {
+        const idx = (carouselIdx + offset + doctors.length) % doctors.length;
+        return { doc: doctors[idx], offset, idx };
+      })
+    : [];
 
   return (
     <main style={{ flex: 1, display: "flex", flexDirection: "column", background: "#F8F9FF" }}>
@@ -76,6 +136,9 @@ export default function HomePage({ setPage, lang = "EN" }) {
         .svc-card:hover { box-shadow: 0 10px 32px rgba(0,0,0,0.13) !important; transform: translateY(-3px) !important; }
         .hero-btn:hover { background: #2f4abf !important; transform: translateY(-1px) !important; }
         .view-btn:hover { background: #3B5BDB !important; color: #fff !important; }
+        .carousel-card { transition: transform 0.35s ease, box-shadow 0.35s ease, opacity 0.35s ease; }
+        .carousel-nav-btn:hover { background: #3B5BDB !important; color: #fff !important; }
+        .carousel-book-btn:hover { background: #2f4abf !important; }
       `}</style>
 
       {/* HERO */}
@@ -84,7 +147,6 @@ export default function HomePage({ setPage, lang = "EN" }) {
         flexDirection: isMobile ? "column" : "row",
         alignItems: isMobile ? "stretch" : "center",
         minHeight: isMobile ? "auto" : 520,
-        padding: isMobile ? "0" : "0",
         background: "linear-gradient(135deg, #EEF2FF 0%, #F0F4FF 50%, #E8F5F0 100%)",
         overflow: "hidden",
         position: "relative",
@@ -189,7 +251,199 @@ export default function HomePage({ setPage, lang = "EN" }) {
           </button>
         </div>
       )}
-      {!loading && services.length <= 6 && <div style={{ height: 56 }} />}
+      {!loading && services.length <= 6 && <div style={{ height: 40 }} />}
+
+      {/* DOCTORS CAROUSEL */}
+      {doctors.length > 0 && (
+        <section style={{ background: "#fff", padding: isMobile ? "48px 0 40px" : "64px 0 56px", overflow: "hidden" }}>
+          {/* Header */}
+          <div style={{ textAlign: "center", padding: isMobile ? "0 16px 32px" : "0 80px 40px" }}>
+            <h2 style={{ fontSize: isMobile ? 26 : 36, fontWeight: 800, color: "#0F172A", marginBottom: 12, letterSpacing: -0.5 }}>
+              {dtx.meetTitle}
+            </h2>
+            <p style={{ fontSize: isMobile ? 14 : 15, color: "#64748B", maxWidth: 480, margin: "0 auto", lineHeight: 1.7 }}>
+              {dtx.meetSubtitle}
+            </p>
+          </div>
+
+          {/* Carousel track */}
+          <div
+            ref={carouselRef}
+            style={{
+              position: "relative",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: isMobile ? 12 : 20,
+              padding: isMobile ? "0 40px 8px" : "0 80px 8px",
+              minHeight: isMobile ? 320 : 380,
+            }}
+          >
+            {/* Left arrow */}
+            <button
+              className="carousel-nav-btn"
+              onClick={prevDoc}
+              style={{
+                position: "absolute",
+                left: isMobile ? 4 : 24,
+                zIndex: 10,
+                width: isMobile ? 36 : 44,
+                height: isMobile ? 36 : 44,
+                borderRadius: "50%",
+                border: "1.5px solid #E5E7EB",
+                background: "#fff",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 2px 12px rgba(0,0,0,0.1)",
+                fontSize: 18,
+                color: "#0F172A",
+                transition: "all 0.2s",
+              }}
+            >
+              ‹
+            </button>
+
+            {/* Cards */}
+            {visibleDocs.map(({ doc, offset, idx }) => {
+              const color = SPEC_COLORS[idx % SPEC_COLORS.length];
+              const rating = MOCK_RATINGS[idx % MOCK_RATINGS.length];
+              const reviews = MOCK_REVIEWS[idx % MOCK_REVIEWS.length];
+              const isCenter = offset === 0;
+              return (
+                <div
+                  key={`${offset}-${doc.id}`}
+                  className="carousel-card"
+                  style={{
+                    background: "#fff",
+                    borderRadius: 20,
+                    padding: isCenter ? "28px 24px 24px" : "20px 18px 18px",
+                    border: "1px solid #E5E7EB",
+                    borderBottom: `4px solid ${color}`,
+                    boxShadow: isCenter
+                      ? "0 16px 48px rgba(0,0,0,0.16)"
+                      : "0 4px 16px rgba(0,0,0,0.07)",
+                    width: isMobile ? (isCenter ? 240 : 140) : (isCenter ? 320 : 220),
+                    flexShrink: 0,
+                    opacity: isCenter ? 1 : 0.7,
+                    transform: isCenter ? "scale(1) translateY(-8px)" : "scale(0.92) translateY(0)",
+                    zIndex: isCenter ? 2 : 1,
+                    textAlign: "center",
+                    display: isMobile && !isCenter ? "none" : "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                  }}
+                >
+                  {idx < 5 && (
+                    <div style={{ alignSelf: "flex-end", background: COLORS.primary, color: "#fff", fontSize: 10, fontWeight: 700, borderRadius: 20, padding: "3px 9px", marginBottom: 8 }}>
+                      Top Rated
+                    </div>
+                  )}
+                  <DoctorAvatar name={doc.name} size={isCenter ? 88 : 64} />
+                  <div style={{ fontSize: isCenter ? 16 : 13, fontWeight: 800, color: "#0F172A", marginTop: 12, marginBottom: 3 }}>
+                    {doc.name}
+                  </div>
+                  {doc.specialization && (
+                    <div style={{ fontSize: isCenter ? 12 : 11, fontWeight: 700, color, marginBottom: 8 }}>
+                      {doc.specialization}
+                    </div>
+                  )}
+                  {isCenter && (
+                    <>
+                      {doc.description && (
+                        <p style={{ fontSize: 12, color: "#64748B", lineHeight: 1.55, marginBottom: 10, WebkitLineClamp: 2, overflow: "hidden", display: "-webkit-box", WebkitBoxOrient: "vertical" }}>
+                          {doc.description}
+                        </p>
+                      )}
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 14, justifyContent: "center" }}>
+                        <StarRatingSmall rating={rating} />
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "#0F172A" }}>{rating}</span>
+                        <span style={{ fontSize: 11, color: "#94A3B8" }}>({reviews})</span>
+                      </div>
+                      {doc.experience > 0 && (
+                        <div style={{ fontSize: 12, color: "#16A34A", fontWeight: 600, marginBottom: 14 }}>
+                          {doc.experience}+ {dtx.yearsExp} Experience
+                        </div>
+                      )}
+                      <button
+                        className="carousel-book-btn"
+                        onClick={() => setPage("booking")}
+                        style={{ width: "100%", padding: "11px", background: COLORS.primary, color: "#fff", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "background 0.2s" }}
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+                        Book Appointment
+                      </button>
+                    </>
+                  )}
+                  {!isCenter && doc.experience > 0 && (
+                    <div style={{ fontSize: 11, color: "#64748B", marginTop: 4 }}>
+                      {doc.experience}+ {dtx.yearsExp}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {/* Right arrow */}
+            <button
+              className="carousel-nav-btn"
+              onClick={nextDoc}
+              style={{
+                position: "absolute",
+                right: isMobile ? 4 : 24,
+                zIndex: 10,
+                width: isMobile ? 36 : 44,
+                height: isMobile ? 36 : 44,
+                borderRadius: "50%",
+                border: "1.5px solid #E5E7EB",
+                background: "#fff",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 2px 12px rgba(0,0,0,0.1)",
+                fontSize: 18,
+                color: "#0F172A",
+                transition: "all 0.2s",
+              }}
+            >
+              ›
+            </button>
+          </div>
+
+          {/* Dots */}
+          <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 20 }}>
+            {doctors.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCarouselIdx(i)}
+                style={{
+                  width: i === carouselIdx ? 24 : 8,
+                  height: 8,
+                  borderRadius: 4,
+                  border: "none",
+                  background: i === carouselIdx ? COLORS.primary : "#CBD5E1",
+                  cursor: "pointer",
+                  padding: 0,
+                  transition: "all 0.3s",
+                }}
+              />
+            ))}
+          </div>
+
+          {/* View All Doctors link */}
+          <div style={{ textAlign: "center", marginTop: 28 }}>
+            <button
+              className="view-btn"
+              onClick={() => setPage("doctors")}
+              style={{ padding: "11px 32px", background: "transparent", color: COLORS.primary, border: `1.5px solid ${COLORS.primary}`, borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" }}
+            >
+              View All Doctors
+            </button>
+          </div>
+        </section>
+      )}
     </main>
   );
 }
