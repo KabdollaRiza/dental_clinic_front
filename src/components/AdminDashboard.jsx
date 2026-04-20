@@ -905,7 +905,7 @@ function fmtTime(iso) {
   return m ? m[1] : "—";
 }
 
-function AppointmentsTab({ appointments, setAppointments, addresses, doctors, services, tx }) {
+function AppointmentsTab({ appointments, setAppointments, addresses, doctors, services, clinics, tx }) {
   const [baseDate,   setBaseDate]   = useState(new Date());
   const [showModal,  setShowModal]  = useState(false);
   const [saving,     setSaving]     = useState(false);
@@ -913,8 +913,13 @@ function AppointmentsTab({ appointments, setAppointments, addresses, doctors, se
   const [slots,      setSlots]      = useState([]);
   const [loadSlots,  setLoadSlots]  = useState(false);
 
-  const EMPTY = { doctor_id: "", clinic_address_id: "", service_id: "", slot_id: "", date: "", name: "", email: "" };
+  const EMPTY = { clinic_id: "", doctor_id: "", clinic_address_id: "", service_id: "", slot_id: "", date: "", name: "", email: "" };
   const [form, setForm] = useState(EMPTY);
+
+  const assignedAddresses = addresses.filter(a => a.clinic_id);
+  const filteredAddresses = form.clinic_id ? assignedAddresses.filter(a => a.clinic_id === form.clinic_id) : assignedAddresses;
+  const filteredDoctors   = form.clinic_id ? doctors.filter(d => d.clinic_id === form.clinic_id) : doctors;
+  const filteredServices  = form.clinic_id ? services.filter(s => s.clinic_id === form.clinic_id) : services;
 
   const weekDates = getWeekDates(baseDate);
   const todayStr  = fmtDate(new Date());
@@ -945,6 +950,11 @@ function AppointmentsTab({ appointments, setAppointments, addresses, doctors, se
   };
 
   const handleFormChange = (field, value) => {
+    if (field === "clinic_id") {
+      setForm({ ...EMPTY, clinic_id: value });
+      setSlots([]);
+      return;
+    }
     const updated = { ...form, [field]: value };
     setForm(updated);
     if (["doctor_id","service_id","clinic_address_id","date"].includes(field)) {
@@ -986,7 +996,6 @@ function AppointmentsTab({ appointments, setAppointments, addresses, doctors, se
     } catch (_) {}
   };
 
-  const assignedAddresses = addresses.filter(a => a.clinic_id);
   const getName = (arr, id) => arr.find(x => x.id === id)?.name || "—";
 
   return (
@@ -1065,19 +1074,26 @@ function AppointmentsTab({ appointments, setAppointments, addresses, doctors, se
             </div>
             <div style={{ padding: "24px 28px 28px" }}>
 
+              <FG label="Clinic">
+                <Sel value={form.clinic_id} onChange={(e) => handleFormChange("clinic_id", e.target.value)}>
+                  <option value="">— Select clinic —</option>
+                  {clinics.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </Sel>
+              </FG>
+
               <FG label={tx.selectDoctor}>
                 <Sel value={form.doctor_id} onChange={(e) => handleFormChange("doctor_id", e.target.value)}>
                   <option value="">{tx.selectDoctor}</option>
-                  {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  {filteredDoctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </Sel>
               </FG>
 
               <FG label="Clinic Address">
-                {assignedAddresses.length === 0
-                  ? <p style={{ fontSize: 13, color: "#F59E0B" }}>No addresses assigned — add in Addresses tab first.</p>
+                {filteredAddresses.length === 0
+                  ? <p style={{ fontSize: 13, color: "#F59E0B" }}>{form.clinic_id ? "No addresses for this clinic." : "Select a clinic first."}</p>
                   : <Sel value={form.clinic_address_id} onChange={(e) => handleFormChange("clinic_address_id", e.target.value)}>
                       <option value="">— Select address —</option>
-                      {assignedAddresses.map(a => (
+                      {filteredAddresses.map(a => (
                         <option key={a.id} value={a.id}>
                           {[a.address_name, a.address_building].filter(Boolean).join(", ") || a.id.slice(0, 8)}
                         </option>
@@ -1089,7 +1105,7 @@ function AppointmentsTab({ appointments, setAppointments, addresses, doctors, se
               <FG label={tx.selectService}>
                 <Sel value={form.service_id} onChange={(e) => handleFormChange("service_id", e.target.value)}>
                   <option value="">{tx.selectService}</option>
-                  {services.map(sv => <option key={sv.id} value={sv.id}>{sv.name} ({sv.duration} min)</option>)}
+                  {filteredServices.map(sv => <option key={sv.id} value={sv.id}>{sv.name} ({sv.duration} min)</option>)}
                 </Sel>
               </FG>
 
@@ -1547,7 +1563,7 @@ export default function AdminDashboard({ setPage, lang: propLang, setLang: propS
         {tab === "doctors"      && <DoctorsTab       doctors={doctors}           setDoctors={setDoctors}     clinics={clinics} services={services} tx={tx} />}
         {tab === "services"     && <ServicesTab      services={services}         setServices={setServices}   clinics={clinics} tx={tx} />}
         {tab === "addresses"    && <AddressesTab     addresses={addresses}       setAddresses={setAddresses} clinics={clinics} tx={tx} />}
-        {tab === "appointments" && <AppointmentsTab  appointments={appointments} setAppointments={setAppointments} addresses={addresses} doctors={doctors} services={services} tx={tx} />}
+        {tab === "appointments" && <AppointmentsTab  appointments={appointments} setAppointments={setAppointments} addresses={addresses} doctors={doctors} services={services} clinics={clinics} tx={tx} />}
         {tab === "schedule"     && <ScheduleTab      doctors={doctors} addresses={addresses} />}
       </div>
     </main>

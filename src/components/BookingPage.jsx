@@ -18,7 +18,7 @@ export default function BookingPage({ setPage, lang = "EN" }) {
 
   const [clinics,   setClinics]   = useState([]);
   const [services,  setServices]  = useState([]);
-  const [doctors,   setDoctors]   = useState([]);
+  const [allDoctors, setAllDoctors] = useState([]);
   const [addresses, setAddresses] = useState([]);
   const [slots,     setSlots]     = useState([]);
 
@@ -28,6 +28,8 @@ export default function BookingPage({ setPage, lang = "EN" }) {
   const [doctorId,         setDoctorId]          = useState("");
   const [date,             setDate]              = useState("");
   const [slotId,           setSlotId]            = useState("");
+
+  const filteredDoctors = clinicId ? allDoctors.filter(d => d.clinic_id === clinicId) : [];
 
   const [name,         setName]         = useState("");
   const [email,        setEmail]        = useState("");
@@ -78,8 +80,7 @@ export default function BookingPage({ setPage, lang = "EN" }) {
       } catch (_) {}
     };
     load("/api/clinics",  setClinics);
-    load("/api/services", setServices);
-    load("/api/doctors",  setDoctors);
+    load("/api/doctors",  setAllDoctors);
 
     // Pre-select clinic if coming from ClinicsPage
     try {
@@ -104,19 +105,28 @@ export default function BookingPage({ setPage, lang = "EN" }) {
 
   const handleClinicChange = async (id) => {
     setClinicId(id);
-    setClinicAddressId(""); setServiceId(""); setSlotId(""); setSlots([]);
-    if (!id) { setAddresses([]); return; }
+    setClinicAddressId(""); setServiceId(""); setDoctorId(""); setSlotId(""); setSlots([]);
+    if (!id) { setAddresses([]); setServices([]); return; }
     try {
       const r = await fetch(`${API_BASE}/api/clinics/${id}/address`);
-      if (!r.ok) { setAddresses([]); return; }
-      const d = await r.json();
-      const list = Array.isArray(d) ? d : (Array.isArray(d.data) ? d.data : []);
-      const enriched = list.map(a => {
-        const label = [a.address_name, a.address_building].filter(Boolean).join(", ");
-        return { ...a, _label: label || a.id };
-      });
-      setAddresses(enriched);
+      if (!r.ok) { setAddresses([]); }
+      else {
+        const d = await r.json();
+        const list = Array.isArray(d) ? d : (Array.isArray(d.data) ? d.data : []);
+        const enriched = list.map(a => {
+          const label = [a.address_name, a.address_building].filter(Boolean).join(", ");
+          return { ...a, _label: label || a.id };
+        });
+        setAddresses(enriched);
+      }
     } catch (_) { setAddresses([]); }
+    try {
+      const r = await fetch(`${API_BASE}/api/clinics/${id}/services`);
+      if (r.ok) {
+        const d = await r.json();
+        setServices(Array.isArray(d) ? d : (Array.isArray(d.data) ? d.data : []));
+      } else { setServices([]); }
+    } catch (_) { setServices([]); }
   };
 
   const fetchSlots = async (dId, sId, caId, dt) => {
@@ -257,7 +267,7 @@ export default function BookingPage({ setPage, lang = "EN" }) {
                   onFocus={(e) => (e.target.style.borderColor = COLORS.primary)}
                   onBlur={(e)  => (e.target.style.borderColor = COLORS.border)}>
                   <option value="">{tx.chooseDoctor}</option>
-                  {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  {filteredDoctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
               </div>
               <div style={bs.fg}>

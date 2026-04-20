@@ -37,7 +37,7 @@ export default function App() {
       {page === "doctors"   && <DoctorsPage  setPage={setPage} lang={lang} />}
       {page === "admin"    && <AdminDashboard key="admin-dashboard" setPage={setPage} lang={lang} setLang={setLang} />}
       {page === "doctor"   && <DoctorDashboard setPage={setPage} lang={lang} />}
-{page === "patientLogin"      && <PatientLoginPage      setPage={setPage} lang={lang} />}
+      {page === "patientLogin"      && <PatientLoginPage      setPage={setPage} lang={lang} />}
       {page === "patientRegister"   && <PatientRegisterPage   setPage={setPage} lang={lang} />}
       {page === "patientDashboard"  && <PatientDashboardPage  setPage={setPage} lang={lang} />}
       
