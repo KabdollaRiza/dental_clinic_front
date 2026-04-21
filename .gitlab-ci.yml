@@ -1,6 +1,7 @@
 stages:
   - lint
   - build
+  - deploy
 
 variables:
   GIT_SSL_NO_VERIFY: "true"
@@ -14,14 +15,36 @@ lint:
   only:
     - main
 
-build:
+docker-build:
   stage: build
-  image: node:20
-  script:
-    - npm install
-    - npm run build
-  artifacts:
-    paths:
-      - dist/
+  image: docker:latest
+  tags:
+    - build
   only:
     - main
+  services:
+    - docker:dind
+  before_script:
+    - docker login "$CI_REGISTRY" -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD"
+  script:
+    - export FULL_IMAGE="$CI_REGISTRY/$CI_PROJECT_PATH:latest"
+    - docker build -t $FULL_IMAGE .
+    - docker push $FULL_IMAGE
+
+deploy:
+  image: docker:stable
+  stage: deploy
+  tags:
+    - prod
+  only:
+    - main
+  before_script:
+    - docker login "$CI_REGISTRY" -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD"
+  script:
+    - echo "$SSH_PRIVATE_KEY" > /tmp/id_rsa
+    - chmod 600 /tmp/id_rsa
+    - |
+      ssh -o StrictHostKeyChecking=no -i /tmp/id_rsa $SSH_USER@$SSH_HOST "
+        cd /home/vm/Projects/dental-clinic &&
+        docker compose up -d --pull always --no-deps --force-recreate frontend
+      "
