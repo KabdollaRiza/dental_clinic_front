@@ -10,9 +10,9 @@ const LANGUAGES = [
 ];
 
 const NAV_LABELS = {
-  EN: { appointments: "My Appointments", login: "Login", clinics: "Clinics", doctors: "Our Doctors", services: "Services", portal: "Patient Portal" },
-  KZ: { appointments: "Жазылымдарым",   login: "Кіру",  clinics: "Клиникалар", doctors: "Дәрігерлер", services: "Қызметтер", portal: "Пациент порталы" },
-  RU: { appointments: "Мои записи",      login: "Войти", clinics: "Клиники",    doctors: "Наши врачи", services: "Услуги",    portal: "Портал пациента" },
+  EN: { appointments: "My Appointments", login: "Login", clinics: "Clinics", doctors: "Our Doctors", services: "Services", portal: "Patient Portal", doctor: "Doctor", admin: "Admin" },
+  KZ: { appointments: "Жазылымдарым",   login: "Кіру",  clinics: "Клиникалар", doctors: "Дәрігерлер", services: "Қызметтер", portal: "Пациент порталы", doctor: "Дәрігер", admin: "Әкімші" },
+  RU: { appointments: "Мои записи",      login: "Войти", clinics: "Клиники",    doctors: "Наши врачи", services: "Услуги",    portal: "Портал пациента", doctor: "Врач", admin: "Админ" },
 };
 
 const h = {
@@ -64,7 +64,20 @@ export default function Header({ page, setPage, lang, setLang }) {
   const showFullNav = ["home", "clinics", "doctors", "services", "booking"].includes(page);
   const t    = NAV_LABELS[lang] || NAV_LABELS.EN;
   const cur  = LANGUAGES.find((l) => l.code === lang) || LANGUAGES[0];
-  const hasAdminToken = !!localStorage.getItem("token");
+
+  const adminToken = localStorage.getItem("token");
+  let loggedInRole = "";
+  if (adminToken) {
+    try {
+      const payload = JSON.parse(atob(adminToken.split(".")[1]));
+      if (!payload.exp || Date.now() / 1000 < payload.exp) {
+        loggedInRole = (payload.role || payload.Role || "").toLowerCase();
+      }
+    } catch {}
+  }
+  const hasAdminToken = !!(adminToken && (loggedInRole === "admin" || loggedInRole === "doctor"));
+  const dashboardPage = loggedInRole === "doctor" ? "doctor" : "admin";
+  const dashboardLabel = loggedInRole === "doctor" ? t.doctor : t.admin;
 
   useEffect(() => {
     const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
@@ -102,7 +115,7 @@ export default function Header({ page, setPage, lang, setLang }) {
           {!isMobile && showFullNav && (
             <nav style={h.nav}>
               {hasAdminToken
-                ? <button style={h.outlineBtn(false)} onClick={() => setPage("admin")}>Admin</button>
+                ? <button style={h.outlineBtn(false)} onClick={() => setPage(dashboardPage)}>{dashboardLabel}</button>
                 : <button style={h.outlineBtn(page === "login")} onClick={() => setPage("login")}>{t.login}</button>
               }
               <button style={h.outlineBtn(page === "clinics")} onClick={() => setPage("clinics")}>{t.clinics}</button>
@@ -158,7 +171,7 @@ export default function Header({ page, setPage, lang, setLang }) {
         <div style={h.mobileMenu} onClick={() => setMenuOpen(false)}>
           <div style={h.mobileMenuPanel} onClick={(e) => e.stopPropagation()}>
             {hasAdminToken
-              ? <button style={h.mobileNavBtn(false)} onClick={() => { setMenuOpen(false); setPage("admin"); }}>Admin</button>
+              ? <button style={h.mobileNavBtn(false)} onClick={() => { setMenuOpen(false); setPage(dashboardPage); }}>{dashboardLabel}</button>
               : <button style={h.mobileNavBtn(page === "login")} onClick={() => handleNavClick("login")}>{t.login}</button>
             }
             <button style={h.mobileNavBtn(page === "clinics")}  onClick={() => handleNavClick("clinics")}>{t.clinics}</button>
