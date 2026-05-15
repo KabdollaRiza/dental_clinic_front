@@ -473,20 +473,34 @@ function DoctorsTab({ doctors, setDoctors, clinics, services, tx }) {
   const [editDoc, setEditDoc] = useState(null);
   const [editDocForm, setEditDocForm] = useState({});
   const [editDocMsg,  setEditDocMsg]  = useState("");
-  const EMPTY = { name: "", email: "", specialization: "", experience: "", clinic_id: "", service_ids: [] };
+  const EMPTY = { name: "", email: "", specialization: "", experience: "", clinic_id: "", service_ids: [], password: "", is_active: true };
   const [form, setForm] = useState(EMPTY);
   const [msg, setMsg] = useState("");
+  const [clinicServices, setClinicServices] = useState([]);
 
-  const hc = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const hc = (e) => {
+    const { name, value } = e.target;
+    if (name === "clinic_id") {
+      setForm((f) => ({ ...f, clinic_id: value, service_ids: [] }));
+      setClinicServices([]);
+      if (value) {
+        fetch(`${API_BASE}/api/clinics/${value}/services`)
+          .then(r => r.ok ? r.json() : [])
+          .then(d => setClinicServices(Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : [])))
+          .catch(() => setClinicServices([]));
+      }
+    } else {
+      setForm((f) => ({ ...f, [name]: value }));
+    }
+  };
   const toggleSv = (id) => setForm((f) => ({
     ...f,
     service_ids: f.service_ids.includes(id) ? f.service_ids.filter((x) => x !== id) : [...f.service_ids, id],
   }));
 
-  const clinicServices = services.filter((sv) => !form.clinic_id || sv.clinic_id === form.clinic_id);
-
   const submit = async () => {
     if (!form.name || !form.email) { setMsg("err:" + tx.nameEmailRequired); return; }
+    if (!form.password) { setMsg("err:Password is required."); return; }
     if (doctors.some(d => d.email.toLowerCase() === form.email.toLowerCase())) {
       setMsg("err:A doctor with this email already exists."); return;
     }
@@ -506,7 +520,7 @@ function DoctorsTab({ doctors, setDoctors, clinics, services, tx }) {
   const updateDoctor = async () => {
     if (!editDoc) return;
     try {
-      const payload = { name: editDocForm.name, email: editDocForm.email, specialization: editDocForm.specialization, experience: parseInt(editDocForm.experience)||0 };
+      const payload = { name: editDocForm.name, email: editDocForm.email, specialization: editDocForm.specialization, experience: parseInt(editDocForm.experience)||0, new_password: editDocForm.new_password || "", is_active: !!editDocForm.is_active };
       const res = await authFetch(`${API_BASE}/api/doctors/${editDoc.id}`, { method: "PUT", body: JSON.stringify(payload) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { setEditDocMsg("err:" + (data.message || "Failed")); return; }
@@ -550,7 +564,7 @@ function DoctorsTab({ doctors, setDoctors, clinics, services, tx }) {
               <td style={s.td}>{d.specialization || "—"}</td>
               <td style={s.td}>{d.experience ? `${d.experience} yrs` : "—"}</td>
               <td style={s.td}>
-                <button style={s.editBtn} onClick={() => { setEditDoc(d); setEditDocForm({...d}); setEditDocMsg(""); }}>Edit</button>
+                <button style={s.editBtn} onClick={() => { setEditDoc(d); setEditDocForm({ ...d, new_password: "", is_active: d.is_active ?? true }); setEditDocMsg(""); }}>Edit</button>
                 <button style={s.deleteBtn} onClick={() => del(d.id)}>{tx.delete}</button>
               </td>
             </tr>
@@ -564,6 +578,11 @@ function DoctorsTab({ doctors, setDoctors, clinics, services, tx }) {
           <FG label={tx.emailAddr}><Input type="email" value={editDocForm.email||""} onChange={(e)=>setEditDocForm({...editDocForm,email:e.target.value})} /></FG>
           <FG label={tx.colSpec}><Input value={editDocForm.specialization||""} onChange={(e)=>setEditDocForm({...editDocForm,specialization:e.target.value})} /></FG>
           <FG label={tx.yearsExp}><Input type="number" value={editDocForm.experience||""} onChange={(e)=>setEditDocForm({...editDocForm,experience:e.target.value})} /></FG>
+          <FG label="New Password"><Input type="password" value={editDocForm.new_password||""} onChange={(e)=>setEditDocForm({...editDocForm,new_password:e.target.value})} placeholder="Leave blank to keep current" /></FG>
+          <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: C.text, marginBottom: 16, cursor: "pointer" }}>
+            <input type="checkbox" checked={!!editDocForm.is_active} onChange={(e)=>setEditDocForm({...editDocForm,is_active:e.target.checked})} />
+            Account active
+          </label>
           <button style={s.submitBtn} onClick={updateDoctor}>Save Changes</button>
           {editDocMsg && <p style={editDocMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{editDocMsg.slice(3)}</p>}
         </Modal>
@@ -572,6 +591,7 @@ function DoctorsTab({ doctors, setDoctors, clinics, services, tx }) {
         <Modal title={tx.modalAddDoctor} onClose={() => { setOpen(false); setForm(EMPTY); setMsg(""); }}>
           <FG label={tx.fullName}><Input name="name" value={form.name} onChange={hc} placeholder="Dr. John Smith" /></FG>
           <FG label={tx.emailAddr}><Input name="email" type="email" value={form.email} onChange={hc} placeholder="doctor@clinic.kz" /></FG>
+          <FG label="Password"><Input name="password" type="password" value={form.password} onChange={hc} placeholder="Set login password" /></FG>
           <FG label={tx.colSpec}><Input name="specialization" value={form.specialization} onChange={hc} placeholder="e.g. Orthodontics" /></FG>
           <FG label={tx.yearsExp}><Input name="experience" type="number" value={form.experience} onChange={hc} placeholder="e.g. 5" /></FG>
           <FG label={tx.assignClinic}>
@@ -595,6 +615,10 @@ function DoctorsTab({ doctors, setDoctors, clinics, services, tx }) {
               }
             </div>
           </FG>
+          <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: C.text, marginBottom: 16, cursor: "pointer" }}>
+            <input type="checkbox" name="is_active" checked={!!form.is_active} onChange={(e) => setForm(f => ({ ...f, is_active: e.target.checked }))} />
+            Account active
+          </label>
           <button style={s.submitBtn} onClick={submit}>{tx.modalAddDoctor}</button>
           {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
         </Modal>
@@ -624,24 +648,42 @@ function ServicesTab({ services, setServices, clinics, tx }) {
     if (!form.clinic_id) { setMsg("err:" + tx.selectClinicRequired); return; }
     const dur = parseInt(form.duration, 10) || 0;
     if (dur > 0 && dur % 30 !== 0) { setMsg("err:Duration must be a multiple of 30 minutes (e.g. 30, 60, 90)."); return; }
-    if (services.some(sv => sv.name.toLowerCase() === form.name.toLowerCase() && sv.clinic_id === form.clinic_id)) {
-      setMsg("err:This service already exists for this clinic."); return;
-    }
     setSaving(true);
     try {
-      const payload = {
-        name: form.name, description: form.description,
-        price: parseFloat(form.price) || 0,
-        duration: parseInt(form.duration, 10) || 0,
-        clinic_id: form.clinic_id, is_active: form.is_active,
-      };
-      const res = await authFetch(`${API_BASE}/api/services`, {
+      // Step 1: create global catalog entry (name + description only)
+      const res1 = await authFetch(`${API_BASE}/api/services`, {
         method: "POST",
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ name: form.name, description: form.description }),
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) { setMsg("err:" + (data.message || data.error || JSON.stringify(data))); return; }
-      setServices((prev) => [...prev, { ...payload, id: data.data?.id || data.data?.Id || data.service_id || data.id || data.Id || String(Date.now()) }]);
+      const data1 = await res1.json().catch(() => ({}));
+      if (!res1.ok) { setMsg("err:" + (data1.message || data1.error || JSON.stringify(data1))); return; }
+
+      const catalogId = data1.service_id || data1.ServiceID || data1.id || data1.Id;
+      if (!catalogId) { setMsg("err:Failed to get service ID"); return; }
+
+      // Step 2: assign to clinic with price / duration
+      const res2 = await authFetch(`${API_BASE}/api/add-clinics/${form.clinic_id}/services`, {
+        method: "POST",
+        body: JSON.stringify({
+          service_id: catalogId,
+          price: parseFloat(form.price) || 0,
+          duration: dur,
+          is_active: form.is_active,
+        }),
+      });
+      const data2 = await res2.json().catch(() => ({}));
+      if (!res2.ok) { setMsg("err:" + (data2.message || data2.error || JSON.stringify(data2))); return; }
+
+      const clinicServiceId = data2.service_id || data2.ServiceID || data2.id || data2.Id || String(Date.now());
+      setServices((prev) => [...prev, {
+        id: clinicServiceId,
+        name: form.name,
+        description: form.description,
+        price: parseFloat(form.price) || 0,
+        duration: dur,
+        clinic_id: form.clinic_id,
+        is_active: form.is_active,
+      }]);
       setMsg("ok:" + tx.addedOk);
       setTimeout(() => { setOpen(false); setForm(EMPTY); setMsg(""); }, 1200);
     } catch (e) { setMsg("err:" + e.message); }
@@ -912,6 +954,7 @@ function AppointmentsTab({ appointments, setAppointments, addresses, doctors, se
   const [msg,        setMsg]        = useState("");
   const [slots,      setSlots]      = useState([]);
   const [loadSlots,  setLoadSlots]  = useState(false);
+  const [filteredServices, setFilteredServices] = useState([]);
 
   const EMPTY = { clinic_id: "", doctor_id: "", clinic_address_id: "", service_id: "", slot_id: "", date: "", name: "", email: "" };
   const [form, setForm] = useState(EMPTY);
@@ -919,7 +962,6 @@ function AppointmentsTab({ appointments, setAppointments, addresses, doctors, se
   const assignedAddresses = addresses.filter(a => a.clinic_id);
   const filteredAddresses = form.clinic_id ? assignedAddresses.filter(a => a.clinic_id === form.clinic_id) : assignedAddresses;
   const filteredDoctors   = form.clinic_id ? doctors.filter(d => d.clinic_id === form.clinic_id) : doctors;
-  const filteredServices  = form.clinic_id ? services.filter(s => s.clinic_id === form.clinic_id) : services;
 
   const weekDates = getWeekDates(baseDate);
   const todayStr  = fmtDate(new Date());
@@ -953,6 +995,19 @@ function AppointmentsTab({ appointments, setAppointments, addresses, doctors, se
     if (field === "clinic_id") {
       setForm({ ...EMPTY, clinic_id: value });
       setSlots([]);
+      setFilteredServices([]);
+      if (value) {
+        Promise.all([
+          authFetch(`${API_BASE}/api/clinics/${value}/services`).then(r => r.ok ? r.json() : []),
+          authFetch(`${API_BASE}/api/services`).then(r => r.ok ? r.json() : []),
+        ]).then(([clinicD, catD]) => {
+          const clinicSvcs = Array.isArray(clinicD) ? clinicD : (Array.isArray(clinicD?.data) ? clinicD.data : []);
+          const catalog = Array.isArray(catD) ? catD : (Array.isArray(catD?.data) ? catD.data : []);
+          const nameToId = {};
+          catalog.forEach(sv => { nameToId[sv.name] = sv.id; });
+          setFilteredServices(clinicSvcs.map(sv => ({ ...sv, _catalog_id: nameToId[sv.name] || sv.id })));
+        }).catch(() => setFilteredServices([]));
+      }
       return;
     }
     const updated = { ...form, [field]: value };
@@ -982,7 +1037,8 @@ function AppointmentsTab({ appointments, setAppointments, addresses, doctors, se
         status: "booked",
       }]);
       setMsg("ok:Appointment booked!");
-      setTimeout(() => { setShowModal(false); setForm(EMPTY); setSlots([]); setMsg(""); }, 1200);
+      setSlots([]);
+      setTimeout(() => { setShowModal(false); setForm(EMPTY); setMsg(""); }, 1200);
     } catch(e) { setMsg("err:" + e.message); }
     finally { setSaving(false); }
   };
@@ -1105,7 +1161,7 @@ function AppointmentsTab({ appointments, setAppointments, addresses, doctors, se
               <FG label={tx.selectService}>
                 <Sel value={form.service_id} onChange={(e) => handleFormChange("service_id", e.target.value)}>
                   <option value="">{tx.selectService}</option>
-                  {filteredServices.map(sv => <option key={sv.id} value={sv.id}>{sv.name} ({sv.duration} min)</option>)}
+                  {filteredServices.map(sv => <option key={sv.id} value={sv._catalog_id || sv.id}>{sv.name} ({sv.duration} min)</option>)}
                 </Sel>
               </FG>
 
@@ -1167,6 +1223,8 @@ function ScheduleTab({ doctors, addresses }) {
   const [showGenModal,   setShowGenModal]   = useState(false);
   const [saving,       setSaving]      = useState(false);
   const [msg,          setMsg]         = useState("");
+  const [editingSchedule, setEditingSchedule] = useState(null);
+  const [editForm,     setEditForm]    = useState({ start_time: "09:00", end_time: "18:00" });
 
   const EMPTY_WH = { clinic_address_id: "", day_of_week: "1", start_time: "09:00", end_time: "18:00" };
   const [whForm, setWhForm] = useState(EMPTY_WH);
@@ -1226,6 +1284,42 @@ function ScheduleTab({ doctors, addresses }) {
     finally { setSaving(false); }
   };
 
+  const handleEdit = (sc) => {
+    setEditingSchedule(sc);
+    setEditForm({
+      start_time: (sc.Start_time || sc.start_time || "09:00").slice(0, 5),
+      end_time: (sc.End_time || sc.end_time || "18:00").slice(0, 5),
+    });
+    setMsg("");
+  };
+
+  const submitEdit = async () => {
+    if (!editForm.start_time || !editForm.end_time) { setMsg("err:Both times are required."); return; }
+    const id = editingSchedule.Id || editingSchedule.id;
+    setSaving(true);
+    try {
+      const res = await authFetch(`${API_BASE}/api/schedule/working-hours/${id}`, {
+        method: "PUT", body: JSON.stringify({ start_time: editForm.start_time, end_time: editForm.end_time }),
+      });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); setMsg("err:" + (d.message || "Failed")); return; }
+      setMsg("ok:Working hours updated!");
+      setEditingSchedule(null);
+      loadSchedule(selectedDoc);
+    } catch (e) { setMsg("err:" + e.message); }
+    finally { setSaving(false); }
+  };
+
+  const handleDelete = async (sc) => {
+    if (!window.confirm("Delete this working hours entry?")) return;
+    const id = sc.Id || sc.id;
+    try {
+      const res = await authFetch(`${API_BASE}/api/schedule/working-hours/${id}`, { method: "DELETE" });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); setMsg("err:" + (d.message || "Failed")); return; }
+      setMsg("ok:Deleted!");
+      loadSchedule(selectedDoc);
+    } catch (e) { setMsg("err:" + e.message); }
+  };
+
   const getAddrLabel = (id) => {
     const a = addresses.find(x => x.id === id);
     if (!a) return id?.slice(0, 8) || "—";
@@ -1257,8 +1351,14 @@ function ScheduleTab({ doctors, addresses }) {
           </Sel>
         </FG>
 
-        {selectedDoc && (
-          <button style={s.addBtn} onClick={() => { setShowHoursModal(true); setWhForm(EMPTY_WH); setMsg(""); }}>
+        {selectedDoc && schedules.length < 7 && (
+          <button style={s.addBtn} onClick={() => {
+            const usedDays = new Set(schedules.map(sc => String(sc.Day_of_week ?? sc.day_of_week)));
+            const firstFree = ["1","2","3","4","5","6","0"].find(d => !usedDays.has(d)) || "1";
+            setWhForm({ ...EMPTY_WH, day_of_week: firstFree });
+            setShowHoursModal(true);
+            setMsg("");
+          }}>
             + Add Working Hours
           </button>
         )}
@@ -1276,7 +1376,7 @@ function ScheduleTab({ doctors, addresses }) {
               <table style={s.table} cellSpacing={0}>
                 <thead>
                   <tr style={{ background: "#F8F9FF" }}>
-                    {["Day", "Address", "Start", "End"].map(h => (
+                    {["Day", "Address", "Start", "End", ""].map(h => (
                       <th key={h} style={{ padding: "13px 18px", textAlign: "left", fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: 0.5 }}>{h}</th>
                     ))}
                   </tr>
@@ -1288,6 +1388,18 @@ function ScheduleTab({ doctors, addresses }) {
                       <td style={{ padding: "14px 18px", fontSize: 14 }}>{getAddrLabel(sc.Clinic_address_id || sc.clinic_address_id)}</td>
                       <td style={{ padding: "14px 18px", fontSize: 14 }}>{(sc.Start_time || sc.start_time || "").slice(0, 5)}</td>
                       <td style={{ padding: "14px 18px", fontSize: 14 }}>{(sc.End_time || sc.end_time || "").slice(0, 5)}</td>
+                      <td style={{ padding: "10px 18px" }}>
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <button
+                            onClick={() => handleEdit(sc)}
+                            style={{ padding: "5px 12px", fontSize: 12, fontWeight: 600, background: C.primaryLight, color: C.primary, border: `1px solid ${C.primary}`, borderRadius: 7, cursor: "pointer" }}
+                          >Edit</button>
+                          <button
+                            onClick={() => handleDelete(sc)}
+                            style={{ padding: "5px 12px", fontSize: 12, fontWeight: 600, background: "#FEF2F2", color: "#DC2626", border: "1px solid #FCA5A5", borderRadius: 7, cursor: "pointer" }}
+                          >Delete</button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -1313,13 +1425,16 @@ function ScheduleTab({ doctors, addresses }) {
           </FG>
           <FG label="Day of Week">
             <Sel value={whForm.day_of_week} onChange={(e) => setWhForm(f => ({ ...f, day_of_week: e.target.value }))}>
-              <option value="1">Monday</option>
-              <option value="2">Tuesday</option>
-              <option value="3">Wednesday</option>
-              <option value="4">Thursday</option>
-              <option value="5">Friday</option>
-              <option value="6">Saturday</option>
-              <option value="0">Sunday</option>
+              {[
+                { value: "1", label: "Monday" },
+                { value: "2", label: "Tuesday" },
+                { value: "3", label: "Wednesday" },
+                { value: "4", label: "Thursday" },
+                { value: "5", label: "Friday" },
+                { value: "6", label: "Saturday" },
+                { value: "0", label: "Sunday" },
+              ].filter(d => !schedules.some(sc => String(sc.Day_of_week ?? sc.day_of_week) === d.value))
+               .map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
             </Sel>
           </FG>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
@@ -1334,6 +1449,29 @@ function ScheduleTab({ doctors, addresses }) {
           </div>
           <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={submitWorkingHours} disabled={saving}>
             {saving ? "Saving…" : "Save Working Hours"}
+          </button>
+          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+        </Modal>
+      )}
+
+      {/* Edit Working Hours Modal */}
+      {editingSchedule && (
+        <Modal title="Edit Working Hours" onClose={() => setEditingSchedule(null)}>
+          <p style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
+            {DAY_NAMES[editingSchedule.Day_of_week ?? editingSchedule.day_of_week]} — {getAddrLabel(editingSchedule.Clinic_address_id || editingSchedule.clinic_address_id)}
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <FG label="Start Time">
+              <Input name="start_time" type="time" value={editForm.start_time}
+                onChange={(e) => setEditForm(f => ({ ...f, start_time: e.target.value }))} />
+            </FG>
+            <FG label="End Time">
+              <Input name="end_time" type="time" value={editForm.end_time}
+                onChange={(e) => setEditForm(f => ({ ...f, end_time: e.target.value }))} />
+            </FG>
+          </div>
+          <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={submitEdit} disabled={saving}>
+            {saving ? "Saving…" : "Save Changes"}
           </button>
           {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
         </Modal>
@@ -1539,7 +1677,7 @@ export default function AdminDashboard({ setPage, lang: propLang, setLang: propS
               </div>
             )}
           </div>
-          <button style={s.logoutBtn} onClick={() => setPage("login")}>
+          <button style={s.logoutBtn} onClick={() => { localStorage.removeItem("token"); setPage("login"); }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <path d="M16 17l5-5-5-5M21 12H9M13 22H5a2 2 0 01-2-2V4a2 2 0 012-2h8"
                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
