@@ -1,21 +1,24 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { COLORS } from "./constants";
 import { SmileIcon } from "./Icons";
 
 const P = COLORS;
+const API_BASE = "http://localhost:8080";
 
-const DEMO_APPOINTMENTS = [
-  { id: 1, time: "09:00", patient: "John Smith",    service: "General Consultation",    date: "2026-03-13", color: "blue" },
-  { id: 2, time: "10:00", patient: "Anna Petrova",  service: "Dental Implant Cons...",  date: "2026-03-11", color: "blue" },
-  { id: 3, time: "10:30", patient: "Maria Garcia",  service: "Cardiology Check-up",     date: "2026-03-13", color: "blue" },
-  { id: 4, time: "11:00", patient: "Michael Brown", service: "Dental Check-up",         date: "2026-03-14", color: "blue" },
-  { id: 5, time: "11:00", patient: "Sofia Martinez",service: "Cavity Filling",          date: "2026-03-15", color: "blue" },
-  { id: 6, time: "09:30", patient: "Sarah Johnson", service: "Dental Cleaning",         date: "2026-03-14", color: "blue" },
-  { id: 7, time: "14:30", patient: "James Wilson",  service: "Orthodontic Check-up",    date: "2026-03-11", color: "yellow" },
-  { id: 8, time: "14:00", patient: "David Chen",    service: "Follow-up",               date: "2026-03-13", color: "yellow" },
-  { id: 9, time: "15:00", patient: "Emily Davis",   service: "Teeth Whitening",         date: "2026-03-14", color: "yellow" },
-  { id:10, time: "16:00", patient: "Riza Kabdolla", service: "Root Canal Treatment",    date: "2026-03-10", color: "blue" },
-];
+function parseJwt(token) {
+  try {
+    const base64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(decodeURIComponent(atob(base64).split("").map(c =>
+      "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2)
+    ).join("")));
+  } catch { return {}; }
+}
+
+function getAuthHeader() {
+  const raw = localStorage.getItem("token") || "";
+  // Backend stores token with "Bearer " prefix already
+  return raw.startsWith("Bearer ") ? raw : `Bearer ${raw}`;
+}
 
 const DEMO_PATIENTS = [
   { id: 1, name: "John Smith",    age: 45, gender: "Male",   lastVisit: "2026-03-12", diagnosis: "General Consultation",        bloodType: "B+",  allergies: "Latex",      email: "john.smith@email.com",    phone: "+7 (703) 456-7890", results: [{ name: "Dental Check-up Report", date: "2026-03-12" }, { name: "X-Ray Results", date: "2026-02-10" }] },
@@ -329,11 +332,29 @@ function PatientModal({ patient, onClose }) {
   );
 }
 
-// Schedule View 
-function ScheduleView() {
-  const [baseDate, setBaseDate] = useState(new Date("2026-03-16"));
+// Schedule View
+function ScheduleView({ doctorId }) {
+  const [baseDate, setBaseDate] = useState(new Date());
+  const [appointments, setAppointments] = useState([]);
   const weekDates = getWeekDates(baseDate);
   const todayStr = fmt(new Date());
+
+  useEffect(() => {
+    if (!doctorId) return;
+    fetch(`${API_BASE}/api/appointment`, {
+      headers: { Authorization: getAuthHeader() },
+    })
+      .then(r => r.json())
+      .then(data => {
+        const list = Array.isArray(data) ? data : [];
+        console.log("All appointments:", list.length, "doctorId:", doctorId);
+        console.log("Sample doctor_ids:", list.slice(0, 3).map(a => a.doctor_id));
+        const filtered = list.filter(a => a.doctor_id === doctorId);
+        console.log("Filtered for Alisher:", filtered.length, filtered);
+        setAppointments(filtered);
+      })
+      .catch((e) => console.error("Appointments fetch error:", e));
+  }, [doctorId]);
 
   const prevWeek = () => { const d = new Date(baseDate); d.setDate(d.getDate() - 7); setBaseDate(d); };
   const nextWeek = () => { const d = new Date(baseDate); d.setDate(d.getDate() + 7); setBaseDate(d); };
@@ -341,7 +362,17 @@ function ScheduleView() {
 
   const weekLabel = `${weekDates[0].toLocaleDateString("en-US", { month: "long", day: "numeric" })} - ${weekDates[6].toLocaleDateString("en-US", { day: "numeric" })}, ${weekDates[0].getFullYear()}`;
 
-  const getAppts = (date) => DEMO_APPOINTMENTS.filter(a => a.date === fmt(date));
+  const getAppts = (date) => {
+    const dateStr = fmt(date);
+    return appointments
+      .filter(a => a.start_time && a.start_time.startsWith(dateStr))
+      .map(a => ({
+        id: a.id,
+        time: a.start_time.slice(11, 16),
+        patient: a.name || a.email || "Patient",
+        color: "blue",
+      }));
+  };
 
   return (
     <div>
@@ -378,14 +409,13 @@ function ScheduleView() {
           <div key={hour} style={st.calBody}>
             <div style={st.timeCell}>{hour}</div>
             {weekDates.map((d, di) => {
-              const appts = getAppts(d).filter(a => a.time.startsWith(hour.slice(0,2)));
+              const appts = getAppts(d).filter(a => a.time.startsWith(hour.slice(0, 2)));
               return (
                 <div key={di} style={{ ...st.dayCol, borderTop: "1px solid #F1F5F9" }}>
                   {appts.map(a => (
                     <div key={a.id} style={st.apptBlock(a.color)}>
                       <div style={st.apptTime}>{a.time}</div>
                       <div style={st.apptName}>{a.patient}</div>
-                      <div style={st.apptSvc}>{a.service}</div>
                     </div>
                   ))}
                 </div>
@@ -464,8 +494,29 @@ function PatientsView() {
 
 export default function DoctorDashboard({ setPage, lang: _lang = "EN" }) {
   const [view, setView] = useState("schedule");
+  const [doctorId, setDoctorId] = useState("");
+  const [doctorName, setDoctorName] = useState("Doctor");
 
-  const doctorName = "Dr. Riza Kabdolla";
+  useEffect(() => {
+    const raw = localStorage.getItem("token") || "";
+    if (!raw) return;
+    const claims = parseJwt(raw);
+    const email = claims.email || "";
+
+    fetch(`${API_BASE}/api/doctors`, {
+      headers: { Authorization: getAuthHeader() },
+    })
+      .then(r => r.json())
+      .then(data => {
+        const list = Array.isArray(data) ? data : [];
+        const me = list.find(d => d.email === email);
+        if (me) {
+          setDoctorId(me.id);
+          setDoctorName(me.name || "Doctor");
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <div style={st.shell}>
@@ -518,7 +569,7 @@ export default function DoctorDashboard({ setPage, lang: _lang = "EN" }) {
 
         <main style={st.main}>
           <div style={st.content}>
-            {view === "schedule" && <ScheduleView />}
+            {view === "schedule" && <ScheduleView doctorId={doctorId} />}
             {view === "patients" && <PatientsView />}
           </div>
         </main>
