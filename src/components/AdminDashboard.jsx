@@ -927,7 +927,7 @@ function AddressesTab({ addresses, setAddresses, clinics, tx }) {
 // APPOINTMENTS CALENDAR TAB — Google Calendar style
 const STATUS_COLORS = { booked: "#3B5BDB", completed: "#22c55e", cancelled: "#EF4444", pending: "#F59E0B" };
 const HOURS = ["08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00"];
-const DAYS_SHORT = ["MON","TUE","WED","THU","FRI","SAT","SUN"];
+// daysShort comes from tx.daysShort (per language)
 
 function getWeekDates(base) {
   const d = new Date(base);
@@ -1061,7 +1061,7 @@ function AppointmentsTab({ appointments, setAppointments, addresses, doctors, se
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <button style={{ width: 32, height: 32, border: `1px solid ${C.border}`, borderRadius: 8, background: "#fff", cursor: "pointer", fontSize: 16 }} onClick={prevWeek}>‹</button>
-            <button style={{ padding: "6px 16px", border: `1px solid ${C.border}`, borderRadius: 8, background: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600 }} onClick={() => setBaseDate(new Date())}>Today</button>
+            <button style={{ padding: "6px 16px", border: `1px solid ${C.border}`, borderRadius: 8, background: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600 }} onClick={() => setBaseDate(new Date())}>{tx.today}</button>
             <button style={{ width: 32, height: 32, border: `1px solid ${C.border}`, borderRadius: 8, background: "#fff", cursor: "pointer", fontSize: 16 }} onClick={nextWeek}>›</button>
           </div>
           <span style={{ fontSize: 18, fontWeight: 800, color: C.text }}>{weekLabel}</span>
@@ -1081,7 +1081,7 @@ function AppointmentsTab({ appointments, setAppointments, addresses, doctors, se
             const isToday = fmtDate(d) === todayStr;
             return (
               <div key={i} style={{ padding: "12px 6px", textAlign: "center" }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: 0.8, marginBottom: 4 }}>{DAYS_SHORT[i]}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: 0.8, marginBottom: 4 }}>{(tx.daysShort || ["MON","TUE","WED","THU","FRI","SAT","SUN"])[i]}</div>
                 <div style={{ width: 34, height: 34, borderRadius: "50%", background: isToday ? C.primary : "transparent", color: isToday ? "#fff" : "#0F172A", fontSize: 20, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}>
                   {d.getDate()}
                 </div>
@@ -1213,7 +1213,7 @@ function AppointmentsTab({ appointments, setAppointments, addresses, doctors, se
 }
 
 // SCHEDULE TAB
-function ScheduleTab({ doctors, addresses }) {
+function ScheduleTab({ doctors, addresses, tx }) {
   const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
   const [schedules,    setSchedules]   = useState([]);
@@ -1330,9 +1330,9 @@ function ScheduleTab({ doctors, addresses }) {
     <div style={{ paddingTop: 24 }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
-        <span style={s.sectionTitle}>Schedule Management</span>
-        <button style={{ ...s.addBtn, background: "#10b981" }} onClick={() => { setShowGenModal(true); setMsg(""); }}>
-          ⚡ Generate Slots
+        <span style={s.sectionTitle}>{tx.scheduleTitle}</span>
+        <button style={{ ...s.addBtn, background: "transparent", color: C.primary, border: `1.5px solid ${C.primary}` }} onClick={() => { setShowGenModal(true); setMsg(""); }}>
+          {tx.generateSlots}
         </button>
       </div>
 
@@ -1344,9 +1344,9 @@ function ScheduleTab({ doctors, addresses }) {
 
       {/* Doctor selector */}
       <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 14, padding: "24px 28px", marginBottom: 20 }}>
-        <FG label="Select Doctor to manage working hours">
+        <FG label={tx.selectDoctorLabel}>
           <Sel value={selectedDoc} onChange={(e) => handleDocChange(e.target.value)}>
-            <option value="">— Choose a doctor —</option>
+            <option value="">{tx.chooseDoctor}</option>
             {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
           </Sel>
         </FG>
@@ -1479,9 +1479,9 @@ function ScheduleTab({ doctors, addresses }) {
 
       {/* Generate Slots Modal */}
       {showGenModal && (
-        <Modal title="Generate Time Slots" onClose={() => setShowGenModal(false)}>
+        <Modal title={tx.generateSlotsTitle} onClose={() => setShowGenModal(false)}>
           <p style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>
-            Generates 30-minute slots for all doctors based on their working hours, for the selected date range.
+            {tx.generateSlotsDesc}
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <FG label="From Date">
@@ -1494,7 +1494,7 @@ function ScheduleTab({ doctors, addresses }) {
             </FG>
           </div>
           <button style={{ ...s.submitBtn, background: "#10b981", opacity: saving ? 0.7 : 1 }} onClick={submitGenerate} disabled={saving}>
-            {saving ? "Generating…" : "⚡ Generate Slots"}
+            {saving ? tx.generating : tx.generateSlots}
           </button>
           {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
         </Modal>
@@ -1702,7 +1702,7 @@ export default function AdminDashboard({ setPage, lang: propLang, setLang: propS
         {tab === "services"     && <ServicesTab      services={services}         setServices={setServices}   clinics={clinics} tx={tx} />}
         {tab === "addresses"    && <AddressesTab     addresses={addresses}       setAddresses={setAddresses} clinics={clinics} tx={tx} />}
         {tab === "appointments" && <AppointmentsTab  appointments={appointments} setAppointments={setAppointments} addresses={addresses} doctors={doctors} services={services} clinics={clinics} tx={tx} />}
-        {tab === "schedule"     && <ScheduleTab      doctors={doctors} addresses={addresses} />}
+        {tab === "schedule"     && <ScheduleTab      doctors={doctors} addresses={addresses} tx={tx} />}
       </div>
     </main>
   );
