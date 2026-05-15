@@ -70,12 +70,13 @@ const valueStyle = { fontSize: 14, fontWeight: 500, color: "#1A1A2E" };
 export default function PatientDashboardPage({ setPage, lang = "EN" }) {
   const tx = TX[lang] || TX.EN;
   const { isMobile } = useResponsive();
-  const [tab,          setTab]          = useState("appointments");
-  const [appointments, setAppointments] = useState([]);
-  const [doctors,      setDoctors]      = useState([]);
-  const [services,     setServices]     = useState([]);
-  const [loading,      setLoading]      = useState(true);
-  const [loadError,    setLoadError]    = useState("");
+  const [tab,               setTab]               = useState("appointments");
+  const [appointments,      setAppointments]      = useState([]);
+  const [doctors,           setDoctors]           = useState([]);
+  const [services,          setServices]          = useState([]);
+  const [clinicAddressMap,  setClinicAddressMap]  = useState({});
+  const [loading,           setLoading]           = useState(true);
+  const [loadError,         setLoadError]         = useState("");
 
   const raw     = localStorage.getItem("patient_token") || "";
   const token   = raw.startsWith("Bearer ") ? raw.slice(7) : raw;
@@ -88,19 +89,53 @@ export default function PatientDashboardPage({ setPage, lang = "EN" }) {
   useEffect(() => {
     if (!token) { setPage("patientLogin"); return; }
     const headers = { Authorization: `Bearer ${token}` };
-    Promise.all([
-      fetch(`${API_BASE}/api/appointment/my-appointments`, { headers }).then(r => r.ok ? r.json() : []).catch(() => []),
-      fetch(`${API_BASE}/api/doctors`).then(r => r.ok ? r.json() : []).catch(() => []),
-      fetch(`${API_BASE}/api/services`).then(r => r.ok ? r.json() : []).catch(() => []),
-    ]).then(([appts, docs, svcs]) => {
-      const list = Array.isArray(appts) ? appts : (Array.isArray(appts?.data) ? appts.data : []);
-      const docList = Array.isArray(docs) ? docs : (Array.isArray(docs?.data) ? docs.data : []);
-      const svcList = Array.isArray(svcs) ? svcs : (Array.isArray(svcs?.data) ? svcs.data : []);
-      setAppointments(list);
-      setDoctors(docList);
-      setServices(svcList);
-    }).catch(() => setLoadError("Failed to load your data. Please refresh."))
-      .finally(() => setLoading(false));
+
+    (async () => {
+      try {
+        const [appts, docs, svcs, clinics] = await Promise.all([
+          fetch(`${API_BASE}/api/appointment/my-appointments`, { headers }).then(r => r.ok ? r.json() : []).catch(() => []),
+          fetch(`${API_BASE}/api/doctors`).then(r => r.ok ? r.json() : []).catch(() => []),
+          fetch(`${API_BASE}/api/services`, { headers }).then(r => r.ok ? r.json() : []).catch(() => []),
+          fetch(`${API_BASE}/api/clinics`).then(r => r.ok ? r.json() : []).catch(() => []),
+        ]);
+
+        const raw = Array.isArray(appts) ? appts : (Array.isArray(appts?.data) ? appts.data : []);
+        const seenSlots = new Set();
+        const list = raw.filter(a => {
+          const key = a.slot_id || a.SlotId || a.SlotID || a.id;
+          if (seenSlots.has(key)) return false;
+          seenSlots.add(key);
+          return true;
+        });
+
+        const docList    = Array.isArray(docs)    ? docs    : (Array.isArray(docs?.data)    ? docs.data    : []);
+        const svcList    = Array.isArray(svcs)    ? svcs    : (Array.isArray(svcs?.data)    ? svcs.data    : []);
+        const clinicList = Array.isArray(clinics) ? clinics : (Array.isArray(clinics?.data) ? clinics.data : []);
+
+        setAppointments(list);
+        setDoctors(docList);
+        setServices(svcList);
+
+        // Build clinic_address_id → clinic_name map
+        const addrResults = await Promise.all(
+          clinicList.map(clinic =>
+            fetch(`${API_BASE}/api/clinics/${clinic.id}/address`)
+              .then(r => r.ok ? r.json() : [])
+              .catch(() => [])
+              .then(addrs => ({ clinic, addrs: Array.isArray(addrs) ? addrs : [] }))
+          )
+        );
+        const map = {};
+        addrResults.forEach(({ clinic, addrs }) => {
+          addrs.forEach(addr => { if (addr.id) map[addr.id] = clinic.name || "—"; });
+        });
+        setClinicAddressMap(map);
+      } catch {
+        setLoadError("Failed to load your data. Please refresh.");
+      } finally {
+        setLoading(false);
+      }
+    })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -204,7 +239,7 @@ export default function PatientDashboardPage({ setPage, lang = "EN" }) {
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? "10px" : "14px 32px" }}>
         <div>
           <div style={labelStyle}>{tx.clinic}</div>
-          <div style={valueStyle}>—</div>
+          <div style={valueStyle}>{clinicAddressMap[a.clinic_address_id] || "—"}</div>
         </div>
         <div>
           <div style={labelStyle}>{tx.doctor}</div>
@@ -223,7 +258,7 @@ export default function PatientDashboardPage({ setPage, lang = "EN" }) {
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? "10px" : "12px 32px", marginBottom: 12 }}>
         <div>
           <div style={labelStyle}>{tx.clinicDoctor}</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.text }}>—</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.text }}>{clinicAddressMap[a.clinic_address_id] || "—"}</div>
           <div style={{ fontSize: 13, color: COLORS.muted }}>{getName(doctors, a.doctor_id || a.Doctor_id)}</div>
         </div>
         <div>
