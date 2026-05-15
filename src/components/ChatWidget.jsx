@@ -64,14 +64,24 @@ export default function ChatWidget({ page }) {
   const [appointmentDone, setAppointmentDone] = useState(false);
   const [fallbackServices, setFallbackServices] = useState([]);
   const [selectedClinicId, setSelectedClinicId] = useState("");
-  const endRef  = useRef(null);
-  const inputRef = useRef(null);
+  const endRef    = useRef(null);
+  const inputRef  = useRef(null);
+  const chatRef   = useRef(null);
 
   const noWidget = page === "admin" || page === "doctor";
 
   useEffect(() => {
     if (endRef.current) endRef.current.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (chatRef.current && !chatRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
 
   useEffect(() => {
     if (open && messages.length === 0) {
@@ -447,7 +457,7 @@ export default function ChatWidget({ page }) {
       )}
 
       {open && (
-        <div style={{
+        <div ref={chatRef} style={{
           position: "fixed", bottom: 28, right: 28, zIndex: 1000,
           width: 360, height: 540,
           background: COLORS.white, borderRadius: 18,
@@ -521,15 +531,6 @@ export default function ChatWidget({ page }) {
                   fontSize: 13.5, lineHeight: 1.55, wordBreak: "break-word",
                 }}>
                   {msg.content}
-                  {msg.appointmentId && (
-                    <div style={{
-                      marginTop: 6, padding: "4px 8px",
-                      background: "rgba(255,255,255,0.25)",
-                      borderRadius: 6, fontSize: 11, fontWeight: 600,
-                    }}>
-                      ID записи: {msg.appointmentId}
-                    </div>
-                  )}
                 </div>
               </div>
             ))}
