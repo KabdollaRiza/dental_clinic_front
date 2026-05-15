@@ -34,9 +34,11 @@ export default function BookingPage({ setPage, lang = "EN" }) {
   const [name,         setName]         = useState("");
   const [email,        setEmail]        = useState("");
 
-  const [loadingSlots, setLoadingSlots] = useState(false);
-  const [message,      setMessage]      = useState("");
-  const [submitting,   setSubmitting]   = useState(false);
+  const [loadingSlots,   setLoadingSlots]   = useState(false);
+  const [message,        setMessage]        = useState("");
+  const [submitting,     setSubmitting]     = useState(false);
+  const [booked,         setBooked]         = useState(false);
+  const [bookedSlotIds,  setBookedSlotIds]  = useState(new Set());
 
   // Responsive style values
   const wrapPadding = isMobile ? "24px 16px" : "36px 24px";
@@ -92,7 +94,7 @@ export default function BookingPage({ setPage, lang = "EN" }) {
       }
     } catch (_) {}
 
-    // Pre-fill name & email if patient is logged in
+    // Pre-fill name & email and load booked slot IDs if patient is logged in
     const token = localStorage.getItem("patient_token");
     if (token) {
       try {
@@ -100,6 +102,26 @@ export default function BookingPage({ setPage, lang = "EN" }) {
         if (claims.name  || claims.Name)  setName(claims.name  || claims.Name);
         if (claims.email || claims.Email) setEmail(claims.email || claims.Email);
       } catch (_) {}
+      const loadBooked = async () => {
+        try {
+          const r = await fetch(`${API_BASE}/api/appointment/my-appointments`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (r.ok) {
+            const appts = await r.json();
+            const list = Array.isArray(appts) ? appts : (Array.isArray(appts?.data) ? appts.data : []);
+            // Normalize to "YYYY-MM-DD HH:MM" — backend uses space separator, slots use T
+            const times = new Set(
+              list.map(a => {
+                const t = a.start_time || a.Start_time || a.slot_start || a.SlotStart;
+                return t ? t.replace("T", " ").slice(0, 16) : null;
+              }).filter(Boolean)
+            );
+            setBookedSlotIds(times);
+          }
+        } catch (_) {}
+      };
+      loadBooked();
     }
   }, []);
 
@@ -124,7 +146,28 @@ export default function BookingPage({ setPage, lang = "EN" }) {
       const r = await fetch(`${API_BASE}/api/clinics/${id}/services`);
       if (r.ok) {
         const d = await r.json();
-        setServices(Array.isArray(d) ? d : (Array.isArray(d.data) ? d.data : []));
+        const clinicSvcs = Array.isArray(d) ? d : (Array.isArray(d.data) ? d.data : []);
+
+        // The clinic services response returns clinic_service.id (junction table),
+        // but available-slots and appointment APIs need the catalog service_id.
+        // Cross-reference by name using the global catalog.
+        try {
+          const _tryValid = (t) => { try { const r = t.replace(/^Bearer\s+/i,""); const p = JSON.parse(atob(r.split(".")[1])); return !p.exp || Date.now()/1000 < p.exp; } catch(_){return false;} };
+          const _pt = localStorage.getItem("patient_token") || ""; const _at = localStorage.getItem("token") || "";
+          const rawToken = _tryValid(_pt) ? _pt : _at;
+          const token = rawToken.replace(/^Bearer\s+/i, "");
+          const catR = await fetch(`${API_BASE}/api/services`, token ? { headers: { Authorization: `Bearer ${token}` } } : {});
+          if (catR.ok) {
+            const catD = await catR.json();
+            const catalog = Array.isArray(catD) ? catD : (Array.isArray(catD.data) ? catD.data : []);
+            const nameToId = {};
+            catalog.forEach(sv => { nameToId[sv.name] = sv.id; });
+            setServices(clinicSvcs.map(sv => ({ ...sv, _catalog_id: nameToId[sv.name] || null })));
+            return;
+          }
+        } catch (_) {}
+
+        setServices(clinicSvcs);
       } else { setServices([]); }
     } catch (_) { setServices([]); }
   };
@@ -138,7 +181,9 @@ export default function BookingPage({ setPage, lang = "EN" }) {
       if (r.ok) {
         const d = await r.json();
         const raw = Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : []);
-        setSlots(raw);
+        const seen = new Set();
+        const unique = raw.filter(s => { if (seen.has(s.slot_start)) return false; seen.add(s.slot_start); return true; });
+        setSlots(unique);
       } else { setSlots([]); }
     } catch (_) { setSlots([]); }
     finally { setLoadingSlots(false); }
@@ -178,8 +223,14 @@ export default function BookingPage({ setPage, lang = "EN" }) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { setMessage(data.message || data.error || "Booking failed."); return; }
+      setBooked(true);
+      const bookedSlot = slots.find(sl => sl.id === slotId);
+      if (bookedSlot?.slot_start) {
+        setBookedSlotIds(prev => new Set([...prev, bookedSlot.slot_start.replace("T", " ").slice(0, 16)]));
+      }
       setMessage(tx.success);
       setTimeout(() => {
+        setBooked(false);
         setClinicId(""); setClinicAddressId(""); setServiceId(""); setDoctorId("");
         setDate(""); setSlotId(""); setSlots([]); setName(""); setEmail("");
         setPage("home");
@@ -237,8 +288,8 @@ export default function BookingPage({ setPage, lang = "EN" }) {
               ? <p style={bs.muted}>No services available.</p>
               : <div style={bs.svcGrid}>
                   {services.map(sv => (
-                    <div key={sv.id} style={bs.svcCard(serviceId === sv.id)}
-                      onClick={() => { setServiceId(sv.id); fetchSlots(doctorId, sv.id, clinicAddressId, date); setSlotId(""); }}>
+                    <div key={sv.id} style={bs.svcCard(serviceId === (sv._catalog_id || sv.id))}
+                      onClick={() => { const sid = sv._catalog_id || sv.id; setServiceId(sid); fetchSlots(doctorId, sid, clinicAddressId, date); setSlotId(""); }}>
                       <div style={{ fontSize: 16, fontWeight: 700, color: COLORS.text, marginBottom: 4 }}>{sv.name}</div>
                       {sv.description && <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 8 }}>{sv.description}</div>}
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -289,7 +340,7 @@ export default function BookingPage({ setPage, lang = "EN" }) {
                 : slots.length === 0
                 ? <p style={bs.warn}>⚠ No available slots for this date. Try a different date or doctor.</p>
                 : <div style={bs.slotGrid}>
-                    {slots.map(sl => (
+                    {slots.filter(sl => !bookedSlotIds.has((sl.slot_start || "").replace("T", " ").slice(0, 16))).map(sl => (
                       <button key={sl.id} style={bs.slotBtn(slotId === sl.id, false)}
                         onClick={() => setSlotId(sl.id)}>
                         {fmtTime(sl.slot_start)}
@@ -322,7 +373,7 @@ export default function BookingPage({ setPage, lang = "EN" }) {
               </div>
             )}
 
-            <button style={bs.submitBtn(!!allReady && !submitting)} onClick={handleSubmit} disabled={!allReady || submitting}>
+            <button style={bs.submitBtn(!!allReady && !submitting && !booked)} onClick={handleSubmit} disabled={!allReady || submitting || booked}>
               {submitting ? "Booking…" : tx.bookBtn}
             </button>
             {message && (
