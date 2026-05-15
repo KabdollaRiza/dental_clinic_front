@@ -261,10 +261,10 @@ export default function BookingPage({ setPage, lang = "EN" }) {
 
           {clinicId && addresses.length > 0 && (
             <div style={{ marginTop: 14 }}>
-              <label style={bs.label}>Branch / Address</label>
+              <label style={bs.label}>{tx.branch}</label>
               <select style={bs.select} value={clinicAddressId}
                 onChange={(e) => handleParamChange("clinicAddressId", e.target.value)}>
-                <option value="">— Select branch —</option>
+                <option value="">{tx.chooseBranch}</option>
                 {addresses.map(a => (
                   <option key={a.id} value={a.id}>
                     {a._label || a.id}
@@ -274,7 +274,7 @@ export default function BookingPage({ setPage, lang = "EN" }) {
             </div>
           )}
           {clinicId && addresses.length === 0 && (
-            <p style={bs.warn}>⚠ This clinic has no addresses yet.</p>
+            <p style={bs.warn}>{tx.noAddresses}</p>
           )}
         </div>
 
@@ -285,7 +285,7 @@ export default function BookingPage({ setPage, lang = "EN" }) {
               <span style={bs.stepTitle}>{tx.step2}</span>
             </div>
             {services.length === 0
-              ? <p style={bs.muted}>No services available.</p>
+              ? <p style={bs.muted}>{tx.noServices}</p>
               : <div style={bs.svcGrid}>
                   {services.map(sv => (
                     <div key={sv.id} style={bs.svcCard(serviceId === (sv._catalog_id || sv.id))}
@@ -334,11 +334,11 @@ export default function BookingPage({ setPage, lang = "EN" }) {
             <div style={bs.fg}>
               <label style={bs.label}>{tx.time}</label>
               {loadingSlots
-                ? <p style={bs.muted}>Loading slots…</p>
+                ? <p style={bs.muted}>{tx.loadingSlots}</p>
                 : !doctorId || !date || !clinicAddressId
-                ? <p style={bs.muted}>Select doctor, branch and date to see available slots.</p>
+                ? <p style={bs.muted}>{tx.selectToSeeSlots}</p>
                 : slots.length === 0
-                ? <p style={bs.warn}>⚠ No available slots for this date. Try a different date or doctor.</p>
+                ? <p style={bs.warn}>{tx.noSlots}</p>
                 : <div style={bs.slotGrid}>
                     {slots.filter(sl => !bookedSlotIds.has((sl.slot_start || "").replace("T", " ").slice(0, 16))).map(sl => (
                       <button key={sl.id} style={bs.slotBtn(slotId === sl.id, false)}
@@ -360,7 +360,7 @@ export default function BookingPage({ setPage, lang = "EN" }) {
               </div>
               <div style={bs.fg}>
                 <label style={bs.label}>Email</label>
-                <input style={bs.input} type="email" value={email} placeholder="Enter your email"
+                <input style={bs.input} type="email" value={email} placeholder={tx.emailPh}
                   onChange={(e) => setEmail(e.target.value)}
                   onFocus={(e) => (e.target.style.borderColor = COLORS.primary)}
                   onBlur={(e)  => (e.target.style.borderColor = COLORS.border)} />
@@ -369,12 +369,12 @@ export default function BookingPage({ setPage, lang = "EN" }) {
 
             {allReady && (
               <div style={{ background: COLORS.primaryLight, borderRadius: 10, padding: "14px 18px", marginBottom: 16, fontSize: isMobile ? 13 : 14 }}>
-                <b>Summary:</b> {selectedSvc?.name} · {date} · {fmtTime(slots.find(s => s.id === slotId)?.slot_start)} – {(() => { const sl = slots.find(s => s.id === slotId); if (!sl || !selectedSvc?.duration) return "—"; const end = new Date(new Date(sl.slot_start).getTime() + selectedSvc.duration * 60000); return end.toISOString().match(/T(\d{2}:\d{2})/)?.[1] || "—"; })()}
+                <b>{tx.summary}</b> {selectedSvc?.name} · {date} · {fmtTime(slots.find(s => s.id === slotId)?.slot_start)} – {(() => { const sl = slots.find(s => s.id === slotId); if (!sl || !selectedSvc?.duration) return "—"; const end = new Date(new Date(sl.slot_start).getTime() + selectedSvc.duration * 60000); return end.toISOString().match(/T(\d{2}:\d{2})/)?.[1] || "—"; })()}
               </div>
             )}
 
             <button style={bs.submitBtn(!!allReady && !submitting && !booked)} onClick={handleSubmit} disabled={!allReady || submitting || booked}>
-              {submitting ? "Booking…" : tx.bookBtn}
+              {submitting ? tx.bookingProgress : tx.bookBtn}
             </button>
             {message && (
               <p style={{ textAlign: "center", marginTop: 14, fontSize: 13, fontWeight: 600, color: message === tx.success ? "#22c55e" : "#ef4444" }}>
