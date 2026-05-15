@@ -16,8 +16,25 @@ import PatientDashboardPage from "./components/PatientDashboardPage";
 import DoctorsPage from "./components/DoctorsPage";
 import ChatWidget from "./components/ChatWidget";
 
+function getInitialPage() {
+  const token = localStorage.getItem("token");
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      if (payload.exp && Date.now() / 1000 > payload.exp) {
+        localStorage.removeItem("token");
+        return "home";
+      }
+      const role = (payload.role || payload.Role || "").toLowerCase();
+      if (role === "doctor") return "doctor";
+      if (role === "admin") return "admin";
+    } catch {}
+  }
+  return "home";
+}
+
 export default function App() {
-  const [page, setPage] = useState("home");
+  const [page, setPage] = useState(getInitialPage);
   const [lang, setLang] = useState("RU");
 
   const noFooter  = page === "admin" || page === "doctor" || page === "patientDashboard";
