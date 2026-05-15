@@ -25,10 +25,23 @@ export default function ServicesPage({ setPage, lang = "EN" }) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const r = await fetch(`${API_BASE}/api/services`);
-        if (!r.ok) { setError("Failed to load services."); return; }
-        const d = await r.json();
-        setServices(Array.isArray(d) ? d : d.data || []);
+        const cr = await fetch(`${API_BASE}/api/clinics`);
+        if (!cr.ok) { setError("Failed to load services."); return; }
+        const cd = await cr.json();
+        const clinicList = Array.isArray(cd) ? cd : (Array.isArray(cd.data) ? cd.data : []);
+        const results = await Promise.all(
+          clinicList.map(async (clinic) => {
+            const id = clinic.id || clinic.Id;
+            if (!id) return [];
+            try {
+              const r = await fetch(`${API_BASE}/api/clinics/${id}/services`);
+              if (!r.ok) return [];
+              const d = await r.json();
+              return Array.isArray(d) ? d : (Array.isArray(d.data) ? d.data : []);
+            } catch { return []; }
+          })
+        );
+        setServices(results.flat().filter((sv) => sv.is_active !== false));
       } catch (_) { setError("Network error. Please try again."); }
       finally { setLoading(false); }
     };
