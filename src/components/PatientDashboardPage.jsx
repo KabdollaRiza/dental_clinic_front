@@ -75,6 +75,7 @@ export default function PatientDashboardPage({ setPage, lang = "EN" }) {
   const [doctors,           setDoctors]           = useState([]);
   const [services,          setServices]          = useState([]);
   const [clinicAddressMap,  setClinicAddressMap]  = useState({});
+  const [medicalRecords,    setMedicalRecords]    = useState({});
   const [loading,           setLoading]           = useState(true);
   const [loadError,         setLoadError]         = useState("");
 
@@ -130,6 +131,21 @@ export default function PatientDashboardPage({ setPage, lang = "EN" }) {
           addrs.forEach(addr => { if (addr.id) map[addr.id] = clinic.name || "—"; });
         });
         setClinicAddressMap(map);
+
+        // Fetch medical records for all appointments
+        const medResults = await Promise.all(
+          list.map(a =>
+            fetch(`${API_BASE}/api/appointment/medical-record/${a.id}`, { headers })
+              .then(r => r.ok ? r.json() : null)
+              .catch(() => null)
+              .then(rec => ({ appointmentId: a.id, rec }))
+          )
+        );
+        const medMap = {};
+        medResults.forEach(({ appointmentId, rec }) => {
+          if (rec) medMap[appointmentId] = rec;
+        });
+        setMedicalRecords(medMap);
       } catch {
         setLoadError("Failed to load your data. Please refresh.");
       } finally {
@@ -301,9 +317,62 @@ export default function PatientDashboardPage({ setPage, lang = "EN" }) {
           }
         </>
       ) : (
-        <div style={{ textAlign: "center", padding: "60px 0", color: COLORS.muted, fontSize: 15 }}>
-          {tx.medHistory} — coming soon
-        </div>
+        <>
+          <h2 style={{ fontSize: isMobile ? 17 : 20, fontWeight: 800, color: COLORS.text, marginBottom: 16 }}>{tx.medHistory}</h2>
+          {past.length === 0 ? (
+            <div style={{ color: COLORS.muted, fontSize: 14 }}>No past appointments yet.</div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {past.map((a, i) => {
+                const rec = medicalRecords[a.id];
+                return (
+                  <div key={a.id || i} style={{ background: "#fff", borderRadius: 12, border: `1px solid ${COLORS.border}`, padding: isMobile ? "16px" : "20px 24px", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+                    <div style={{ fontSize: isMobile ? 15 : 16, fontWeight: 800, color: COLORS.text, marginBottom: 12 }}>
+                      {getName(services, a.service_id || a.Service_id)}
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? "8px" : "10px 32px", marginBottom: 12 }}>
+                      <div>
+                        <div style={labelStyle}>{tx.clinic}</div>
+                        <div style={valueStyle}>{clinicAddressMap[a.clinic_address_id] || "—"}</div>
+                      </div>
+                      <div>
+                        <div style={labelStyle}>{tx.doctor}</div>
+                        <div style={valueStyle}>{getName(doctors, a.doctor_id || a.Doctor_id)}</div>
+                      </div>
+                      <div>
+                        <div style={labelStyle}>{tx.dateTime}</div>
+                        <div style={valueStyle}>{fmtDateTime(a.start_time || a.Start_time)}</div>
+                      </div>
+                    </div>
+                    {rec ? (
+                      <div style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: 12, marginTop: 4 }}>
+                        {rec.diagnosis && (
+                          <div style={{ marginBottom: 8 }}>
+                            <div style={labelStyle}>{tx.diagnosis}</div>
+                            <div style={{ fontSize: 14, color: COLORS.text, fontWeight: 600 }}>{rec.diagnosis}</div>
+                          </div>
+                        )}
+                        {rec.notes && (
+                          <div>
+                            <div style={labelStyle}>NOTES</div>
+                            <div style={{ fontSize: 13, color: COLORS.muted, fontStyle: "italic", lineHeight: 1.6 }}>{rec.notes}</div>
+                          </div>
+                        )}
+                        {!rec.diagnosis && !rec.notes && (
+                          <div style={{ fontSize: 13, color: COLORS.muted, fontStyle: "italic" }}>The doctor hasn't filled in the record yet.</div>
+                        )}
+                      </div>
+                    ) : (
+                      <div style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: 12, marginTop: 4, fontSize: 13, color: COLORS.muted, fontStyle: "italic" }}>
+                        Medical record not available.
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
