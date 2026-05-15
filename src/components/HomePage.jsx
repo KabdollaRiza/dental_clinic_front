@@ -76,19 +76,31 @@ export default function HomePage({ setPage, lang = "EN" }) {
   const [carouselIdx, setCarouselIdx] = useState(0);
   const carouselRef = useRef(null);
 
-  const fetchServices = () => {
+  const fetchServices = async () => {
     setLoading(true); setError("");
-    fetch(`${API_BASE}/api/services`)
-      .then(async (r) => {
-        if (!r.ok) { const text = await r.text(); throw new Error(`Server error ${r.status}: ${text.trim()}`); }
-        return r.json();
-      })
-      .then((d) => {
-        const list = Array.isArray(d) ? d : (Array.isArray(d.data) ? d.data : d.services || []);
-        setServices(list.filter((sv) => sv.is_active !== false));
-      })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
+    try {
+      const cr = await fetch(`${API_BASE}/api/clinics`);
+      if (!cr.ok) throw new Error(`Server error ${cr.status}`);
+      const cd = await cr.json();
+      const clinicList = Array.isArray(cd) ? cd : (Array.isArray(cd.data) ? cd.data : []);
+      const results = await Promise.all(
+        clinicList.map(async (clinic) => {
+          const id = clinic.id || clinic.Id;
+          if (!id) return [];
+          try {
+            const r = await fetch(`${API_BASE}/api/clinics/${id}/services`);
+            if (!r.ok) return [];
+            const d = await r.json();
+            return Array.isArray(d) ? d : (Array.isArray(d.data) ? d.data : []);
+          } catch { return []; }
+        })
+      );
+      setServices(results.flat().filter((sv) => sv.is_active !== false));
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchServices(); }, []);
