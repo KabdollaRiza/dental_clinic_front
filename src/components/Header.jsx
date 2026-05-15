@@ -64,6 +64,7 @@ export default function Header({ page, setPage, lang, setLang }) {
   const showFullNav = ["home", "clinics", "doctors", "services", "booking"].includes(page);
   const t    = NAV_LABELS[lang] || NAV_LABELS.EN;
   const cur  = LANGUAGES.find((l) => l.code === lang) || LANGUAGES[0];
+  const hasAdminToken = !!localStorage.getItem("token");
 
   useEffect(() => {
     const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
@@ -100,7 +101,10 @@ export default function Header({ page, setPage, lang, setLang }) {
           {/* Desktop nav */}
           {!isMobile && showFullNav && (
             <nav style={h.nav}>
-              <button style={h.outlineBtn(page === "login")}   onClick={() => setPage("login")}>{t.login}</button>
+              {hasAdminToken
+                ? <button style={h.outlineBtn(false)} onClick={() => setPage("admin")}>Admin</button>
+                : <button style={h.outlineBtn(page === "login")} onClick={() => setPage("login")}>{t.login}</button>
+              }
               <button style={h.outlineBtn(page === "clinics")} onClick={() => setPage("clinics")}>{t.clinics}</button>
               <button style={h.outlineBtn(page === "doctors")} onClick={() => setPage("doctors")}>{t.doctors}</button>
               <button style={h.outlineBtn(page === "services")} onClick={() => setPage("services")}>{t.services}</button>
@@ -153,7 +157,10 @@ export default function Header({ page, setPage, lang, setLang }) {
       {isMobile && menuOpen && (
         <div style={h.mobileMenu} onClick={() => setMenuOpen(false)}>
           <div style={h.mobileMenuPanel} onClick={(e) => e.stopPropagation()}>
-            <button style={h.mobileNavBtn(page === "login")}    onClick={() => handleNavClick("login")}>{t.login}</button>
+            {hasAdminToken
+              ? <button style={h.mobileNavBtn(false)} onClick={() => { setMenuOpen(false); setPage("admin"); }}>Admin</button>
+              : <button style={h.mobileNavBtn(page === "login")} onClick={() => handleNavClick("login")}>{t.login}</button>
+            }
             <button style={h.mobileNavBtn(page === "clinics")}  onClick={() => handleNavClick("clinics")}>{t.clinics}</button>
             <button style={h.mobileNavBtn(page === "doctors")}  onClick={() => handleNavClick("doctors")}>{t.doctors}</button>
             <button style={h.mobileNavBtn(page === "services")} onClick={() => handleNavClick("services")}>{t.services}</button>
