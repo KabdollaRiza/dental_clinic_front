@@ -10,11 +10,11 @@ import AdminDashboard from "./components/AdminDashboard";
 import ClinicsPage from "./components/ClinicsPage";
 import DoctorDashboard from "./components/DoctorDashboard";
 import ServicesPage from "./components/ServicesPage";
-import ChatWidget from "./components/ChatWidget";
 import PatientLoginPage from "./components/PatientLoginPage";
 import PatientRegisterPage from "./components/PatientRegisterPage";
 import PatientDashboardPage from "./components/PatientDashboardPage";
 import DoctorsPage from "./components/DoctorsPage";
+import ChatWidget from "./components/ChatWidget";
 
 export default function App() {
   const [page, setPage] = useState("home");
@@ -42,7 +42,7 @@ export default function App() {
       {page === "patientDashboard"  && <PatientDashboardPage  setPage={setPage} lang={lang} />}
       
       {!noFooter && <Footer lang={lang} />}
-      {page !== "admin" && page !== "doctor" && <ChatWidget />}
+      <ChatWidget page={page} />
     </div>
   );
 }
