@@ -72,6 +72,41 @@ const s = {
     marginBottom: -1, transition: "all 0.15s", whiteSpace: "nowrap",
   }),
 
+  // Sidebar
+  sidebar: {
+    width: 240, flexShrink: 0,
+    background: "#fff", borderRight: `1px solid ${C.border}`,
+    display: "flex", flexDirection: "column",
+    overflowY: "auto",
+  },
+  sideBody: {
+    flex: 1, overflowY: "auto",
+    padding: "20px 12px",
+  },
+  sideLabel: {
+    fontSize: 10, fontWeight: 700, color: C.muted,
+    letterSpacing: 1.2, textTransform: "uppercase",
+    padding: "0 14px", marginBottom: 8,
+  },
+  sideItem: (active) => ({
+    display: "flex", alignItems: "center", gap: 10,
+    width: "100%", padding: "11px 14px",
+    borderRadius: 10, marginBottom: 3,
+    fontSize: 14, fontWeight: active ? 700 : 500,
+    color: active ? C.primary : "#374151",
+    background: active ? C.primaryLight : "transparent",
+    border: "none", cursor: "pointer", textAlign: "left",
+    transition: "background 0.15s, color 0.15s",
+    boxSizing: "border-box",
+  }),
+  sideCount: (active) => ({
+    marginLeft: "auto", fontSize: 11, fontWeight: 700,
+    background: active ? C.primary : "#F1F5F9",
+    color: active ? "#fff" : C.muted,
+    borderRadius: 20, padding: "2px 8px",
+    minWidth: 24, textAlign: "center",
+  }),
+
   // Content area
   wrap: { padding: "0 48px 56px", flex: 1 },
   sectionHeader: {
@@ -161,6 +196,11 @@ const s = {
     width: "100%", padding: "14px", background: C.primary, color: "#fff",
     border: "none", borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: "pointer",
     marginTop: 4, letterSpacing: 0.2,
+  },
+  btn: {
+    display: "inline-flex", alignItems: "center", justifyContent: "center",
+    background: C.primary, color: "#fff", border: "none",
+    borderRadius: 10, padding: "11px 22px", fontSize: 14, fontWeight: 700, cursor: "pointer",
   },
   msgOk:  { textAlign: "center", fontSize: 13, color: "#22c55e", marginTop: 12, fontWeight: 600 },
   msgErr: { textAlign: "center", fontSize: 13, color: "#ef4444", marginTop: 12, fontWeight: 600 },
@@ -253,7 +293,10 @@ const TABS = [
   { key: "doctors",      label: "Doctors",      icon: "M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z" },
   { key: "services",     label: "Services",     icon: "M12 2a10 10 0 100 20A10 10 0 0012 2zM12 8v4l3 3" },
   { key: "appointments", label: "Appointments", icon: "M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" },
+  { key: "reviews",      label: "Reviews",      icon: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" },
   { key: "schedule",     label: "Schedule",     icon: "M12 8v4l3 3M12 2a10 10 0 100 20A10 10 0 0012 2z" },
+  { key: "inventory",    label: "Inventory",    icon: "M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zM16 3H8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z" },
+  { key: "reports",      label: "Reports",      icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" },
 ];
 
 // CLINICS TAB
@@ -1212,6 +1255,63 @@ function AppointmentsTab({ appointments, setAppointments, addresses, doctors, se
   );
 }
 
+// REVIEWS TAB
+function ReviewsTab({ appointments, doctors, tx }) {
+  const reviews = appointments.filter(a => a.is_reviewed);
+
+  const getDoctor = (id) => doctors.find(d => (d.id || d.Id) === id)?.name || "—";
+
+  const Stars = ({ n }) => (
+    <span style={{ color: n > 0 ? "#F59E0B" : "#D1D5DB", letterSpacing: 1 }}>
+      {"★".repeat(n) + "☆".repeat(5 - n)}
+    </span>
+  );
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, marginTop: 32 }}>
+        <h2 style={{ fontSize: 20, fontWeight: 800, color: "#1A1A2E", margin: 0 }}>{tx.manageReviews}</h2>
+        <span style={{ fontSize: 13, color: "#6B7280" }}>{reviews.length} {tx.reviewsCount}</span>
+      </div>
+
+      {reviews.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "60px 0", color: "#6B7280", fontSize: 14 }}>{tx.noReviews}</div>
+      ) : (
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }} cellSpacing={0}>
+            <thead>
+              <tr style={{ background: "#F8F9FF" }}>
+                {[tx.colPatient, tx.colDoctor, tx.colDoctorRating, tx.colClinicRating, tx.colClinicComment, tx.colDate].map(h => (
+                  <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontWeight: 700, fontSize: 12, color: "#6B7280", letterSpacing: 0.5, borderBottom: "1px solid #E5E7EB", whiteSpace: "nowrap" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {reviews.map((a, i) => (
+                <tr key={a.id || i} style={{ borderBottom: "1px solid #F1F5F9" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "#F8FAFF"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >
+                  <td style={{ padding: "12px 14px", fontWeight: 600 }}>{a.name || a.Name || "—"}</td>
+                  <td style={{ padding: "12px 14px" }}>{getDoctor(a.doctor_id || a.Doctor_id)}</td>
+                  <td style={{ padding: "12px 14px" }}><Stars n={a.doctor_rating || 0} /></td>
+                  <td style={{ padding: "12px 14px" }}><Stars n={a.clinic_rating || 0} /></td>
+                  <td style={{ padding: "12px 14px", color: "#6B7280", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {a.clinic_comment || "—"}
+                  </td>
+                  <td style={{ padding: "12px 14px", color: "#6B7280", whiteSpace: "nowrap" }}>
+                    {(a.start_time || a.Start_time || "").slice(0, 10)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // SCHEDULE TAB
 function ScheduleTab({ doctors, addresses, tx }) {
   const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -1503,6 +1603,673 @@ function ScheduleTab({ doctors, addresses, tx }) {
   );
 }
 
+// PRODUCTS SUB-TAB
+function ProductsSubTab({ products, setProducts, loading, tx }) {
+  const EMPTY = { name: "", unit: "piece" };
+  const [form, setForm]     = useState(EMPTY);
+  const [msg,  setMsg]      = useState("");
+  const [open, setOpen]     = useState(false);
+  const [editProd, setEditProd] = useState(null);
+  const [editForm, setEditForm] = useState({});
+  const [editMsg,  setEditMsg]  = useState("");
+  const [saving, setSaving]     = useState(false);
+
+  const UNITS = ["piece","ml","mg","box","pack","bottle","tablet","vial"];
+
+  const submit = async () => {
+    if (!form.name) { setMsg("err:" + tx.invNameRequired); return; }
+    setSaving(true);
+    try {
+      const res  = await authFetch(`${API_BASE}/api/products`, { method: "POST", body: JSON.stringify({ name: form.name, unit: form.unit }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setMsg("err:" + (data.message || data.error || "Failed")); return; }
+      const id = data.id || data.Id || data.product_id || String(Date.now());
+      setProducts(prev => [...prev, { id, name: form.name, unit: form.unit }]);
+      setMsg("ok:" + tx.invProductAdded);
+      setTimeout(() => { setOpen(false); setForm(EMPTY); setMsg(""); }, 1200);
+    } catch (e) { setMsg("err:" + e.message); }
+    finally { setSaving(false); }
+  };
+
+  const updateProd = async () => {
+    if (!editProd) return;
+    setSaving(true);
+    try {
+      const res  = await authFetch(`${API_BASE}/api/products/${editProd.id}`, { method: "PUT", body: JSON.stringify({ name: editForm.name, unit: editForm.unit }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setEditMsg("err:" + (data.message || "Failed")); return; }
+      setProducts(prev => prev.map(p => p.id === editProd.id ? { ...p, ...editForm } : p));
+      setEditMsg("ok:" + tx.invUpdated);
+      setTimeout(() => { setEditProd(null); setEditMsg(""); }, 1000);
+    } catch (e) { setEditMsg("err:" + e.message); }
+    finally { setSaving(false); }
+  };
+
+  const del = async (id) => {
+    if (!window.confirm(tx.confirmDelete)) return;
+    try {
+      await authFetch(`${API_BASE}/api/products/${id}`, { method: "DELETE" });
+      setProducts(prev => prev.filter(p => p.id !== id));
+    } catch (_) {}
+  };
+
+  if (loading) return <p style={{ color: C.muted, padding: "24px 0" }}>{tx.invLoadingProducts}</p>;
+
+  return (
+    <>
+      <div style={s.sectionHeader}>
+        <span style={s.sectionTitle}>{tx.invProducts}</span>
+        <button style={s.addBtn} onClick={() => setOpen(true)}>{tx.invAddProduct}</button>
+      </div>
+
+      {products.length === 0 ? (
+        <Empty icon="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zM16 3H8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z" text={tx.invNoProducts} />
+      ) : (
+        <div style={{ overflowX: "auto" }}>
+          <table style={s.table} cellSpacing={0}>
+            <thead style={s.thead}><tr>
+              <th style={s.th}>{tx.colName}</th><th style={s.th}>{tx.invUnit}</th><th style={s.th}>{tx.colActions}</th>
+            </tr></thead>
+            <tbody>
+              {products.map(p => (
+                <tr key={p.id}>
+                  <td style={s.td}><b>{p.name}</b></td>
+                  <td style={s.td}><span style={s.badge()}>{p.unit || "—"}</span></td>
+                  <td style={s.td}>
+                    <button style={s.editBtn} onClick={() => { setEditProd(p); setEditForm({ name: p.name, unit: p.unit || "piece" }); setEditMsg(""); }}>{tx.invEdit}</button>
+                    <button style={s.deleteBtn} onClick={() => del(p.id)}>{tx.delete}</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {editProd && (
+        <Modal title={tx.invEditProduct} onClose={() => setEditProd(null)}>
+          <FG label={tx.colName}><Input value={editForm.name || ""} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} /></FG>
+          <FG label={tx.invUnit}>
+            <Sel value={editForm.unit || "piece"} onChange={e => setEditForm(f => ({ ...f, unit: e.target.value }))}>
+              {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+            </Sel>
+          </FG>
+          <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={updateProd} disabled={saving}>{tx.invSaveChanges}</button>
+          {editMsg && <p style={editMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{editMsg.slice(3)}</p>}
+        </Modal>
+      )}
+
+      {open && (
+        <Modal title={tx.invAddProductModal} onClose={() => { setOpen(false); setForm(EMPTY); setMsg(""); }}>
+          <FG label={tx.invProductName}><Input name="name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Anesthetic cartridge" /></FG>
+          <FG label={tx.invUnit}>
+            <Sel name="unit" value={form.unit} onChange={e => setForm(f => ({ ...f, unit: e.target.value }))}>
+              {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+            </Sel>
+          </FG>
+          <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={submit} disabled={saving}>
+            {saving ? tx.adding : tx.invAddProductModal}
+          </button>
+          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+        </Modal>
+      )}
+    </>
+  );
+}
+
+// STOCK SUB-TAB
+function StockSubTab({ addresses, clinics, products, tx }) {
+  const [selectedAddr, setSelectedAddr] = useState("");
+  const [inventory,    setInventory]    = useState([]);
+  const [loading,      setLoading]      = useState(false);
+  const [open,         setOpen]         = useState(false);
+  const [editInv,      setEditInv]      = useState(null);
+  const [addForm,      setAddForm]      = useState({ product_id: "", quantity: "" });
+  const [editQty,      setEditQty]      = useState("");
+  const [msg,          setMsg]          = useState("");
+  const [saving,       setSaving]       = useState(false);
+
+  const loadInventory = async (addrId) => {
+    if (!addrId) { setInventory([]); return; }
+    setLoading(true);
+    try {
+      const r = await authFetch(`${API_BASE}/api/clinic-addresses/${addrId}/inventory`);
+      if (r.ok) { const d = await r.json(); setInventory(Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : [])); }
+      else setInventory([]);
+    } catch (_) { setInventory([]); }
+    finally { setLoading(false); }
+  };
+
+  const handleAddrChange = (id) => { setSelectedAddr(id); loadInventory(id); setMsg(""); };
+
+  const addStock = async () => {
+    if (!addForm.product_id || !addForm.quantity) { setMsg("err:" + tx.invAllFields); return; }
+    setSaving(true);
+    try {
+      const res  = await authFetch(`${API_BASE}/api/clinic-addresses/${selectedAddr}/inventory`, {
+        method: "POST", body: JSON.stringify({ product_id: addForm.product_id, quantity: parseInt(addForm.quantity) }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setMsg("err:" + (data.message || data.error || "Failed")); return; }
+      setMsg("ok:" + tx.invStockAdded);
+      setOpen(false);
+      setAddForm({ product_id: "", quantity: "" });
+      loadInventory(selectedAddr);
+    } catch (e) { setMsg("err:" + e.message); }
+    finally { setSaving(false); }
+  };
+
+  const updateStock = async () => {
+    if (!editInv || editQty === "") return;
+    setSaving(true);
+    try {
+      const invId = editInv.id || editInv.Id;
+      const res   = await authFetch(`${API_BASE}/api/clinic-addresses/${selectedAddr}/inventory/${invId}`, {
+        method: "PUT", body: JSON.stringify({ quantity: parseInt(editQty) }),
+      });
+      const data  = await res.json().catch(() => ({}));
+      if (!res.ok) { setMsg("err:" + (data.message || "Failed")); return; }
+      setMsg("ok:" + tx.invUpdated);
+      setEditInv(null);
+      loadInventory(selectedAddr);
+    } catch (e) { setMsg("err:" + e.message); }
+    finally { setSaving(false); }
+  };
+
+  const getProd   = (id) => products.find(p => p.id === id);
+  const getAddrLabel = (a) => [a.address_name, a.address_building].filter(Boolean).join(", ") || [a.street, a.building, a.city].filter(Boolean).join(", ") || a.id?.slice(0, 8);
+  const getClinicName = (a) => clinics.find(c => c.id === a.clinic_id)?.name || "";
+
+  return (
+    <div>
+      <div style={s.sectionHeader}>
+        <span style={s.sectionTitle}>{tx.invStock}</span>
+        {selectedAddr && <button style={s.addBtn} onClick={() => { setOpen(true); setMsg(""); }}>{tx.invAddStock}</button>}
+      </div>
+
+      {msg && <p style={{ ...(msg.startsWith("ok:") ? s.msgOk : s.msgErr), textAlign: "left", marginBottom: 16 }}>{msg.slice(3)}</p>}
+
+      <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 14, padding: "20px 24px", marginBottom: 20 }}>
+        <FG label={tx.invSelectAddr}>
+          <Sel value={selectedAddr} onChange={e => handleAddrChange(e.target.value)}>
+            <option value="">{tx.invChooseAddr}</option>
+            {addresses.map(a => (
+              <option key={a.id} value={a.id}>
+                {getClinicName(a) ? `${getClinicName(a)} — ` : ""}{getAddrLabel(a)}
+              </option>
+            ))}
+          </Sel>
+        </FG>
+      </div>
+
+      {selectedAddr && (
+        loading ? <p style={{ color: C.muted, padding: "16px 0" }}>{tx.invLoading}</p> :
+        inventory.length === 0 ? (
+          <Empty icon="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" text={tx.invNoStock} />
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table style={s.table} cellSpacing={0}>
+              <thead style={s.thead}><tr>
+                <th style={s.th}>{tx.invProduct}</th><th style={s.th}>{tx.invUnit}</th><th style={s.th}>{tx.invQty}</th><th style={s.th}>{tx.colActions}</th>
+              </tr></thead>
+              <tbody>
+                {inventory.map((item, i) => {
+                  const pid  = item.product_id || item.ProductId || item.product?.id;
+                  const prod = getProd(pid);
+                  return (
+                    <tr key={item.id || item.Id || i}>
+                      <td style={s.td}><b>{prod?.name || pid?.slice(0, 8) || "—"}</b></td>
+                      <td style={s.td}>{prod?.unit || "—"}</td>
+                      <td style={s.td}>
+                        <span style={{ ...s.badge(), background: "#EFF6FF", color: "#1D4ED8" }}>
+                          {item.quantity ?? item.Quantity ?? "—"}
+                        </span>
+                      </td>
+                      <td style={s.td}>
+                        <button style={s.editBtn} onClick={() => { setEditInv(item); setEditQty(String(item.quantity ?? item.Quantity ?? "")); setMsg(""); }}>{tx.invEdit}</button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )
+      )}
+
+      {editInv && (
+        <Modal title={tx.invUpdateStock} onClose={() => setEditInv(null)}>
+          <p style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
+            {getProd(editInv.product_id || editInv.ProductId)?.name || tx.invProduct}
+          </p>
+          <FG label={tx.invNewQty}>
+            <Input type="number" value={editQty} onChange={e => setEditQty(e.target.value)} placeholder="e.g. 80" />
+          </FG>
+          <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={updateStock} disabled={saving}>
+            {saving ? tx.invSaving : tx.invSaveQty}
+          </button>
+          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+        </Modal>
+      )}
+
+      {open && (
+        <Modal title={tx.invAddStockModal} onClose={() => { setOpen(false); setAddForm({ product_id: "", quantity: "" }); setMsg(""); }}>
+          <FG label={tx.invProduct}>
+            <Sel value={addForm.product_id} onChange={e => setAddForm(f => ({ ...f, product_id: e.target.value }))}>
+              <option value="">— {tx.invProduct} —</option>
+              {products.map(p => <option key={p.id} value={p.id}>{p.name} ({p.unit})</option>)}
+            </Sel>
+          </FG>
+          <FG label={tx.invQtyToAdd}>
+            <Input type="number" value={addForm.quantity} onChange={e => setAddForm(f => ({ ...f, quantity: e.target.value }))} placeholder="e.g. 100" />
+          </FG>
+          <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={addStock} disabled={saving}>
+            {saving ? tx.adding : tx.invAddStockModal}
+          </button>
+          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// MATERIALS SUB-TAB
+function MaterialsSubTab({ clinics, products, tx }) {
+  const [selectedClinic,  setSelectedClinic]  = useState("");
+  const [clinicServices,  setClinicServices]  = useState([]);
+  const [loadingSvcs,     setLoadingSvcs]     = useState(false);
+  const [selectedSvc,     setSelectedSvc]     = useState("");
+  const [materials,       setMaterials]       = useState([]);
+  const [loadingMats,     setLoadingMats]     = useState(false);
+  const [open,            setOpen]            = useState(false);
+  const [form,            setForm]            = useState({ product_id: "", quantity_required: "" });
+  const [msg,             setMsg]             = useState("");
+  const [saving,          setSaving]          = useState(false);
+
+  const handleClinicChange = async (clinicId) => {
+    setSelectedClinic(clinicId);
+    setSelectedSvc("");
+    setMaterials([]);
+    setClinicServices([]);
+    setMsg("");
+    if (!clinicId) return;
+    setLoadingSvcs(true);
+    try {
+      const r = await authFetch(`${API_BASE}/api/clinics/${clinicId}/services`);
+      if (r.ok) {
+        const d = await r.json();
+        setClinicServices(Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : []));
+      }
+    } catch (_) {}
+    finally { setLoadingSvcs(false); }
+  };
+
+  const loadMaterials = async (svcId) => {
+    if (!svcId) { setMaterials([]); return; }
+    setLoadingMats(true);
+    try {
+      const r = await authFetch(`${API_BASE}/api/clinic-services/${svcId}/materials`);
+      const raw = await r.text();
+      const d = (() => { try { return JSON.parse(raw); } catch(_) { return null; } })();
+      if (r.ok && d !== null) {
+        const list = Array.isArray(d) ? d
+          : Array.isArray(d?.data) ? d.data
+          : Array.isArray(d?.materials) ? d.materials
+          : d && typeof d === "object" && !Array.isArray(d) ? [d]
+          : [];
+        setMaterials(list);
+      } else setMaterials([]);
+    } catch (_) { setMaterials([]); }
+    finally { setLoadingMats(false); }
+  };
+
+  const handleSvcChange = (id) => { setSelectedSvc(id); loadMaterials(id); setMsg(""); };
+
+  const addMaterial = async () => {
+    if (!form.product_id || !form.quantity_required) { setMsg("err:" + tx.invAllFields); return; }
+    setSaving(true);
+    try {
+      const res  = await authFetch(`${API_BASE}/api/clinic-services/${selectedSvc}/materials`, {
+        method: "POST", body: JSON.stringify({ product_id: form.product_id, quantity_required: parseInt(form.quantity_required) }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setMsg("err:" + (data.message || data.error || "Failed")); return; }
+      setMsg("ok:" + tx.invMaterialAssigned);
+      setOpen(false);
+      setForm({ product_id: "", quantity_required: "" });
+      loadMaterials(selectedSvc);
+    } catch (e) { setMsg("err:" + e.message); }
+    finally { setSaving(false); }
+  };
+
+  const delMaterial = async (matId) => {
+    if (!window.confirm(tx.invRemoveConfirm)) return;
+    try {
+      await authFetch(`${API_BASE}/api/clinic-services/${selectedSvc}/materials/${matId}`, { method: "DELETE" });
+      setMaterials(prev => prev.filter(m => (m.id || m.Id) !== matId));
+    } catch (_) {}
+  };
+
+  const getProd = (id) => products.find(p => p.id === id);
+
+  return (
+    <div>
+      <div style={s.sectionHeader}>
+        <span style={s.sectionTitle}>{tx.invMaterials}</span>
+        {selectedSvc && <button style={s.addBtn} onClick={() => { setOpen(true); setMsg(""); }}>{tx.invAssignMaterial}</button>}
+      </div>
+
+      {msg && <p style={{ ...(msg.startsWith("ok:") ? s.msgOk : s.msgErr), textAlign: "left", marginBottom: 16 }}>{msg.slice(3)}</p>}
+
+      <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 14, padding: "20px 24px", marginBottom: 20 }}>
+        <FG label={tx.colClinic}>
+          <Sel value={selectedClinic} onChange={e => handleClinicChange(e.target.value)}>
+            <option value="">{tx.invChooseClinic}</option>
+            {clinics.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </Sel>
+        </FG>
+        {selectedClinic && (
+          <FG label={tx.invService}>
+            {loadingSvcs
+              ? <p style={{ fontSize: 13, color: C.muted }}>{tx.invLoading}</p>
+              : <Sel value={selectedSvc} onChange={e => handleSvcChange(e.target.value)}>
+                  <option value="">{tx.invChooseService}</option>
+                  {clinicServices.map(sv => (
+                    <option key={sv.id} value={sv.id}>
+                      {sv.name || sv.Name || sv.service_name || sv.ServiceName || sv.title || `Service ${sv.id}`}
+                    </option>
+                  ))}
+                </Sel>
+            }
+          </FG>
+        )}
+      </div>
+
+      {selectedSvc && (
+        loadingMats ? <p style={{ color: C.muted, padding: "16px 0" }}>{tx.invLoading}</p> :
+        materials.length === 0 ? (
+          <Empty icon="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" text={tx.invNoMaterials} />
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table style={s.table} cellSpacing={0}>
+              <thead style={s.thead}><tr>
+                <th style={s.th}>{tx.invProduct}</th><th style={s.th}>{tx.invPerAppt}</th><th style={s.th}>{tx.colActions}</th>
+              </tr></thead>
+              <tbody>
+                {materials.map((m, i) => {
+                  const pid  = m.product_id || m.ProductId;
+                  const prod = getProd(pid);
+                  return (
+                    <tr key={m.id || m.Id || i}>
+                      <td style={s.td}><b>{prod?.name || pid?.slice(0, 8) || "—"}</b></td>
+                      <td style={s.td}>
+                        <span style={{ ...s.badge(), background: "#F0FDF4", color: "#16A34A" }}>
+                          {m.quantity_required ?? m.QuantityRequired ?? "—"} {prod?.unit || ""}
+                        </span>
+                      </td>
+                      <td style={s.td}>
+                        <button style={s.deleteBtn} onClick={() => delMaterial(m.id || m.Id)}>{tx.invRemove}</button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )
+      )}
+
+      {open && (
+        <Modal title={tx.invAssignMaterialModal} onClose={() => { setOpen(false); setForm({ product_id: "", quantity_required: "" }); setMsg(""); }}>
+          <FG label={tx.invProduct}>
+            <Sel value={form.product_id} onChange={e => setForm(f => ({ ...f, product_id: e.target.value }))}>
+              <option value="">— {tx.invProduct} —</option>
+              {products.map(p => <option key={p.id} value={p.id}>{p.name} ({p.unit})</option>)}
+            </Sel>
+          </FG>
+          <FG label={tx.invQtyPerAppt}>
+            <Input type="number" value={form.quantity_required} onChange={e => setForm(f => ({ ...f, quantity_required: e.target.value }))} placeholder="e.g. 2" />
+          </FG>
+          <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={addMaterial} disabled={saving}>
+            {saving ? tx.invSaving : tx.invAssignBtn}
+          </button>
+          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// INVENTORY TAB
+function InventoryTab({ addresses, services, clinics, tx }) {
+  const [subTab, setSubTab] = useState("products");
+  const [products, setProducts]   = useState([]);
+  const [loadingProducts, setLP]  = useState(true);
+
+  useEffect(() => {
+    setLP(true);
+    authFetch(`${API_BASE}/api/products`)
+      .then(r => r.ok ? r.json() : [])
+      .then(d => setProducts(Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : [])))
+      .catch(() => {})
+      .finally(() => setLP(false));
+  }, []);
+
+  const SUB_TABS = [
+    { key: "products",  label: tx.invProducts, icon: "M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zM16 3H8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z" },
+    { key: "stock",     label: tx.invStock,    icon: "M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" },
+    { key: "materials", label: tx.invMaterials, icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" },
+  ];
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 4, marginTop: 28, borderBottom: `1px solid ${C.border}`, marginBottom: 24 }}>
+        {SUB_TABS.map(st => (
+          <button
+            key={st.key}
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              padding: "10px 18px", fontSize: 14,
+              fontWeight: subTab === st.key ? 700 : 500,
+              color: subTab === st.key ? C.primary : C.muted,
+              borderBottom: subTab === st.key ? `2px solid ${C.primary}` : "2px solid transparent",
+              background: "none", border: "none",
+              cursor: "pointer", marginBottom: -1,
+            }}
+            onClick={() => setSubTab(st.key)}
+          >
+            <Icon d={st.icon} size={14} />
+            {st.label}
+          </button>
+        ))}
+      </div>
+
+      {subTab === "products"  && <ProductsSubTab products={products} setProducts={setProducts} loading={loadingProducts} tx={tx} />}
+      {subTab === "stock"     && <StockSubTab    addresses={addresses} clinics={clinics} products={products} tx={tx} />}
+      {subTab === "materials" && <MaterialsSubTab clinics={clinics} products={products} tx={tx} />}
+    </div>
+  );
+}
+
+// REPORTS TAB
+function ReportsTab({ clinics, addresses, tx }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const firstOfMonth = today.slice(0, 8) + "01";
+
+  const [subTab,     setSubTab]     = useState("appointments");
+  const [clinicId,   setClinicId]   = useState("");
+  const [addressId,  setAddressId]  = useState("");
+  const [from,       setFrom]       = useState(firstOfMonth);
+  const [to,         setTo]         = useState(today);
+  const [data,       setData]       = useState(null);
+  const [loading,    setLoading]    = useState(false);
+  const [error,      setError]      = useState("");
+
+  const clinicAddresses = addresses.filter(a => a.clinic_id === clinicId);
+
+  const SUB_TABS = [
+    { key: "appointments", label: tx.tabs.appointments, icon: "M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" },
+    { key: "revenue",      label: tx.repRevenue,        icon: "M12 2a10 10 0 100 20A10 10 0 0012 2zM12 8v4l3 3" },
+    { key: "doctors",      label: tx.tabs.doctors,      icon: "M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z" },
+    { key: "inventory",    label: tx.tabs.inventory,    icon: "M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zM16 3H8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z" },
+  ];
+
+  const runReport = async () => {
+    if (!clinicId) { setError(tx.repNoClinic); return; }
+    if (!from || !to) { setError(tx.repNoDate); return; }
+    setError(""); setData(null); setLoading(true);
+    try {
+      let url = `${API_BASE}/api/clinics/${clinicId}/reports/${subTab}?from=${from}&to=${to}`;
+      if (addressId) url += `&clinic_address_id=${addressId}`;
+      const r = await authFetch(url);
+      const json = await r.json();
+      if (!r.ok) { setError(json.error || "Request failed."); return; }
+      const rows = Array.isArray(json.data) ? json.data : [];
+      setData(rows);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const exportReport = async (fmt) => {
+    if (!clinicId) return;
+    let url = `${API_BASE}/api/clinics/${clinicId}/reports/${subTab}?from=${from}&to=${to}&format=${fmt}`;
+    if (addressId) url += `&clinic_address_id=${addressId}`;
+    const r = await authFetch(url);
+    const blob = await r.blob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `report_${subTab}_${from}_${to}.${fmt}`;
+    a.click();
+  };
+
+  const colStyle = { padding: "10px 14px", fontSize: 13, textAlign: "left", borderBottom: `1px solid ${C.border}` };
+  const thStyle  = { ...colStyle, fontWeight: 700, color: C.muted, background: "#F8F9FF", fontSize: 12 };
+
+  function renderTable() {
+    if (!data || data.length === 0) return <Empty icon="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" text={tx.repNoData} />;
+
+    if (subTab === "appointments") return (
+      <table style={s.table} cellSpacing={0}><thead><tr>
+        <th style={thStyle}>{tx.repStatus}</th><th style={thStyle}>{tx.repCount}</th>
+      </tr></thead><tbody>
+        {data.map((row, i) => <tr key={i}>
+          <td style={colStyle}><span style={{ background: row.status === "completed" ? "#d1fae5" : row.status === "cancelled" ? "#fee2e2" : "#fef9c3", color: row.status === "completed" ? "#065f46" : row.status === "cancelled" ? "#991b1b" : "#92400e", padding: "2px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600 }}>{row.status}</span></td>
+          <td style={colStyle}>{row.appointment_count}</td>
+        </tr>)}
+      </tbody></table>
+    );
+
+    if (subTab === "revenue") return (
+      <table style={s.table} cellSpacing={0}><thead><tr>
+        <th style={thStyle}>{tx.invService}</th><th style={thStyle}>{tx.tabs.appointments}</th><th style={thStyle}>{tx.repUnitPrice}</th><th style={thStyle}>{tx.repTotalRevenue}</th>
+      </tr></thead><tbody>
+        {data.map((row, i) => <tr key={i}>
+          <td style={colStyle}>{row.service_name}</td>
+          <td style={colStyle}>{row.appointment_count}</td>
+          <td style={colStyle}>{Number(row.unit_price).toLocaleString()}</td>
+          <td style={{ ...colStyle, fontWeight: 700, color: C.primary }}>{Number(row.total_revenue).toLocaleString()}</td>
+        </tr>)}
+        <tr style={{ background: "#F8F9FF" }}>
+          <td style={{ ...colStyle, fontWeight: 700 }} colSpan={3}>{tx.repTotal}</td>
+          <td style={{ ...colStyle, fontWeight: 700, color: C.primary }}>{data.reduce((s, r) => s + Number(r.total_revenue), 0).toLocaleString()}</td>
+        </tr>
+      </tbody></table>
+    );
+
+    if (subTab === "doctors") return (
+      <table style={s.table} cellSpacing={0}><thead><tr>
+        <th style={thStyle}>{tx.colDoctor}</th><th style={thStyle}>{tx.colSpec}</th><th style={thStyle}>{tx.tabs.appointments}</th><th style={thStyle}>{tx.repCompleted}</th><th style={thStyle}>{tx.repRevenue}</th><th style={thStyle}>{tx.repAvgRating}</th>
+      </tr></thead><tbody>
+        {data.map((row, i) => <tr key={i}>
+          <td style={colStyle}>{row.doctor_name}</td>
+          <td style={colStyle}>{row.specialization}</td>
+          <td style={colStyle}>{row.appointment_count}</td>
+          <td style={colStyle}>{row.completed_count}</td>
+          <td style={{ ...colStyle, color: C.primary, fontWeight: 600 }}>{Number(row.revenue).toLocaleString()}</td>
+          <td style={colStyle}>{row.average_rating > 0 ? `⭐ ${Number(row.average_rating).toFixed(1)}` : "—"}</td>
+        </tr>)}
+      </tbody></table>
+    );
+
+    if (subTab === "inventory") return (
+      <table style={s.table} cellSpacing={0}><thead><tr>
+        <th style={thStyle}>{tx.invProduct}</th><th style={thStyle}>{tx.invUnit}</th><th style={thStyle}>{tx.repInStock}</th><th style={thStyle}>{tx.repRestocked}</th><th style={thStyle}>{tx.repUsed}</th><th style={thStyle}>{tx.repAdjusted}</th>
+      </tr></thead><tbody>
+        {data.map((row, i) => <tr key={i}>
+          <td style={colStyle}>{row.product_name}</td>
+          <td style={colStyle}>{row.unit}</td>
+          <td style={{ ...colStyle, fontWeight: 600 }}>{row.current_quantity}</td>
+          <td style={{ ...colStyle, color: "#16a34a" }}>{row.restocked_quantity > 0 ? `+${row.restocked_quantity}` : "—"}</td>
+          <td style={{ ...colStyle, color: row.used_quantity > 0 ? "#dc2626" : C.muted }}>{row.used_quantity > 0 ? `-${row.used_quantity}` : "—"}</td>
+          <td style={colStyle}>{row.adjustment_quantity !== 0 ? row.adjustment_quantity : "—"}</td>
+        </tr>)}
+      </tbody></table>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 4, marginTop: 28, borderBottom: `1px solid ${C.border}`, marginBottom: 24 }}>
+        {SUB_TABS.map(st => (
+          <button key={st.key} style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 18px", fontSize: 14, fontWeight: subTab === st.key ? 700 : 500, color: subTab === st.key ? C.primary : C.muted, borderBottom: subTab === st.key ? `2px solid ${C.primary}` : "2px solid transparent", background: "none", border: "none", cursor: "pointer", marginBottom: -1 }}
+            onClick={() => { setSubTab(st.key); setData(null); setError(""); }}>
+            <Icon d={st.icon} size={14} />{st.label}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ background: "#fff", borderRadius: 14, border: `1px solid ${C.border}`, padding: "20px 24px", marginBottom: 24, display: "flex", flexWrap: "wrap", gap: 16, alignItems: "flex-end" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 200 }}>
+          <label style={{ fontSize: 12, fontWeight: 600, color: C.muted }}>{tx.colClinic}</label>
+          <select style={s.select} value={clinicId} onChange={e => { setClinicId(e.target.value); setAddressId(""); setData(null); }}>
+            <option value="">— {tx.selectClinic} —</option>
+            {clinics.map(c => <option key={c.id || c.Id} value={c.id || c.Id}>{c.name || c.Name}</option>)}
+          </select>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 180 }}>
+          <label style={{ fontSize: 12, fontWeight: 600, color: C.muted }}>{tx.repAddressOpt}</label>
+          <select style={s.select} value={addressId} onChange={e => setAddressId(e.target.value)} disabled={!clinicId}>
+            <option value="">{tx.repAllAddresses}</option>
+            {clinicAddresses.map(a => <option key={a.id} value={a.id}>{a.address_name || a.street || a.id}</option>)}
+          </select>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <label style={{ fontSize: 12, fontWeight: 600, color: C.muted }}>{tx.repFrom}</label>
+          <input type="date" style={{ ...s.input, width: 150 }} value={from} onChange={e => setFrom(e.target.value)} />
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <label style={{ fontSize: 12, fontWeight: 600, color: C.muted }}>{tx.repTo}</label>
+          <input type="date" style={{ ...s.input, width: 150 }} value={to} onChange={e => setTo(e.target.value)} />
+        </div>
+        <button style={{ ...s.btn, height: 40, paddingTop: 0, paddingBottom: 0 }} onClick={runReport} disabled={loading}>
+          {loading ? tx.invLoading : tx.repRunReport}
+        </button>
+        {data && data.length > 0 && (
+          <div style={{ display: "flex", gap: 8 }}>
+            <button style={{ ...s.btn, background: "#2563eb", height: 40, paddingTop: 0, paddingBottom: 0, fontSize: 13 }} onClick={() => exportReport("csv")}>CSV</button>
+            <button style={{ ...s.btn, background: "#2563eb", height: 40, paddingTop: 0, paddingBottom: 0, fontSize: 13 }} onClick={() => exportReport("pdf")}>PDF</button>
+          </div>
+        )}
+      </div>
+
+      {error && <p style={{ color: C.danger, marginBottom: 16, fontSize: 14 }}>{error}</p>}
+
+      <div style={{ background: "#fff", borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden" }}>
+        {!data && !loading && (
+          <div style={{ padding: "40px 24px", textAlign: "center", color: C.muted, fontSize: 14 }}>
+            {tx.repPrompt}
+          </div>
+        )}
+        {loading && <div style={{ padding: "40px 24px", textAlign: "center", color: C.muted, fontSize: 14 }}>{tx.invLoading}</div>}
+        {data && !loading && <div style={{ overflowX: "auto" }}>{renderTable()}</div>}
+      </div>
+    </div>
+  );
+}
+
 // MAIN
 const LANGUAGES = [
   { code: "EN", label: "English" },
@@ -1524,6 +2291,7 @@ export default function AdminDashboard({ setPage, lang: propLang, setLang: propS
     return () => document.removeEventListener("mousedown", handler);
   }, []);
   const [tab, setTab] = useState("appointments");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [clinics,      setClinics]      = useState([]);
   const [doctors,      setDoctors]      = useState([]);
   const [services,     setServices]     = useState([]);
@@ -1620,7 +2388,10 @@ export default function AdminDashboard({ setPage, lang: propLang, setLang: propS
     services:     services.length,
     addresses:    addresses.length,
     appointments: appointments.length,
+    reviews:      appointments.filter(a => a.is_reviewed).length,
     schedule:     0,
+    inventory:    0,
+    reports:      0,
   };
 
   const { isMobile } = useResponsive();
@@ -1632,6 +2403,19 @@ export default function AdminDashboard({ setPage, lang: propLang, setLang: propS
     <main style={s.page}>
       <div style={adminBarStyle}>
         <div style={s.adminLeft}>
+          {!isMobile && (
+            <button
+              onClick={() => setSidebarOpen(o => !o)}
+              style={{ background: "transparent", border: "none", cursor: "pointer", padding: 6, borderRadius: 8, display: "flex", alignItems: "center", color: C.muted }}
+              title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <line x1="3" y1="12" x2="21" y2="12"/>
+                <line x1="3" y1="18" x2="21" y2="18"/>
+              </svg>
+            </button>
+          )}
           <div
             style={{ display: "flex", alignItems: "center", gap: 14, cursor: "pointer" }}
             onClick={() => setPage("home")}
@@ -1687,22 +2471,46 @@ export default function AdminDashboard({ setPage, lang: propLang, setLang: propS
         </div>
       </div>
 
-      <div style={tabsRowStyle}>
-        {TABS.map((t) => (
-          <button key={t.key} style={s.tab(tab === t.key)} onClick={() => setTab(t.key)}>
-            <Icon d={t.icon} size={15} />
-            {tx.tabs[t.key]} ({counts[t.key]})
-          </button>
-        ))}
-      </div>
+      {isMobile && (
+        <div style={tabsRowStyle}>
+          {TABS.map((t) => (
+            <button key={t.key} style={s.tab(tab === t.key)} onClick={() => setTab(t.key)}>
+              <Icon d={t.icon} size={15} />
+              {tx.tabs[t.key]} ({counts[t.key]})
+            </button>
+          ))}
+        </div>
+      )}
 
-      <div style={wrapStyle}>
-        {tab === "clinics"      && <ClinicsTab      clinics={clinics}           setClinics={setClinics} setPage={setPage} tx={tx} addresses={addresses} setAddresses={setAddresses} />}
-        {tab === "doctors"      && <DoctorsTab       doctors={doctors}           setDoctors={setDoctors}     clinics={clinics} services={services} tx={tx} />}
-        {tab === "services"     && <ServicesTab      services={services}         setServices={setServices}   clinics={clinics} tx={tx} />}
-        {tab === "addresses"    && <AddressesTab     addresses={addresses}       setAddresses={setAddresses} clinics={clinics} tx={tx} />}
-        {tab === "appointments" && <AppointmentsTab  appointments={appointments} setAppointments={setAppointments} addresses={addresses} doctors={doctors} services={services} clinics={clinics} tx={tx} />}
-        {tab === "schedule"     && <ScheduleTab      doctors={doctors} addresses={addresses} tx={tx} />}
+      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        {!isMobile && (
+          <nav style={{ ...s.sidebar, width: sidebarOpen ? 240 : 0, overflow: "hidden", transition: "width 0.25s ease" }}>
+            <div style={s.sideBody}>
+              <div style={s.sideLabel}>Navigation</div>
+              {TABS.map((t) => (
+                <button key={t.key} style={s.sideItem(tab === t.key)} onClick={() => setTab(t.key)}>
+                  <Icon d={t.icon} size={16} />
+                  <span style={{ flex: 1 }}>{tx.tabs[t.key]}</span>
+                  <span style={s.sideCount(tab === t.key)}>{counts[t.key]}</span>
+                </button>
+              ))}
+            </div>
+          </nav>
+        )}
+
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          <div style={wrapStyle}>
+            {tab === "clinics"      && <ClinicsTab      clinics={clinics}           setClinics={setClinics} setPage={setPage} tx={tx} addresses={addresses} setAddresses={setAddresses} />}
+            {tab === "doctors"      && <DoctorsTab       doctors={doctors}           setDoctors={setDoctors}     clinics={clinics} services={services} tx={tx} />}
+            {tab === "services"     && <ServicesTab      services={services}         setServices={setServices}   clinics={clinics} tx={tx} />}
+            {tab === "addresses"    && <AddressesTab     addresses={addresses}       setAddresses={setAddresses} clinics={clinics} tx={tx} />}
+            {tab === "appointments" && <AppointmentsTab  appointments={appointments} setAppointments={setAppointments} addresses={addresses} doctors={doctors} services={services} clinics={clinics} tx={tx} />}
+            {tab === "reviews"      && <ReviewsTab       appointments={appointments} doctors={doctors} tx={tx} />}
+            {tab === "schedule"     && <ScheduleTab      doctors={doctors} addresses={addresses} tx={tx} />}
+        {tab === "inventory"    && <InventoryTab     addresses={addresses} services={services} clinics={clinics} tx={tx} />}
+            {tab === "reports"      && <ReportsTab       clinics={clinics} addresses={addresses} tx={tx} />}
+          </div>
+        </div>
       </div>
     </main>
   );

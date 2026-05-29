@@ -151,7 +151,7 @@ export default function ClinicsPage({ setPage, lang = "EN" }) {
 
   const handleViewServices = (clinic) => {
     sessionStorage.setItem("selectedClinic", JSON.stringify(clinic));
-    setPage("booking");
+    setPage("services");
   };
 
   const heroPadding = isMobile ? "32px 16px 28px" : isTablet ? "40px 40px 28px" : "56px 80px 40px";

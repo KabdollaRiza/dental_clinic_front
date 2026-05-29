@@ -300,10 +300,13 @@ function MedicalRecordModal({ record, onClose, onSaved, t }) {
     setSaving(true);
     setError("");
     try {
+      const formData = new FormData();
+      formData.append("diagnosis", editData.diagnosis);
+      formData.append("notes", editData.notes);
       const res = await fetch(`${API_BASE}/api/medical-records/${record.id}`, {
         method: "PUT",
-        headers: { Authorization: getAuthHeader(), "Content-Type": "application/json" },
-        body: JSON.stringify(editData),
+        headers: { Authorization: getAuthHeader() },
+        body: formData,
       });
       if (res.ok) {
         onSaved({ ...record, ...editData });

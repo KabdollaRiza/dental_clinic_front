@@ -13,6 +13,12 @@ const TX = {
     appointments: "Appointments", medHistory: "Medical History",
     logout: "Logout", home: "Home", noUpcoming: "No upcoming appointments.", noPast: "No past appointments.",
     loading: "Loading...", patientId: "Patient ID",
+    leaveReview: "Leave a Review", reviewTitle: "Rate Your Visit",
+    doctorRating: "Doctor Rating", clinicRating: "Clinic Rating",
+    clinicComment: "Comment about the clinic", submitReview: "Submit Review",
+    cancel: "Cancel", reviewSent: "Review submitted! Thank you.",
+    reviewError: "Failed to submit. Please try again.",
+    reviewed: "Reviewed",
   },
   KZ: {
     upcoming: "Алдағы жазылымдар", past: "Өткен жазылымдар",
@@ -21,6 +27,12 @@ const TX = {
     appointments: "Жазылымдар", medHistory: "Медициналық тарих",
     logout: "Шығу", home: "Басты бет", noUpcoming: "Алдағы жазылымдар жоқ.", noPast: "Өткен жазылымдар жоқ.",
     loading: "Жүктелуде...", patientId: "Пациент ID",
+    leaveReview: "Пікір қалдыру", reviewTitle: "Қабылдауды бағалаңыз",
+    doctorRating: "Дәрігер бағасы", clinicRating: "Клиника бағасы",
+    clinicComment: "Клиника туралы пікір", submitReview: "Жіберу",
+    cancel: "Болдырмау", reviewSent: "Пікір жіберілді! Рахмет.",
+    reviewError: "Жіберу сәтсіз болды. Қайталап көріңіз.",
+    reviewed: "Бағаланды",
   },
   RU: {
     upcoming: "Предстоящие записи", past: "Прошедшие записи",
@@ -29,6 +41,12 @@ const TX = {
     appointments: "Записи", medHistory: "История болезней",
     logout: "Выйти", home: "Главная", noUpcoming: "Нет предстоящих записей.", noPast: "Нет прошедших записей.",
     loading: "Загрузка...", patientId: "ID пациента",
+    leaveReview: "Оставить отзыв", reviewTitle: "Оцените визит",
+    doctorRating: "Оценка врача", clinicRating: "Оценка клиники",
+    clinicComment: "Комментарий о клинике", submitReview: "Отправить",
+    cancel: "Отмена", reviewSent: "Отзыв отправлен! Спасибо.",
+    reviewError: "Не удалось отправить. Попробуйте снова.",
+    reviewed: "Оценено",
   },
 };
 
@@ -78,6 +96,11 @@ export default function PatientDashboardPage({ setPage, lang = "EN" }) {
   const [medicalRecords,    setMedicalRecords]    = useState({});
   const [loading,           setLoading]           = useState(true);
   const [loadError,         setLoadError]         = useState("");
+  const [reviewAppId,       setReviewAppId]       = useState(null);
+  const [reviewForm,        setReviewForm]        = useState({ clinic_comment: "", clinic_rating: 0, doctor_rating: 0 });
+  const [reviewLoading,     setReviewLoading]     = useState(false);
+  const [reviewMsg,         setReviewMsg]         = useState("");
+  const [submittedReviews,  setSubmittedReviews]  = useState(new Set());
 
   const raw     = localStorage.getItem("patient_token") || "";
   const token   = raw.startsWith("Bearer ") ? raw.slice(7) : raw;
@@ -165,6 +188,106 @@ export default function PatientDashboardPage({ setPage, lang = "EN" }) {
     localStorage.removeItem("patient_token");
     setPage("home");
   };
+
+  const openReview = (appointmentId) => {
+    setReviewAppId(appointmentId);
+    setReviewForm({ clinic_comment: "", clinic_rating: 0, doctor_rating: 0 });
+    setReviewMsg("");
+  };
+
+  const closeReview = () => {
+    setReviewAppId(null);
+    setReviewMsg("");
+  };
+
+  const submitReview = async () => {
+    if (reviewForm.doctor_rating === 0 || reviewForm.clinic_rating === 0) return;
+    setReviewLoading(true);
+    setReviewMsg("");
+    try {
+      const res = await fetch(`${API_BASE}/api/appointments/${reviewAppId}/review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(reviewForm),
+      });
+      if (!res.ok) throw new Error();
+      setSubmittedReviews(prev => new Set([...prev, reviewAppId]));
+      setReviewMsg("ok");
+      setTimeout(closeReview, 1500);
+    } catch {
+      setReviewMsg("err");
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+
+  // ── Star picker ───────────────────────────────────────────────────────
+  const StarPicker = ({ value, onChange }) => (
+    <div style={{ display: "flex", gap: 6 }}>
+      {[1, 2, 3, 4, 5].map(n => (
+        <button
+          key={n}
+          onClick={() => onChange(n)}
+          style={{ background: "none", border: "none", cursor: "pointer", padding: 2, fontSize: 28, lineHeight: 1, color: n <= value ? "#F59E0B" : "#D1D5DB", transition: "color 0.1s" }}
+        >
+          ★
+        </button>
+      ))}
+    </div>
+  );
+
+  // ── Review modal ──────────────────────────────────────────────────────
+  const reviewModal = reviewAppId ? (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 16 }}>
+      <div style={{ background: "#fff", borderRadius: 16, padding: "28px 28px 24px", width: "100%", maxWidth: 400, boxShadow: "0 8px 32px rgba(0,0,0,0.18)" }}>
+        <div style={{ fontSize: 18, fontWeight: 800, color: COLORS.text, marginBottom: 20 }}>{tx.reviewTitle}</div>
+
+        <div style={{ marginBottom: 18 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.muted, letterSpacing: 0.6, marginBottom: 8 }}>{tx.doctorRating}</div>
+          <StarPicker value={reviewForm.doctor_rating} onChange={v => setReviewForm(f => ({ ...f, doctor_rating: v }))} />
+        </div>
+
+        <div style={{ marginBottom: 18 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.muted, letterSpacing: 0.6, marginBottom: 8 }}>{tx.clinicRating}</div>
+          <StarPicker value={reviewForm.clinic_rating} onChange={v => setReviewForm(f => ({ ...f, clinic_rating: v }))} />
+        </div>
+
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.muted, letterSpacing: 0.6, marginBottom: 8 }}>{tx.clinicComment}</div>
+          <textarea
+            value={reviewForm.clinic_comment}
+            onChange={e => setReviewForm(f => ({ ...f, clinic_comment: e.target.value }))}
+            rows={3}
+            placeholder="..."
+            style={{ width: "100%", padding: "10px 12px", border: `1.5px solid ${COLORS.border}`, borderRadius: 8, fontSize: 14, color: COLORS.text, resize: "none", boxSizing: "border-box", fontFamily: "inherit", outline: "none" }}
+          />
+        </div>
+
+        {reviewMsg === "ok" && (
+          <div style={{ fontSize: 14, color: "#10B981", fontWeight: 600, marginBottom: 14, textAlign: "center" }}>{tx.reviewSent}</div>
+        )}
+        {reviewMsg === "err" && (
+          <div style={{ fontSize: 14, color: "#EF4444", fontWeight: 600, marginBottom: 14, textAlign: "center" }}>{tx.reviewError}</div>
+        )}
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <button
+            onClick={closeReview}
+            style={{ flex: 1, padding: "11px", border: `1.5px solid ${COLORS.border}`, borderRadius: 10, background: "transparent", color: COLORS.muted, fontSize: 14, fontWeight: 700, cursor: "pointer" }}
+          >
+            {tx.cancel}
+          </button>
+          <button
+            onClick={submitReview}
+            disabled={reviewLoading || reviewForm.doctor_rating === 0 || reviewForm.clinic_rating === 0}
+            style={{ flex: 2, padding: "11px", border: "none", borderRadius: 10, background: reviewForm.doctor_rating > 0 && reviewForm.clinic_rating > 0 ? COLORS.primary : "#CBD5E1", color: "#fff", fontSize: 14, fontWeight: 700, cursor: reviewForm.doctor_rating > 0 && reviewForm.clinic_rating > 0 ? "pointer" : "not-allowed", transition: "background 0.15s" }}
+          >
+            {reviewLoading ? "..." : tx.submitReview}
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
 
   // ── Mobile top bar ───────────────────────────────────────────────────
   const mobileTopBar = isMobile ? (
@@ -269,27 +392,42 @@ export default function PatientDashboardPage({ setPage, lang = "EN" }) {
     </div>
   );
 
-  const PastCard = ({ a }) => (
-    <div style={{ background: "#F8FAFF", borderRadius: 12, border: `1px solid ${COLORS.border}`, padding: isMobile ? "14px" : "20px 24px" }}>
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? "10px" : "12px 32px", marginBottom: 12 }}>
-        <div>
-          <div style={labelStyle}>{tx.clinicDoctor}</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.text }}>{clinicAddressMap[a.clinic_address_id] || "—"}</div>
-          <div style={{ fontSize: 13, color: COLORS.muted }}>{getName(doctors, a.doctor_id || a.Doctor_id)}</div>
+  const PastCard = ({ a }) => {
+    const alreadyReviewed = a.is_reviewed || submittedReviews.has(a.id);
+    return (
+      <div style={{ background: "#F8FAFF", borderRadius: 12, border: `1px solid ${COLORS.border}`, padding: isMobile ? "14px" : "20px 24px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? "10px" : "12px 32px", marginBottom: 12 }}>
+          <div>
+            <div style={labelStyle}>{tx.clinicDoctor}</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.text }}>{clinicAddressMap[a.clinic_address_id] || "—"}</div>
+            <div style={{ fontSize: 13, color: COLORS.muted }}>{getName(doctors, a.doctor_id || a.Doctor_id)}</div>
+          </div>
+          <div>
+            <div style={labelStyle}>{tx.service}</div>
+            <div style={valueStyle}>{getName(services, a.service_id || a.Service_id)}</div>
+          </div>
         </div>
-        <div>
-          <div style={labelStyle}>{tx.service}</div>
-          <div style={valueStyle}>{getName(services, a.service_id || a.Service_id)}</div>
+        {(a.diagnosis || a.Diagnosis) && (
+          <div style={{ marginBottom: 12 }}>
+            <div style={labelStyle}>{tx.diagnosis}</div>
+            <div style={{ fontSize: 14, color: COLORS.muted, fontStyle: "italic" }}>{a.diagnosis || a.Diagnosis}</div>
+          </div>
+        )}
+        <div style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: 12, marginTop: 4 }}>
+          {alreadyReviewed ? (
+            <span style={{ fontSize: 13, color: "#10B981", fontWeight: 600 }}>★ {tx.reviewed}</span>
+          ) : (
+            <button
+              onClick={() => openReview(a.id)}
+              style={{ padding: "8px 18px", border: `1.5px solid ${COLORS.primary}`, borderRadius: 8, background: "transparent", color: COLORS.primary, fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+            >
+              ★ {tx.leaveReview}
+            </button>
+          )}
         </div>
       </div>
-      {(a.diagnosis || a.Diagnosis) && (
-        <div>
-          <div style={labelStyle}>{tx.diagnosis}</div>
-          <div style={{ fontSize: 14, color: COLORS.muted, fontStyle: "italic" }}>{a.diagnosis || a.Diagnosis}</div>
-        </div>
-      )}
-    </div>
-  );
+    );
+  };
 
   // ── Main content ──────────────────────────────────────────────────
   const content = (
@@ -391,6 +529,7 @@ export default function PatientDashboardPage({ setPage, lang = "EN" }) {
         </div>
       )}
       <Footer lang={lang} />
+      {reviewModal}
     </div>
   );
 }

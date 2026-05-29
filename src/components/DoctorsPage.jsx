@@ -12,8 +12,6 @@ const SPEC_COLORS = [
   "#3B5BDB", "#10B981", "#EC4899", "#F59E0B", "#8B5CF6", "#EF4444",
 ];
 
-const MOCK_RATINGS = [4.9, 5.0, 4.8, 4.7, 4.9, 4.8, 4.7, 4.9, 4.8, 4.9];
-const MOCK_REVIEWS = [248, 312, 195, 167, 203, 189, 142, 256, 178, 220];
 
 function getSpecColor(idx) {
   return SPEC_COLORS[idx % SPEC_COLORS.length];
@@ -44,30 +42,8 @@ function AvatarPlaceholder({ name, size = 100 }) {
   );
 }
 
-function StarRating({ rating }) {
-  const full = Math.floor(rating);
-  const half = rating % 1 >= 0.5;
-  return (
-    <span style={{ display: "inline-flex", gap: 2, alignItems: "center" }}>
-      {Array.from({ length: 5 }).map((_, i) => (
-        <svg key={i} width="14" height="14" viewBox="0 0 24 24">
-          <polygon
-            points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"
-            fill={i < full ? "#F59E0B" : i === full && half ? "#F59E0B" : "#E5E7EB"}
-            stroke="#F59E0B"
-            strokeWidth={i < full || (i === full && half) ? "0" : "1"}
-            opacity={i === full && half ? 0.5 : 1}
-          />
-        </svg>
-      ))}
-    </span>
-  );
-}
-
 function DoctorCard({ doctor, idx, onBook }) {
   const color = getSpecColor(idx);
-  const rating = MOCK_RATINGS[idx % MOCK_RATINGS.length];
-  const reviews = MOCK_REVIEWS[idx % MOCK_REVIEWS.length];
   const isTopRated = idx < 5;
 
   return (
@@ -153,12 +129,6 @@ function DoctorCard({ doctor, idx, onBook }) {
         </p>
       )}
 
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 20, justifyContent: "center" }}>
-        <StarRating rating={rating} />
-        <span style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>{rating}</span>
-        <span style={{ fontSize: 12, color: "#94A3B8" }}>({reviews} reviews)</span>
-      </div>
-
       <button
         className="book-btn"
         onClick={() => onBook(doctor)}
@@ -189,30 +159,6 @@ function DoctorCard({ doctor, idx, onBook }) {
         Book Appointment
       </button>
 
-      <button
-        className="review-btn"
-        style={{
-          width: "100%",
-          padding: "10px",
-          background: "transparent",
-          color: COLORS.primary,
-          border: `1.5px solid ${COLORS.primary}`,
-          borderRadius: 10,
-          fontSize: 14,
-          fontWeight: 600,
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 7,
-          transition: "all 0.2s",
-        }}
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-        </svg>
-        Leave a Review
-      </button>
     </div>
   );
 }
@@ -248,7 +194,6 @@ export default function DoctorsPage({ setPage, lang = "EN" }) {
       <style>{`
         .doctor-card:hover { box-shadow: 0 12px 40px rgba(0,0,0,0.14) !important; transform: translateY(-4px) !important; }
         .book-btn:hover { background: #2f4abf !important; }
-        .review-btn:hover { background: #EEF2FF !important; }
         @keyframes skpulse { 0%,100%{opacity:1} 50%{opacity:.4} }
       `}</style>
 
