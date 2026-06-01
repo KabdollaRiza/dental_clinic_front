@@ -60,7 +60,7 @@ export default function PatientLoginPage({ setPage, lang = "EN" }) {
       const role = (data.role || data.Role || "").toLowerCase();
       if (role !== "patient") { setMsg("Access denied. This portal is for patients only."); return; }
       const token = data.token || data.access_token || data.Token || "";
-      if (token) localStorage.setItem("patient_token", token);
+      if (token) sessionStorage.setItem("patient_token", token);
       setMsg(tx.success);
       setTimeout(() => setPage("patientDashboard"), 700);
     } catch { setMsg("Network error."); }

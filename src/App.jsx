@@ -17,12 +17,12 @@ import DoctorsPage from "./components/DoctorsPage";
 import ChatWidget from "./components/ChatWidget";
 
 function getInitialPage() {
-  const token = localStorage.getItem("token");
+  const token = sessionStorage.getItem("token");
   if (token) {
     try {
       const payload = JSON.parse(atob(token.split(".")[1]));
       if (payload.exp && Date.now() / 1000 > payload.exp) {
-        localStorage.removeItem("token");
+        sessionStorage.removeItem("token");
         return "home";
       }
       const role = (payload.role || payload.Role || "").toLowerCase();
@@ -59,7 +59,7 @@ export default function App() {
       {page === "patientDashboard"  && <PatientDashboardPage  setPage={setPage} lang={lang} />}
       
       {!noFooter && <Footer lang={lang} />}
-      <ChatWidget page={page} />
+      <ChatWidget page={page} setPage={setPage} />
     </div>
   );
 }

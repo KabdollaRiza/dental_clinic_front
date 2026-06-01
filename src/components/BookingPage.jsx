@@ -95,7 +95,7 @@ export default function BookingPage({ setPage, lang = "EN" }) {
     } catch (_) {}
 
     // Pre-fill name & email and load booked slot IDs if patient is logged in
-    const token = localStorage.getItem("patient_token");
+    const token = sessionStorage.getItem("patient_token");
     if (token) {
       try {
         const claims = JSON.parse(atob(token.split(".")[1]));
@@ -153,7 +153,7 @@ export default function BookingPage({ setPage, lang = "EN" }) {
         // Cross-reference by name using the global catalog.
         try {
           const _tryValid = (t) => { try { const r = t.replace(/^Bearer\s+/i,""); const p = JSON.parse(atob(r.split(".")[1])); return !p.exp || Date.now()/1000 < p.exp; } catch(_){return false;} };
-          const _pt = localStorage.getItem("patient_token") || ""; const _at = localStorage.getItem("token") || "";
+          const _pt = sessionStorage.getItem("patient_token") || ""; const _at = sessionStorage.getItem("token") || "";
           const rawToken = _tryValid(_pt) ? _pt : _at;
           const token = rawToken.replace(/^Bearer\s+/i, "");
           const catR = await fetch(`${API_BASE}/api/services`, token ? { headers: { Authorization: `Bearer ${token}` } } : {});
@@ -212,7 +212,7 @@ export default function BookingPage({ setPage, lang = "EN" }) {
         name:              name,
         email:             email,
       };
-      const rawToken = localStorage.getItem("patient_token") || localStorage.getItem("token") || "";
+      const rawToken = sessionStorage.getItem("patient_token") || sessionStorage.getItem("token") || "";
       const token = rawToken.replace(/^Bearer\s+/i, "");
       const headers = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
@@ -242,12 +242,40 @@ export default function BookingPage({ setPage, lang = "EN" }) {
   const allReady = doctorId && clinicAddressId && serviceId && slotId && date && name.trim() && email.trim();
   const selectedSvc = services.find(s => s.id === serviceId);
 
+  const patientToken = sessionStorage.getItem("patient_token");
+
   return (
     <main style={bs.page}>
       <div style={bs.wrap}>
         <div style={bs.backLink} onClick={() => setPage("home")}>← {tx.back.replace("← ", "")}</div>
         <h1 style={bs.title}>{tx.title}</h1>
         <p style={bs.sub}>{tx.sub}</p>
+
+        {!patientToken && (
+          <div style={{
+            background: "#FFF7ED", border: "1.5px solid #F59E0B",
+            borderRadius: 12, padding: "14px 18px", marginBottom: 24,
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            gap: 12, flexWrap: "wrap",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 20 }}>⚠️</span>
+              <span style={{ fontSize: 14, color: "#92400E", fontWeight: 500 }}>
+                {lang === "KZ" ? "Жазылу үшін пациент аккаунтына кіріңіз." : lang === "EN" ? "Please log in to your patient account to book an appointment." : "Для записи к врачу необходимо войти в аккаунт пациента."}
+              </span>
+            </div>
+            <button
+              onClick={() => setPage("patientLogin")}
+              style={{
+                padding: "8px 18px", borderRadius: 8, border: "none",
+                background: COLORS.primary, color: "#fff",
+                fontSize: 13, fontWeight: 700, cursor: "pointer", flexShrink: 0,
+              }}
+            >
+              {lang === "KZ" ? "Кіру" : lang === "EN" ? "Log in" : "Войти"}
+            </button>
+          </div>
+        )}
 
         <div style={bs.card}>
           <div style={bs.stepHead}>

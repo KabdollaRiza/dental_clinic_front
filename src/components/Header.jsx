@@ -65,7 +65,7 @@ export default function Header({ page, setPage, lang, setLang }) {
   const t    = NAV_LABELS[lang] || NAV_LABELS.EN;
   const cur  = LANGUAGES.find((l) => l.code === lang) || LANGUAGES[0];
 
-  const adminToken = localStorage.getItem("token");
+  const adminToken = sessionStorage.getItem("token");
   let loggedInRole = "";
   if (adminToken) {
     try {
@@ -90,7 +90,7 @@ export default function Header({ page, setPage, lang, setLang }) {
 
   const handleNavClick = (dest) => {
     if (dest === "patientPortal") {
-      const pt = localStorage.getItem("patient_token");
+      const pt = sessionStorage.getItem("patient_token");
       setPage(pt ? "patientDashboard" : "patientLogin");
     } else {
       setPage(dest);

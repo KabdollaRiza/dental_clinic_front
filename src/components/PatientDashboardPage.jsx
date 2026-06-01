@@ -102,7 +102,7 @@ export default function PatientDashboardPage({ setPage, lang = "EN" }) {
   const [reviewMsg,         setReviewMsg]         = useState("");
   const [submittedReviews,  setSubmittedReviews]  = useState(new Set());
 
-  const raw     = localStorage.getItem("patient_token") || "";
+  const raw     = sessionStorage.getItem("patient_token") || "";
   const token   = raw.startsWith("Bearer ") ? raw.slice(7) : raw;
   const claims  = token ? decodeJWT(token) : {};
   const name    = claims.name || claims.Name || claims.email || "Patient";
@@ -185,7 +185,7 @@ export default function PatientDashboardPage({ setPage, lang = "EN" }) {
   const past     = appointments.filter(a => new Date(a.start_time || a.Start_time) <  now);
 
   const logout = () => {
-    localStorage.removeItem("patient_token");
+    sessionStorage.removeItem("patient_token");
     setPage("home");
   };
 

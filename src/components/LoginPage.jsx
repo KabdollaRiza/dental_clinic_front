@@ -36,16 +36,16 @@ export default function LoginPage({ setPage, lang = "EN" }) {
       });
       let data = {};
       try { data = await res.json(); } catch (_) {}
-      if (!res.ok) { localStorage.removeItem("token"); setMessage(data.message || "Login failed"); return; }
+      if (!res.ok) { sessionStorage.removeItem("token"); setMessage(data.message || "Login failed"); return; }
 
       const token = data.token || data.access_token || data.Token || data.AccessToken || data.jwt || "";
       if (token) {
-        localStorage.setItem("token", token);
+        sessionStorage.setItem("token", token);
       } else {
-        localStorage.removeItem("token");
+        sessionStorage.removeItem("token");
       }
       const role = (data.role || data.Role || "").toLowerCase();
-      if (role === "patient") { localStorage.removeItem("token"); setMessage("Access denied. Please use the patient login portal."); return; }
+      if (role === "patient") { sessionStorage.removeItem("token"); setMessage("Access denied. Please use the patient login portal."); return; }
       setMessage(tx.success);
       setTimeout(() => { if (role === "doctor") setPage("doctor"); else setPage("admin"); }, 800);
     } catch (error) {

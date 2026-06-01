@@ -51,7 +51,7 @@ const BotIcon = () => (
 
 const WELCOME = "Привет! Я помогу вам записаться к врачу. Напишите, например: «Хочу записаться на приём».";
 
-export default function ChatWidget({ page }) {
+export default function ChatWidget({ page, setPage }) {
   const [open, setOpen]                   = useState(false);
   const [messages, setMessages]           = useState([]);
   const [input, setInput]                 = useState("");
@@ -118,7 +118,7 @@ export default function ChatWidget({ page }) {
     );
 
     const _tryValid = (t) => { try { const r = t.replace(/^Bearer\s+/i,""); const p = JSON.parse(atob(r.split(".")[1])); return !p.exp || Date.now()/1000 < p.exp; } catch(_){return false;} };
-    const _pt = localStorage.getItem("patient_token") || ""; const _at = localStorage.getItem("token") || "";
+    const _pt = sessionStorage.getItem("patient_token") || ""; const _at = sessionStorage.getItem("token") || "";
     const _best = (_tryValid(_pt) ? _pt : (_tryValid(_at) ? _at : tok)).replace(/^Bearer\s+/i, "");
     const globalRes = await fetch(`${API_BASE}/api/services`, {
       headers: _best ? { Authorization: `Bearer ${_best}` } : {},
@@ -139,7 +139,7 @@ export default function ChatWidget({ page }) {
   }, [open]);
 
   const getToken = () => {
-    const raw = localStorage.getItem("patient_token") || "";
+    const raw = sessionStorage.getItem("patient_token") || "";
     return raw.startsWith("Bearer ") ? raw.slice(7) : raw;
   };
 
@@ -395,7 +395,72 @@ export default function ChatWidget({ page }) {
   };
 
   const token = getToken();
-  if (noWidget || !token) return null;
+  if (noWidget) return null;
+
+  if (!token) {
+    return (
+      <>
+        {!open && (
+          <button
+            onClick={() => setOpen(true)}
+            title="AI Ассистент"
+            style={{
+              position: "fixed", bottom: 28, right: 28, zIndex: 1000,
+              width: 56, height: 56, borderRadius: "50%",
+              background: COLORS.primary, color: "#fff",
+              border: "none", cursor: "pointer",
+              boxShadow: "0 4px 20px rgba(59,91,219,0.4)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            <ChatIcon />
+          </button>
+        )}
+        {open && (
+          <div ref={chatRef} style={{
+            position: "fixed", bottom: 28, right: 28, zIndex: 1000,
+            width: 320, background: COLORS.white, borderRadius: 18,
+            boxShadow: "0 8px 40px rgba(0,0,0,0.18)",
+            border: `1px solid ${COLORS.border}`, overflow: "hidden",
+          }}>
+            <div style={{
+              background: COLORS.primary, color: "#fff",
+              padding: "13px 16px",
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <BotIcon />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 15 }}>AI Ассистент</div>
+                  <div style={{ fontSize: 11, opacity: 0.8 }}>Запись к врачу</div>
+                </div>
+              </div>
+              <button onClick={() => setOpen(false)} style={{ background: "rgba(255,255,255,0.18)", border: "none", color: "#fff", width: 30, height: 30, borderRadius: 6, cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
+            </div>
+            <div style={{ padding: "28px 20px 24px", textAlign: "center" }}>
+              <div style={{ fontSize: 36, marginBottom: 12 }}>🔒</div>
+              <p style={{ fontSize: 14, color: COLORS.text, fontWeight: 600, marginBottom: 8 }}>Требуется авторизация</p>
+              <p style={{ fontSize: 13, color: COLORS.muted, marginBottom: 20, lineHeight: 1.5 }}>
+                Для записи к врачу через AI-ассистента необходимо войти в аккаунт пациента.
+              </p>
+              <button
+                onClick={() => { setOpen(false); setPage("patientLogin"); }}
+                style={{
+                  width: "100%", padding: "11px", border: "none", borderRadius: 8,
+                  background: COLORS.primary, color: "#fff",
+                  fontSize: 14, fontWeight: 700, cursor: "pointer",
+                }}
+              >
+                Войти в аккаунт
+              </button>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
 
   const showInput      = !started;
   const showChoices    = started && choiceRequired && choices.length > 0;

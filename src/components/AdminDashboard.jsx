@@ -12,7 +12,7 @@ const API_BASE =
 const C = COLORS;
 
 function authFetch(url, options = {}) {
-  const raw = localStorage.getItem("token") || "";
+  const raw = sessionStorage.getItem("token") || "";
   const authHeader = raw.startsWith("Bearer ") ? raw : (raw ? `Bearer ${raw}` : "");
   const headers = {
     "Content-Type": "application/json",
@@ -2461,7 +2461,7 @@ export default function AdminDashboard({ setPage, lang: propLang, setLang: propS
               </div>
             )}
           </div>
-          <button style={s.logoutBtn} onClick={() => { localStorage.removeItem("token"); setPage("login"); }}>
+          <button style={s.logoutBtn} onClick={() => { sessionStorage.removeItem("token"); setPage("login"); }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <path d="M16 17l5-5-5-5M21 12H9M13 22H5a2 2 0 01-2-2V4a2 2 0 012-2h8"
                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>

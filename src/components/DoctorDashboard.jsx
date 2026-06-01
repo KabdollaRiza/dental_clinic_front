@@ -15,7 +15,7 @@ function parseJwt(token) {
 }
 
 function getAuthHeader() {
-  const raw = localStorage.getItem("token") || "";
+  const raw = sessionStorage.getItem("token") || "";
   // Backend stores token with "Bearer " prefix already
   return raw.startsWith("Bearer ") ? raw : `Bearer ${raw}`;
 }
@@ -921,7 +921,7 @@ export default function DoctorDashboard({ setPage, lang: propLang = "RU" }) {
   }, []);
 
   useEffect(() => {
-    const raw = localStorage.getItem("token") || "";
+    const raw = sessionStorage.getItem("token") || "";
     if (!raw) return;
     const claims = parseJwt(raw);
     const email = claims.email || "";
@@ -948,7 +948,7 @@ export default function DoctorDashboard({ setPage, lang: propLang = "RU" }) {
           <div style={{ width: 36, height: 36, background: P.primary, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <SmileIcon size={20} />
           </div>
-          <span style={{ fontSize: 17, fontWeight: 700, color: "#1A1A2E" }}>Dental Clinic</span>
+          <span style={{ fontSize: 17, fontWeight: 700, cozlor: "#1A1A2E" }}>Dental Clinic</span>
         </div>
         <div style={{ position: "relative" }} ref={langRef}>
           <button
@@ -1018,7 +1018,7 @@ export default function DoctorDashboard({ setPage, lang: propLang = "RU" }) {
             ))}
           </nav>
 
-          <div style={st.logoutItem(sidebarOpen)} onClick={() => { localStorage.removeItem("token"); setPage("login"); }} title={!sidebarOpen ? t.logout : ""}>
+          <div style={st.logoutItem(sidebarOpen)} onClick={() => { sessionStorage.removeItem("token"); setPage("login"); }} title={!sidebarOpen ? t.logout : ""}>
             <LogoutIcon />
             {sidebarOpen && t.logout}
           </div>
