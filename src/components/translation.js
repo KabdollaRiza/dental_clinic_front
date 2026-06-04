@@ -576,7 +576,7 @@ export const ADMIN_T = {
   EN: {
     title: "Admin Dashboard",
     logout: "Logout",
-    tabs: { clinics: "Clinics", doctors: "Doctors", services: "Services", addresses: "Addresses", appointments: "Appointments", reviews: "Reviews", schedule: "Schedule", inventory: "Inventory", reports: "Reports" },
+    tabs: { clinics: "Clinics", doctors: "Doctors", services: "Services", addresses: "Addresses", appointments: "Appointments", reviews: "Reviews", schedule: "Schedule", inventory: "Inventory", reports: "Reports", clinic_admins: "Clinic Admins", users: "Users" },
     manageReviews: "Patient Reviews", noReviews: "No reviews yet.",
     reviewsCount: "review(s)", colDoctorRating: "Doctor Rating", colClinicRating: "Clinic Rating",
     colClinicComment: "Clinic Comment", colPatient: "Patient", colDoctor: "Doctor", colDate: "Date",
@@ -674,7 +674,7 @@ export const ADMIN_T = {
     repCompleted: "Completed", repRevenue: "Revenue", repAvgRating: "Avg Rating",
     repInStock: "In Stock", repRestocked: "Restocked", repUsed: "Used", repAdjusted: "Adjusted",
     // Edit modals
-    editClinic: "Edit Clinic", editDoctor: "Edit Doctor", editService: "Edit Service", editWorkingHours: "Edit Working Hours",
+    editClinic: "Edit Clinic", editDoctor: "Edit Doctor", editService: "Edit Service", editAddress: "Edit Address", editWorkingHours: "Edit Working Hours",
     // Account & auth
     accountActive: "Account active", passwordLabel: "Password", newPasswordLabel: "New Password", emailLabel: "Email",
     // Placeholders — Clinic
@@ -713,11 +713,41 @@ export const ADMIN_T = {
     dayNames: ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
     // Units & nav
     yearsAbbr: "yrs", minLabel: "min", sidebarNav: "Navigation",
+    // Image buttons
+    btnLogo: "Logo", btnCover: "Cover", btnGallery: "Gallery", btnPhoto: "Photo",
+    noLogoSet: "No logo set", newLogoFile: "New logo (image file)",
+    uploadLogo: "Upload Logo", deleteLogo: "Delete Logo",
+    noCoverSet: "No cover set", newCoverFile: "New cover (image file)",
+    uploadCover: "Upload Cover", deleteCover: "Delete Cover",
+    noPhotoSet: "No photo set", newPhotoFile: "New photo (image file)",
+    uploadPhoto: "Upload Photo", deletePhoto: "Delete Photo",
+    noGalleryImages: "No gallery images yet",
+    addNewImage: "Add new image", addToGallery: "Add to Gallery",
+    uploading: "Uploading…", btnUpdate: "Update",
+    // Clinic Admins
+    manageClinicAdmins: "Manage Clinic Admins", addClinicAdmin: "+ Add Clinic Admin",
+    noClinicAdmins: "No clinic admins yet. Click \"+ Add Clinic Admin\" to get started.",
+    modalAddClinicAdmin: "Add Clinic Admin", editClinicAdmin: "Edit Clinic Admin",
+    // Users
+    manageUsers: "Manage Users", noUsers: "No users yet.",
+    editUser: "Edit User", deleteUserConfirm: "Delete this user? This cannot be undone.",
+    colRole: "Role", colAge: "Age", colGender: "Gender",
+    colEmail: "Email",
+    rolePatient: "Patient", roleDoctor: "Doctor", roleAdmin: "Admin", roleClinicAdmin: "Clinic Admin",
+    // Appointment status
+    editApptStatus: "Edit Status", selectStatus: "— Select status —", statusUpdated: "Status updated!",
+    statusPending: "Pending", statusBooked: "Booked", statusCompleted: "Completed", statusCancelled: "Cancelled",
+    // Profile settings
+    profileSettings: "Profile Settings",
+    changePassword: "Change Password", oldPassword: "Current Password", oldPasswordPh: "Enter current password",
+    changeEmail: "Change Email", newEmail: "New Email Address", newEmailPh: "Enter new email",
+    passwordChanged: "Password changed successfully!", emailChanged: "Verification email sent! Check your inbox.",
+    colStatus: "Status",
   },
   KZ: {
     title: "Әкімші тақтасы",
     logout: "Шығу",
-    tabs: { clinics: "Клиникалар", doctors: "Дәрігерлер", services: "Қызметтер", addresses: "Мекенжайлар", appointments: "Жазылымдар", reviews: "Пікірлер", schedule: "Кесте", inventory: "Инвентарь", reports: "Есептер" },
+    tabs: { clinics: "Клиникалар", doctors: "Дәрігерлер", services: "Қызметтер", addresses: "Мекенжайлар", appointments: "Жазылымдар", reviews: "Пікірлер", schedule: "Кесте", inventory: "Инвентарь", reports: "Есептер", clinic_admins: "Клиника әкімшілері", users: "Пайдаланушылар" },
     manageReviews: "Пациент пікірлері", noReviews: "Пікірлер жоқ.",
     reviewsCount: "пікір", colDoctorRating: "Дәрігер бағасы", colClinicRating: "Клиника бағасы",
     colClinicComment: "Клиника пікірі", colPatient: "Пациент", colDoctor: "Дәрігер", colDate: "Күні",
@@ -808,7 +838,7 @@ export const ADMIN_T = {
     repTotalRevenue: "Жалпы кіріс", repTotal: "Барлығы",
     repCompleted: "Аяқталған", repRevenue: "Кіріс", repAvgRating: "Орт. баға",
     repInStock: "Қордағы", repRestocked: "Толтырылған", repUsed: "Пайдаланылған", repAdjusted: "Түзетілген",
-    editClinic: "Клиниканы өзгерту", editDoctor: "Дәрігерді өзгерту", editService: "Қызметті өзгерту", editWorkingHours: "Жұмыс уақытын өзгерту",
+    editClinic: "Клиниканы өзгерту", editDoctor: "Дәрігерді өзгерту", editService: "Қызметті өзгерту", editAddress: "Мекенжайды өзгерту", editWorkingHours: "Жұмыс уақытын өзгерту",
     accountActive: "Тіркелгі белсенді", passwordLabel: "Құпия сөз", newPasswordLabel: "Жаңа құпия сөз", emailLabel: "Email",
     clinicNamePh: "мысалы: SmileDent Астана", phonePh: "+7 (7172) 55-66-77", emailClinicPh: "contact@clinic.kz", websitePh: "https://clinic.kz",
     doctorNamePh: "мысалы: Иванов Иван", doctorEmailPh: "doctor@clinic.kz", specPh: "мысалы: Ортодонтия", expPh: "мысалы: 5",
@@ -831,11 +861,41 @@ export const ADMIN_T = {
     saveWorkingHours: "Жұмыс уақытын сақтау", fromDate: "Бастапқы күн", toDate: "Соңғы күн",
     dayNames: ["Жексенбі","Дүйсенбі","Сейсенбі","Сәрсенбі","Бейсенбі","Жұма","Сенбі"],
     yearsAbbr: "жыл", minLabel: "мин", sidebarNav: "Навигация",
+    // Image buttons
+    btnLogo: "Лого", btnCover: "Мұқаба", btnGallery: "Галерея", btnPhoto: "Фото",
+    noLogoSet: "Лого орнатылмаған", newLogoFile: "Жаңа лого (сурет файлы)",
+    uploadLogo: "Логоны жүктеу", deleteLogo: "Логоны жою",
+    noCoverSet: "Мұқаба орнатылмаған", newCoverFile: "Жаңа мұқаба (сурет файлы)",
+    uploadCover: "Мұқабаны жүктеу", deleteCover: "Мұқабаны жою",
+    noPhotoSet: "Фото орнатылмаған", newPhotoFile: "Жаңа фото (сурет файлы)",
+    uploadPhoto: "Фотоны жүктеу", deletePhoto: "Фотоны жою",
+    noGalleryImages: "Галереяда суреттер жоқ",
+    addNewImage: "Жаңа сурет қосу", addToGallery: "Галереяға қосу",
+    uploading: "Жүктелуде…", btnUpdate: "Жаңарту",
+    // Clinic Admins
+    manageClinicAdmins: "Клиника әкімшілері", addClinicAdmin: "+ Қосу",
+    noClinicAdmins: "Клиника әкімшілері жоқ.",
+    modalAddClinicAdmin: "Клиника әкімшісін қосу", editClinicAdmin: "Клиника әкімшісін өзгерту",
+    // Users
+    manageUsers: "Пайдаланушыларды басқару", noUsers: "Пайдаланушылар жоқ.",
+    editUser: "Пайдаланушыны өзгерту", deleteUserConfirm: "Пайдаланушыны жою? Бұл қайтарылмайды.",
+    colRole: "Рөл", colAge: "Жасы", colGender: "Жынысы",
+    colEmail: "Email",
+    rolePatient: "Пациент", roleDoctor: "Дәрігер", roleAdmin: "Әкімші", roleClinicAdmin: "Клиника әкімшісі",
+    // Appointment status
+    editApptStatus: "Мәртебені өзгерту", selectStatus: "— Мәртебе таңдаңыз —", statusUpdated: "Мәртебе жаңартылды!",
+    statusPending: "Күтілуде", statusBooked: "Брондалған", statusCompleted: "Аяқталған", statusCancelled: "Бас тартылған",
+    // Profile settings
+    profileSettings: "Профиль параметрлері",
+    changePassword: "Құпия сөзді өзгерту", oldPassword: "Ағымдағы құпия сөз", oldPasswordPh: "Ағымдағы құпия сөзді енгізіңіз",
+    changeEmail: "Emailді өзгерту", newEmail: "Жаңа электрондық пошта", newEmailPh: "Жаңа email енгізіңіз",
+    passwordChanged: "Құпия сөз сәтті өзгертілді!", emailChanged: "Растау хаты жіберілді! Поштаңызды тексеріңіз.",
+    colStatus: "Мәртебе",
   },
   RU: {
     title: "Панель администратора",
     logout: "Выйти",
-    tabs: { clinics: "Клиники", doctors: "Врачи", services: "Услуги", addresses: "Адреса", appointments: "Записи", reviews: "Отзывы", schedule: "Расписание", inventory: "Инвентарь", reports: "Отчёты" },
+    tabs: { clinics: "Клиники", doctors: "Врачи", services: "Услуги", addresses: "Адреса", appointments: "Записи", reviews: "Отзывы", schedule: "Расписание", inventory: "Инвентарь", reports: "Отчёты", clinic_admins: "Администраторы клиник", users: "Пользователи" },
     manageReviews: "Отзывы пациентов", noReviews: "Отзывов пока нет.",
     reviewsCount: "отзыв(ов)", colDoctorRating: "Оценка врача", colClinicRating: "Оценка клиники",
     colClinicComment: "Комментарий о клинике", colPatient: "Пациент", colDoctor: "Врач", colDate: "Дата",
@@ -926,7 +986,7 @@ export const ADMIN_T = {
     repTotalRevenue: "Общий доход", repTotal: "Итого",
     repCompleted: "Завершено", repRevenue: "Доход", repAvgRating: "Ср. рейтинг",
     repInStock: "На складе", repRestocked: "Пополнено", repUsed: "Использовано", repAdjusted: "Скорректировано",
-    editClinic: "Редактировать клинику", editDoctor: "Редактировать врача", editService: "Редактировать услугу", editWorkingHours: "Редактировать рабочие часы",
+    editClinic: "Редактировать клинику", editDoctor: "Редактировать врача", editService: "Редактировать услугу", editAddress: "Редактировать адрес", editWorkingHours: "Редактировать рабочие часы",
     accountActive: "Аккаунт активен", passwordLabel: "Пароль", newPasswordLabel: "Новый пароль", emailLabel: "Email",
     clinicNamePh: "напр. SmileDent Астана", phonePh: "+7 (7172) 55-66-77", emailClinicPh: "contact@clinic.kz", websitePh: "https://clinic.kz",
     doctorNamePh: "напр. Иванов Иван", doctorEmailPh: "doctor@clinic.kz", specPh: "напр. Ортодонтия", expPh: "напр. 5",
@@ -949,6 +1009,36 @@ export const ADMIN_T = {
     saveWorkingHours: "Сохранить рабочие часы", fromDate: "Дата начала", toDate: "Дата окончания",
     dayNames: ["Воскресенье","Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"],
     yearsAbbr: "лет", minLabel: "мин", sidebarNav: "Навигация",
+    // Image buttons
+    btnLogo: "Лого", btnCover: "Обложка", btnGallery: "Галерея", btnPhoto: "Фото",
+    noLogoSet: "Логотип не установлен", newLogoFile: "Новый логотип (файл изображения)",
+    uploadLogo: "Загрузить логотип", deleteLogo: "Удалить логотип",
+    noCoverSet: "Обложка не установлена", newCoverFile: "Новая обложка (файл изображения)",
+    uploadCover: "Загрузить обложку", deleteCover: "Удалить обложку",
+    noPhotoSet: "Фото не установлено", newPhotoFile: "Новое фото (файл изображения)",
+    uploadPhoto: "Загрузить фото", deletePhoto: "Удалить фото",
+    noGalleryImages: "В галерее нет изображений",
+    addNewImage: "Добавить изображение", addToGallery: "Добавить в галерею",
+    uploading: "Загрузка…", btnUpdate: "Обновить",
+    // Clinic Admins
+    manageClinicAdmins: "Администраторы клиник", addClinicAdmin: "+ Добавить",
+    noClinicAdmins: "Администраторы клиник не добавлены.",
+    modalAddClinicAdmin: "Добавить администратора", editClinicAdmin: "Редактировать администратора",
+    // Users
+    manageUsers: "Управление пользователями", noUsers: "Пользователей пока нет.",
+    editUser: "Редактировать пользователя", deleteUserConfirm: "Удалить пользователя? Это действие нельзя отменить.",
+    colRole: "Роль", colAge: "Возраст", colGender: "Пол",
+    colEmail: "Email",
+    rolePatient: "Пациент", roleDoctor: "Врач", roleAdmin: "Администратор", roleClinicAdmin: "Администратор клиники",
+    // Appointment status
+    editApptStatus: "Изменить статус", selectStatus: "— Выберите статус —", statusUpdated: "Статус обновлён!",
+    statusPending: "Ожидание", statusBooked: "Забронировано", statusCompleted: "Завершено", statusCancelled: "Отменено",
+    // Profile settings
+    profileSettings: "Настройки профиля",
+    changePassword: "Изменить пароль", oldPassword: "Текущий пароль", oldPasswordPh: "Введите текущий пароль",
+    changeEmail: "Изменить email", newEmail: "Новый email", newEmailPh: "Введите новый email",
+    passwordChanged: "Пароль успешно изменён!", emailChanged: "Письмо с подтверждением отправлено! Проверьте почту.",
+    colStatus: "Статус",
   },
 };
 

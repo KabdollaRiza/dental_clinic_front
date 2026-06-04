@@ -30,6 +30,16 @@ function handle401(status, setMsg) {
   return false;
 }
 
+function authFetchFile(url, method, file, fieldName = "image") {
+  const raw = sessionStorage.getItem("token") || "";
+  const authHeader = raw.startsWith("Bearer ") ? raw : (raw ? `Bearer ${raw}` : "");
+  const formData = new FormData();
+  formData.append(fieldName, file);
+  const headers = {};
+  if (authHeader) headers["Authorization"] = authHeader;
+  return fetch(url, { method, headers, body: formData });
+}
+
 // Styles 
 const s = {
   page: { flex: 1, background: "#F8F9FF", display: "flex", flexDirection: "column" },
@@ -297,7 +307,349 @@ const TABS = [
   { key: "schedule",     label: "Schedule",     icon: "M12 8v4l3 3M12 2a10 10 0 100 20A10 10 0 0012 2z" },
   { key: "inventory",    label: "Inventory",    icon: "M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zM16 3H8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z" },
   { key: "reports",      label: "Reports",      icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" },
+  { key: "clinic_admins", label: "Clinic Admins", icon: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" },
+  { key: "users",        label: "Users",        icon: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" },
 ];
+
+// PROFILE MODAL
+function ProfileModal({ tx, onClose }) {
+  const [pwForm, setPwForm] = useState({ old_password: "", new_password: "" });
+  const [emailForm, setEmailForm] = useState({ new_email: "" });
+  const [pwMsg, setPwMsg] = useState("");
+  const [emailMsg, setEmailMsg] = useState("");
+  const [savingPw, setSavingPw] = useState(false);
+  const [savingEmail, setSavingEmail] = useState(false);
+
+  const changePassword = async () => {
+    if (!pwForm.old_password || !pwForm.new_password) return;
+    setSavingPw(true);
+    try {
+      const res = await authFetch(`${API_BASE}/api/users/update-password`, { method: "POST", body: JSON.stringify(pwForm) });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) { setPwMsg("err:" + (d.message || d.error || "Failed")); return; }
+      setPwMsg("ok:"); setPwForm({ old_password: "", new_password: "" });
+    } catch (e) { setPwMsg("err:" + e.message); }
+    finally { setSavingPw(false); }
+  };
+
+  const changeEmail = async () => {
+    if (!emailForm.new_email) return;
+    setSavingEmail(true);
+    try {
+      const res = await authFetch(`${API_BASE}/api/users/update-email`, { method: "POST", body: JSON.stringify(emailForm) });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); setEmailMsg("err:" + (d.message || d.error || "Failed")); return; }
+      setEmailMsg("ok:"); setEmailForm({ new_email: "" });
+    } catch (e) { setEmailMsg("err:" + e.message); }
+    finally { setSavingEmail(false); }
+  };
+
+  return (
+    <Modal title={tx.profileSettings} onClose={onClose}>
+      <div style={{ borderBottom: `1px solid ${C.border}`, paddingBottom: 20, marginBottom: 20 }}>
+        <p style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 14 }}>{tx.changePassword}</p>
+        <FG label={tx.oldPassword}><Input type="password" value={pwForm.old_password} onChange={e => setPwForm(f => ({ ...f, old_password: e.target.value }))} placeholder={tx.oldPasswordPh} /></FG>
+        <FG label={tx.newPasswordLabel}><Input type="password" value={pwForm.new_password} onChange={e => setPwForm(f => ({ ...f, new_password: e.target.value }))} placeholder={tx.passwordPlaceholder} /></FG>
+        <button style={{ ...s.submitBtn, opacity: savingPw ? 0.7 : 1 }} onClick={changePassword} disabled={savingPw}>{tx.changePassword}</button>
+        {pwMsg && <p style={pwMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{pwMsg.startsWith("ok:") ? tx.passwordChanged : pwMsg.slice(3)}</p>}
+      </div>
+      <div>
+        <p style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 14 }}>{tx.changeEmail}</p>
+        <FG label={tx.newEmail}><Input type="email" value={emailForm.new_email} onChange={e => setEmailForm({ new_email: e.target.value })} placeholder={tx.newEmailPh} /></FG>
+        <button style={{ ...s.submitBtn, opacity: savingEmail ? 0.7 : 1 }} onClick={changeEmail} disabled={savingEmail}>{tx.changeEmail}</button>
+        {emailMsg && <p style={emailMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{emailMsg.startsWith("ok:") ? tx.emailChanged : emailMsg.slice(3)}</p>}
+      </div>
+    </Modal>
+  );
+}
+
+// CLINIC LOGO MODAL
+function ClinicLogoModal({ clinic, onClose, onUpdate, tx }) {
+  const [file, setFile]   = useState(null);
+  const [msg,  setMsg]    = useState("");
+  const [saving, setSaving] = useState(false);
+  const [logoUrl, setLogoUrl] = useState(clinic.logo_url || "");
+
+  const upload = async () => {
+    if (!file) { setMsg("err:Please select a file"); return; }
+    setSaving(true);
+    try {
+      const res = await authFetchFile(`${API_BASE}/api/clinics/${clinic.id}/logo`, "PUT", file, "logo");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setMsg("err:" + (data.message || data.error || "Upload failed")); return; }
+      const url = data.url || data.logo_url || data.image_url || data.data?.url || "";
+      setLogoUrl(url);
+      onUpdate(clinic.id, url);
+      setFile(null);
+      setMsg("ok:Logo uploaded!");
+    } catch (e) { setMsg("err:" + e.message); }
+    finally { setSaving(false); }
+  };
+
+  const deleteLogo = async () => {
+    if (!window.confirm("Delete logo?")) return;
+    try {
+      await authFetch(`${API_BASE}/api/clinics/${clinic.id}/logo`, { method: "DELETE" });
+      setLogoUrl("");
+      onUpdate(clinic.id, "");
+      setMsg("ok:Logo deleted");
+    } catch (e) { setMsg("err:" + e.message); }
+  };
+
+  return (
+    <Modal title={`Logo — ${clinic.name}`} onClose={onClose}>
+      {logoUrl ? (
+        <div style={{ textAlign: "center", marginBottom: 16 }}>
+          <img src={logoUrl} alt="clinic logo" style={{ maxWidth: 220, maxHeight: 140, borderRadius: 10, border: `1px solid ${C.border}`, objectFit: "contain" }} />
+        </div>
+      ) : (
+        <div style={{ textAlign: "center", padding: "20px 0", color: C.muted, fontSize: 13, marginBottom: 8 }}>{tx.noLogoSet}</div>
+      )}
+      <FG label={tx.newLogoFile}>
+        <input type="file" accept="image/*" onChange={e => setFile(e.target.files?.[0] || null)} style={{ width: "100%", fontSize: 14, padding: "8px 0" }} />
+      </FG>
+      <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={upload} disabled={saving || !file}>
+        {saving ? tx.uploading : tx.uploadLogo}
+      </button>
+      {logoUrl && (
+        <button style={{ ...s.submitBtn, background: "#DC2626", marginTop: 10 }} onClick={deleteLogo}>
+          {tx.deleteLogo}
+        </button>
+      )}
+      {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+    </Modal>
+  );
+}
+
+// ADDRESS COVER MODAL
+function AddressCoverModal({ address, onClose, onUpdate, tx }) {
+  const [file, setFile]     = useState(null);
+  const [msg,  setMsg]      = useState("");
+  const [saving, setSaving] = useState(false);
+  const [coverUrl, setCoverUrl] = useState(address.cover_url || "");
+
+  const upload = async () => {
+    if (!file) { setMsg("err:Please select a file"); return; }
+    setSaving(true);
+    try {
+      const res = await authFetchFile(`${API_BASE}/api/clinic-addresses/${address.id}/cover`, "PUT", file, "cover");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setMsg("err:" + (data.message || data.error || "Upload failed")); return; }
+      const url = data.url || data.cover_url || data.image_url || data.data?.url || "";
+      setCoverUrl(url);
+      onUpdate(address.id, url);
+      setFile(null);
+      setMsg("ok:Cover uploaded!");
+    } catch (e) { setMsg("err:" + e.message); }
+    finally { setSaving(false); }
+  };
+
+  const deleteCover = async () => {
+    if (!window.confirm("Delete cover?")) return;
+    try {
+      await authFetch(`${API_BASE}/api/clinic-addresses/${address.id}/cover`, { method: "DELETE" });
+      setCoverUrl("");
+      onUpdate(address.id, "");
+      setMsg("ok:Cover deleted");
+    } catch (e) { setMsg("err:" + e.message); }
+  };
+
+  const addrLabel = [address.address_name, address.street, address.city].filter(Boolean).join(", ");
+
+  return (
+    <Modal title={`Cover — ${addrLabel}`} onClose={onClose}>
+      {coverUrl ? (
+        <div style={{ textAlign: "center", marginBottom: 16 }}>
+          <img src={coverUrl} alt="cover" style={{ maxWidth: "100%", maxHeight: 180, borderRadius: 10, border: `1px solid ${C.border}`, objectFit: "cover" }} />
+        </div>
+      ) : (
+        <div style={{ textAlign: "center", padding: "20px 0", color: C.muted, fontSize: 13, marginBottom: 8 }}>{tx.noCoverSet}</div>
+      )}
+      <FG label={tx.newCoverFile}>
+        <input type="file" accept="image/*" onChange={e => setFile(e.target.files?.[0] || null)} style={{ width: "100%", fontSize: 14, padding: "8px 0" }} />
+      </FG>
+      <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={upload} disabled={saving || !file}>
+        {saving ? tx.uploading : tx.uploadCover}
+      </button>
+      {coverUrl && (
+        <button style={{ ...s.submitBtn, background: "#DC2626", marginTop: 10 }} onClick={deleteCover}>
+          {tx.deleteCover}
+        </button>
+      )}
+      {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+    </Modal>
+  );
+}
+
+// ADDRESS GALLERY MODAL
+function AddressGalleryModal({ address, onClose, tx }) {
+  const [images,   setImages]   = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [addFile,  setAddFile]  = useState(null);
+  const [updFiles, setUpdFiles] = useState({});
+  const [msg,      setMsg]      = useState("");
+  const [saving,   setSaving]   = useState(false);
+
+  const addrLabel = [address.address_name, address.street, address.city].filter(Boolean).join(", ");
+
+  useEffect(() => {
+    setLoading(true);
+    authFetch(`${API_BASE}/api/clinic-addresses/${address.id}/gallery`)
+      .then(r => r.ok ? r.json() : [])
+      .then(d => setImages(Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : [])))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [address.id]);
+
+  const addImage = async () => {
+    if (!addFile) { setMsg("err:Please select a file"); return; }
+    setSaving(true);
+    try {
+      const res = await authFetchFile(`${API_BASE}/api/clinic-addresses/${address.id}/gallery`, "POST", addFile, "image");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setMsg("err:" + (data.message || data.error || "Upload failed")); return; }
+      const newImg = data.data || data.image || data;
+      setImages(prev => [...prev, newImg]);
+      setAddFile(null);
+      setMsg("ok:Image added!");
+    } catch (e) { setMsg("err:" + e.message); }
+    finally { setSaving(false); }
+  };
+
+  const updateImage = async (imgId) => {
+    const file = updFiles[imgId];
+    if (!file) { setMsg("err:Please select a file to replace"); return; }
+    setSaving(true);
+    try {
+      const res = await authFetchFile(`${API_BASE}/api/clinic-addresses/${address.id}/gallery/${imgId}`, "PUT", file, "image");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setMsg("err:" + (data.message || data.error || "Update failed")); return; }
+      const updated = data.data || data.image || data;
+      setImages(prev => prev.map(img => (img.id || img.Id) === imgId ? { ...img, ...updated } : img));
+      setUpdFiles(prev => { const n = { ...prev }; delete n[imgId]; return n; });
+      setMsg("ok:Image updated!");
+    } catch (e) { setMsg("err:" + e.message); }
+    finally { setSaving(false); }
+  };
+
+  const deleteImage = async (imgId) => {
+    if (!window.confirm("Delete this image?")) return;
+    try {
+      await authFetch(`${API_BASE}/api/clinic-addresses/${address.id}/gallery/${imgId}`, { method: "DELETE" });
+      setImages(prev => prev.filter(img => (img.id || img.Id) !== imgId));
+      setMsg("ok:Image deleted");
+    } catch (e) { setMsg("err:" + e.message); }
+  };
+
+  return (
+    <Modal title={`Gallery — ${addrLabel}`} onClose={onClose}>
+      {msg && <p style={{ ...(msg.startsWith("ok:") ? s.msgOk : s.msgErr), marginBottom: 12 }}>{msg.slice(3)}</p>}
+
+      {loading ? (
+        <p style={{ color: C.muted, fontSize: 14, textAlign: "center", padding: "20px 0" }}>{tx.invLoading}</p>
+      ) : images.length === 0 ? (
+        <p style={{ color: C.muted, fontSize: 13, textAlign: "center", padding: "16px 0" }}>{tx.noGalleryImages}</p>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 12, marginBottom: 20 }}>
+          {images.map(img => {
+            const id  = img.id || img.Id;
+            const url = img.url || img.image_url || img.URL || "";
+            return (
+              <div key={id} style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden", background: "#F8F9FF" }}>
+                {url && <img src={url} alt="" style={{ width: "100%", height: 100, objectFit: "cover", display: "block" }} />}
+                <div style={{ padding: "8px 8px 10px" }}>
+                  <input type="file" accept="image/*" onChange={e => setUpdFiles(prev => ({ ...prev, [id]: e.target.files?.[0] }))}
+                    style={{ fontSize: 11, width: "100%", marginBottom: 6 }} />
+                  <div style={{ display: "flex", gap: 4 }}>
+                    <button
+                      style={{ flex: 1, fontSize: 11, fontWeight: 600, padding: "4px 0", background: C.primaryLight, color: C.primary, border: "none", borderRadius: 6, cursor: "pointer" }}
+                      onClick={() => updateImage(id)} disabled={saving || !updFiles[id]}>
+                      {tx.btnUpdate}
+                    </button>
+                    <button
+                      style={{ flex: 1, fontSize: 11, fontWeight: 600, padding: "4px 0", background: "#FEE2E2", color: "#DC2626", border: "none", borderRadius: 6, cursor: "pointer" }}
+                      onClick={() => deleteImage(id)}>
+                      {tx.delete}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 16 }}>
+        <p style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 10 }}>{tx.addNewImage}</p>
+        <input type="file" accept="image/*" onChange={e => setAddFile(e.target.files?.[0] || null)}
+          style={{ fontSize: 14, width: "100%", marginBottom: 10 }} />
+        <button style={{ ...s.submitBtn, opacity: (saving || !addFile) ? 0.7 : 1 }} onClick={addImage} disabled={saving || !addFile}>
+          {saving ? tx.uploading : tx.addToGallery}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+// DOCTOR PHOTO MODAL
+function DoctorPhotoModal({ doctor, onClose, onUpdate, tx }) {
+  const [file, setFile]     = useState(null);
+  const [msg,  setMsg]      = useState("");
+  const [saving, setSaving] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState(
+    doctor.photo_url ? `${API_BASE}${doctor.photo_url}` : ""
+  );
+
+  const upload = async () => {
+    if (!file) { setMsg("err:Please select a file"); return; }
+    setSaving(true);
+    try {
+      const res = await authFetchFile(`${API_BASE}/api/doctors/${doctor.id}/photo`, "POST", file, "photo");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setMsg("err:" + (data.message || data.error || "Upload failed")); return; }
+      const url = data.url || data.photo_url || data.image_url || data.data?.url || "";
+      const fullUrl = url.startsWith("http") ? url : `${API_BASE}${url}`;
+      setPhotoUrl(fullUrl);
+      onUpdate(doctor.id, url);
+      setFile(null);
+      setMsg("ok:Photo uploaded!");
+    } catch (e) { setMsg("err:" + e.message); }
+    finally { setSaving(false); }
+  };
+
+  const deletePhoto = async () => {
+    if (!window.confirm("Delete photo?")) return;
+    try {
+      await authFetch(`${API_BASE}/api/doctors/${doctor.id}/photo`, { method: "DELETE" });
+      setPhotoUrl("");
+      onUpdate(doctor.id, "");
+      setMsg("ok:Photo deleted");
+    } catch (e) { setMsg("err:" + e.message); }
+  };
+
+  return (
+    <Modal title={`${tx.btnPhoto} — ${doctor.name}`} onClose={onClose}>
+      {photoUrl ? (
+        <div style={{ textAlign: "center", marginBottom: 16 }}>
+          <img src={photoUrl} alt="doctor photo" style={{ width: 120, height: 120, borderRadius: "50%", objectFit: "cover", border: `2px solid ${C.border}` }} />
+        </div>
+      ) : (
+        <div style={{ textAlign: "center", padding: "20px 0", color: C.muted, fontSize: 13, marginBottom: 8 }}>{tx.noPhotoSet}</div>
+      )}
+      <FG label={tx.newPhotoFile}>
+        <input type="file" accept="image/*" onChange={e => setFile(e.target.files?.[0] || null)} style={{ width: "100%", fontSize: 14, padding: "8px 0" }} />
+      </FG>
+      <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={upload} disabled={saving || !file}>
+        {saving ? tx.uploading : tx.uploadPhoto}
+      </button>
+      {photoUrl && (
+        <button style={{ ...s.submitBtn, background: "#DC2626", marginTop: 10 }} onClick={deletePhoto}>
+          {tx.deletePhoto}
+        </button>
+      )}
+      {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+    </Modal>
+  );
+}
 
 // CLINICS TAB
 function ClinicsTab({ clinics, setClinics, tx, addresses, setAddresses }) {
@@ -305,6 +657,11 @@ function ClinicsTab({ clinics, setClinics, tx, addresses, setAddresses }) {
   const [editClinic, setEditClinic] = useState(null);
   const [editForm2,  setEditForm2]  = useState({});
   const [editMsg2,   setEditMsg2]   = useState("");
+  const [logoClinic, setLogoClinic] = useState(null);
+
+  const handleLogoUpdate = (clinicId, url) => {
+    setClinics(prev => prev.map(c => c.id === clinicId ? { ...c, logo_url: url } : c));
+  };
  
   const EMPTY = { name: "", description: "", phone: "", email: "", website: "", is_active: true, address_id: "" };
   const [form, setForm] = useState(EMPTY);
@@ -430,8 +787,11 @@ function ClinicsTab({ clinics, setClinics, tx, addresses, setAddresses }) {
                   </span>
                 </td>
                 <td style={s.td}>
-                  <button style={s.editBtn} onClick={() => { setEditClinic(c); setEditForm2({...c}); setEditMsg2(""); }}>{tx.invEdit}</button>
-                  <button style={s.deleteBtn} onClick={() => del(c.id)}>{tx.delete}</button>
+                  <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "nowrap" }}>
+                    <button style={s.editBtn} onClick={() => { setEditClinic(c); setEditForm2({...c}); setEditMsg2(""); }}>{tx.invEdit}</button>
+                    <button style={{ ...s.editBtn, marginRight: 0, background: "#E0F2FE", color: "#0369A1" }} onClick={() => setLogoClinic(c)}>{tx.btnLogo}</button>
+                    <button style={{ ...s.deleteBtn, marginLeft: 0 }} onClick={() => del(c.id)}>{tx.delete}</button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -506,6 +866,15 @@ function ClinicsTab({ clinics, setClinics, tx, addresses, setAddresses }) {
           {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
         </Modal>
       )}
+
+      {logoClinic && (
+        <ClinicLogoModal
+          clinic={logoClinic}
+          onClose={() => setLogoClinic(null)}
+          onUpdate={handleLogoUpdate}
+          tx={tx}
+        />
+      )}
     </>
   );
 }
@@ -516,6 +885,11 @@ function DoctorsTab({ doctors, setDoctors, clinics, services, tx }) {
   const [editDoc, setEditDoc] = useState(null);
   const [editDocForm, setEditDocForm] = useState({});
   const [editDocMsg,  setEditDocMsg]  = useState("");
+  const [photoDoc, setPhotoDoc] = useState(null);
+
+  const handlePhotoUpdate = (docId, url) => {
+    setDoctors(prev => prev.map(d => d.id === docId ? { ...d, photo_url: url } : d));
+  };
   const EMPTY = { name: "", email: "", specialization: "", experience: "", clinic_id: "", service_ids: [], password: "", is_active: true };
   const [form, setForm] = useState(EMPTY);
   const [msg, setMsg] = useState("");
@@ -613,8 +987,11 @@ function DoctorsTab({ doctors, setDoctors, clinics, services, tx }) {
               <td style={s.td}>{d.specialization || "—"}</td>
               <td style={s.td}>{d.experience ? `${d.experience} ${tx.yearsAbbr}` : "—"}</td>
               <td style={s.td}>
-                <button style={s.editBtn} onClick={() => { setEditDoc(d); setEditDocForm({ ...d, new_password: "", is_active: d.is_active ?? true }); setEditDocMsg(""); }}>{tx.invEdit}</button>
-                <button style={s.deleteBtn} onClick={() => del(d.id)}>{tx.delete}</button>
+                <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "nowrap" }}>
+                  <button style={s.editBtn} onClick={() => { setEditDoc(d); setEditDocForm({ ...d, new_password: "", is_active: d.is_active ?? true }); setEditDocMsg(""); }}>{tx.invEdit}</button>
+                  <button style={{ ...s.editBtn, marginRight: 0, background: "#FDF4FF", color: "#7C3AED" }} onClick={() => setPhotoDoc(d)}>{tx.btnPhoto}</button>
+                  <button style={{ ...s.deleteBtn, marginLeft: 0 }} onClick={() => del(d.id)}>{tx.delete}</button>
+                </div>
               </td>
             </tr>
           ))}</tbody>
@@ -635,6 +1012,14 @@ function DoctorsTab({ doctors, setDoctors, clinics, services, tx }) {
           <button style={s.submitBtn} onClick={updateDoctor}>{tx.invSaveChanges}</button>
           {editDocMsg && <p style={editDocMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{editDocMsg.slice(3)}</p>}
         </Modal>
+      )}
+      {photoDoc && (
+        <DoctorPhotoModal
+          doctor={photoDoc}
+          onClose={() => setPhotoDoc(null)}
+          onUpdate={handlePhotoUpdate}
+          tx={tx}
+        />
       )}
       {open && (
         <Modal title={tx.modalAddDoctor} onClose={() => { setOpen(false); setForm(EMPTY); setMsg(""); setConfirmationCode(""); }}>
@@ -825,7 +1210,12 @@ function ServicesTab({ services, setServices, clinics, tx }) {
                   {sv.is_active ? tx.active : tx.inactive}
                 </span>
               </td>
-              <td style={s.td}><button style={s.editBtn} onClick={() => { setEditSvc(sv); setEditSvcForm({...sv, price: String(sv.price), duration: String(sv.duration)}); setEditSvcMsg(""); }}>{tx.invEdit}</button><button style={s.deleteBtn} onClick={() => del(sv.id)}>{tx.delete}</button></td>
+              <td style={s.td}>
+                <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "nowrap" }}>
+                  <button style={s.editBtn} onClick={() => { setEditSvc(sv); setEditSvcForm({...sv, price: String(sv.price), duration: String(sv.duration)}); setEditSvcMsg(""); }}>{tx.invEdit}</button>
+                  <button style={{ ...s.deleteBtn, marginLeft: 0 }} onClick={() => del(sv.id)}>{tx.delete}</button>
+                </div>
+              </td>
             </tr>
           ))}</tbody>
         </table>
@@ -882,11 +1272,46 @@ function ServicesTab({ services, setServices, clinics, tx }) {
 
 // ADDRESSES TAB — 2-step: fill address → assign clinic
 function AddressesTab({ addresses, setAddresses, clinics, tx }) {
-  const [open, setOpen]     = useState(false);
+  const [open, setOpen]         = useState(false);
+  const [coverAddr, setCoverAddr]     = useState(null);
+  const [galleryAddr, setGalleryAddr] = useState(null);
+  const [editAddr, setEditAddr]       = useState(null);
+  const [editAddrForm, setEditAddrForm] = useState({});
+  const [editAddrMsg,  setEditAddrMsg]  = useState("");
   const EMPTY = { country: "", city: "", street: "", building: "" };
   const [form, setForm]     = useState(EMPTY);
   const [msg,  setMsg]      = useState("");
   const [saving, setSaving] = useState(false);
+
+  const handleCoverUpdate = (addrId, url) => {
+    setAddresses(prev => prev.map(a => a.id === addrId ? { ...a, cover_url: url } : a));
+  };
+
+  const updateAddr = async () => {
+    if (!editAddr) return;
+    if (!editAddrForm.country || !editAddrForm.city || !editAddrForm.street) {
+      setEditAddrMsg("err:" + tx.addrRequiredFields); return;
+    }
+    try {
+      const payload = {
+        country:   editAddrForm.country,
+        city:      editAddrForm.city,
+        street:    editAddrForm.street,
+        building:  editAddrForm.building || "",
+        latitude:  0,
+        longitude: 0,
+      };
+      const addrId = editAddr.addr_id || editAddr.id;
+      const res = await authFetch(`${API_BASE}/api/address/${addrId}`, {
+        method: "PUT", body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setEditAddrMsg("err:" + (data.message || data.error || "Failed")); return; }
+      setAddresses(prev => prev.map(a => a.id === editAddr.id ? { ...a, ...payload } : a));
+      setEditAddrMsg("ok:" + tx.addedOk);
+      setTimeout(() => { setEditAddr(null); setEditAddrMsg(""); }, 1000);
+    } catch (e) { setEditAddrMsg("err:" + e.message); }
+  };
 
   const hc = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -979,7 +1404,12 @@ function AddressesTab({ addresses, setAddresses, clinics, tx }) {
                 }
               </td>
               <td style={s.td}>
-                <button style={s.deleteBtn} onClick={() => del(a.id, a.clinic_id)}>{tx.delete}</button>
+                <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "nowrap" }}>
+                  <button style={s.editBtn} onClick={() => { setEditAddr(a); setEditAddrForm({...a}); setEditAddrMsg(""); }}>{tx.invEdit}</button>
+                  <button style={{ ...s.editBtn, marginRight: 0, background: "#FFF7ED", color: "#D97706" }} onClick={() => setCoverAddr(a)}>{tx.btnCover}</button>
+                  <button style={{ ...s.editBtn, marginRight: 0, background: "#F5F3FF", color: "#7C3AED" }} onClick={() => setGalleryAddr(a)}>{tx.btnGallery}</button>
+                  <button style={{ ...s.deleteBtn, marginLeft: 0 }} onClick={() => del(a.id, a.clinic_id)}>{tx.delete}</button>
+                </div>
               </td>
             </tr>
           ))}</tbody>
@@ -1002,6 +1432,38 @@ function AddressesTab({ addresses, setAddresses, clinics, tx }) {
           </button>
           {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
         </Modal>
+      )}
+
+      {editAddr && (
+        <Modal title={tx.editAddress} onClose={() => { setEditAddr(null); setEditAddrMsg(""); }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <FG label={tx.country}><Input value={editAddrForm.country||""} onChange={(e)=>setEditAddrForm({...editAddrForm,country:e.target.value})} placeholder={tx.countryPh} /></FG>
+            <FG label={tx.city}><Input value={editAddrForm.city||""} onChange={(e)=>setEditAddrForm({...editAddrForm,city:e.target.value})} placeholder={tx.cityPh} /></FG>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <FG label={tx.street}><Input value={editAddrForm.street||""} onChange={(e)=>setEditAddrForm({...editAddrForm,street:e.target.value})} placeholder={tx.streetPh} /></FG>
+            <FG label={tx.building}><Input value={editAddrForm.building||""} onChange={(e)=>setEditAddrForm({...editAddrForm,building:e.target.value})} placeholder={tx.buildingPh} /></FG>
+          </div>
+          <button style={s.submitBtn} onClick={updateAddr}>{tx.invSaveChanges}</button>
+          {editAddrMsg && <p style={editAddrMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{editAddrMsg.slice(3)}</p>}
+        </Modal>
+      )}
+
+      {coverAddr && (
+        <AddressCoverModal
+          address={coverAddr}
+          onClose={() => setCoverAddr(null)}
+          onUpdate={handleCoverUpdate}
+          tx={tx}
+        />
+      )}
+
+      {galleryAddr && (
+        <AddressGalleryModal
+          address={galleryAddr}
+          onClose={() => setGalleryAddr(null)}
+          tx={tx}
+        />
       )}
     </>
   );
@@ -1038,6 +1500,26 @@ function AppointmentsTab({ appointments, setAppointments, addresses, doctors, se
   const [slots,      setSlots]      = useState([]);
   const [loadSlots,  setLoadSlots]  = useState(false);
   const [filteredServices, setFilteredServices] = useState([]);
+  const [editStatusAppt, setEditStatusAppt] = useState(null);
+  const [editStatus,     setEditStatus]     = useState("");
+  const [statusMsg,      setStatusMsg]      = useState("");
+
+  const STATUS_OPTIONS = [
+    { value: "pending",   label: tx.statusPending },
+    { value: "booked",    label: tx.statusBooked },
+    { value: "completed", label: tx.statusCompleted },
+    { value: "cancelled", label: tx.statusCancelled },
+  ];
+
+  const updateStatus = async () => {
+    if (!editStatus) return;
+    try {
+      const res = await authFetch(`${API_BASE}/api/appointment/${editStatusAppt.id}`, { method: "PUT", body: JSON.stringify({ status: editStatus }) });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); setStatusMsg("err:" + (d.message || "Failed")); return; }
+      setAppointments(prev => prev.map(a => a.id === editStatusAppt.id ? { ...a, status: editStatus } : a));
+      setStatusMsg("ok:"); setTimeout(() => { setEditStatusAppt(null); setStatusMsg(""); }, 800);
+    } catch (e) { setStatusMsg("err:" + e.message); }
+  };
 
   const EMPTY = { clinic_id: "", doctor_id: "", clinic_address_id: "", service_id: "", slot_id: "", date: "", name: "", email: "" };
   const [form, setForm] = useState(EMPTY);
@@ -1190,6 +1672,10 @@ function AppointmentsTab({ appointments, setAppointments, addresses, doctors, se
                       <div style={{ opacity: 0.9, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{getName(doctors, a.doctor_id)}</div>
                       <div style={{ opacity: 0.8, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{getName(services, a.service_id)}</div>
                       <button
+                        onClick={(e) => { e.stopPropagation(); setEditStatusAppt(a); setEditStatus(a.status || ""); setStatusMsg(""); }}
+                        style={{ position: "absolute", top: 2, right: 18, background: "none", border: "none", color: "#fff", cursor: "pointer", fontSize: 10, opacity: 0.85, padding: 0, lineHeight: 1 }}
+                      >✎</button>
+                      <button
                         onClick={(e) => { e.stopPropagation(); if(window.confirm(tx.deleteApptConfirm)) del(a.id); }}
                         style={{ position: "absolute", top: 2, right: 4, background: "none", border: "none", color: "#fff", cursor: "pointer", fontSize: 13, opacity: 0.7, padding: 0, lineHeight: 1 }}
                       >×</button>
@@ -1290,6 +1776,24 @@ function AppointmentsTab({ appointments, setAppointments, addresses, doctors, se
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── Edit Status Modal ── */}
+      {editStatusAppt && (
+        <Modal title={tx.editApptStatus} onClose={() => { setEditStatusAppt(null); setStatusMsg(""); }}>
+          <p style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
+            {getName(doctors, editStatusAppt.doctor_id)} — {getName(services, editStatusAppt.service_id)}<br/>
+            {editStatusAppt.start_time?.slice(0,16).replace("T"," ")}
+          </p>
+          <FG label={tx.colStatus}>
+            <Sel value={editStatus} onChange={e => setEditStatus(e.target.value)}>
+              <option value="">{tx.selectStatus}</option>
+              {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </Sel>
+          </FG>
+          <button style={s.submitBtn} onClick={updateStatus}>{tx.invSaveChanges}</button>
+          {statusMsg && <p style={statusMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{statusMsg.startsWith("ok:") ? tx.statusUpdated : statusMsg.slice(3)}</p>}
+        </Modal>
       )}
     </div>
   );
@@ -1894,7 +2398,7 @@ function StockSubTab({ addresses, clinics, products, tx }) {
 
       {open && (
         <Modal title={tx.invAddStockModal} onClose={() => { setOpen(false); setAddForm({ product_id: "", quantity: "" }); setMsg(""); }}>
-          <FG label={tx.invProduct}>
+              <FG label={tx.invProduct}>
             <Sel value={addForm.product_id} onChange={e => setAddForm(f => ({ ...f, product_id: e.target.value }))}>
               <option value="">— {tx.invProduct} —</option>
               {products.map(p => <option key={p.id} value={p.id}>{p.name} ({p.unit})</option>)}
@@ -2310,6 +2814,235 @@ function ReportsTab({ clinics, addresses, tx }) {
   );
 }
 
+// USERS TAB
+function UsersTab({ users, setUsers, tx }) {
+  const [editUser, setEditUser] = useState(null);
+  const [editForm, setEditForm] = useState({});
+  const [editMsg, setEditMsg] = useState("");
+
+  const roleLabel = (r) => ({
+    patient: tx.rolePatient, doctor: tx.roleDoctor,
+    admin: tx.roleAdmin, clinic_admin: tx.roleClinicAdmin,
+  })[r] || r;
+
+  const openEdit = (u) => { setEditUser(u); setEditForm({ name: u.name || "", email: u.email || "", role: u.role || "patient", age: u.age || "", gender: u.gender || "" }); setEditMsg(""); };
+
+  const save = async () => {
+    try {
+      const res = await authFetch(`${API_BASE}/api/users/${editUser.id}`, { method: "PUT", body: JSON.stringify({ name: editForm.name, email: editForm.email, role: editForm.role, age: Number(editForm.age) || 0, gender: editForm.gender }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setEditMsg("err:" + (data.message || data.error || "Failed")); return; }
+      setUsers(prev => prev.map(u => u.id === editUser.id ? { ...u, ...editForm, age: Number(editForm.age) || 0 } : u));
+      setEditMsg("ok:ok"); setTimeout(() => { setEditUser(null); setEditMsg(""); }, 900);
+    } catch (e) { setEditMsg("err:" + e.message); }
+  };
+
+  const del = async (id) => {
+    if (!window.confirm(tx.deleteUserConfirm)) return;
+    try {
+      await authFetch(`${API_BASE}/api/users/${id}`, { method: "DELETE" });
+      setUsers(prev => prev.filter(u => u.id !== id));
+    } catch (_) {}
+  };
+
+  return (
+    <>
+      <div style={s.sectionHeader}>
+        <span style={s.sectionTitle}>{tx.manageUsers}</span>
+      </div>
+      {users.length === 0 ? (
+        <Empty icon="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z" text={tx.noUsers} />
+      ) : (
+        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+          <table style={s.table} cellSpacing={0}>
+            <thead style={s.thead}><tr>
+              <th style={s.th}>{tx.colName}</th>
+              <th style={s.th}>{tx.colEmail}</th>
+              <th style={s.th}>{tx.colRole}</th>
+              <th style={s.th}>{tx.colAge}</th>
+              <th style={s.th}>{tx.colGender}</th>
+              <th style={s.th}>{tx.colActions}</th>
+            </tr></thead>
+            <tbody>{users.map(u => (
+              <tr key={u.id}>
+                <td style={s.td}><b>{u.name || "—"}</b></td>
+                <td style={s.td}>{u.email}</td>
+                <td style={s.td}><span style={s.badge(u.role === "admin" ? "#7C3AED" : u.role === "doctor" ? "#0369A1" : u.role === "clinic_admin" ? "#D97706" : "#22c55e")}>{roleLabel(u.role)}</span></td>
+                <td style={s.td}>{u.age || "—"}</td>
+                <td style={s.td}>{u.gender || "—"}</td>
+                <td style={s.td}>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    <button style={s.editBtn} onClick={() => openEdit(u)}>{tx.invEdit}</button>
+                    <button style={{ ...s.deleteBtn, marginLeft: 0 }} onClick={() => del(u.id)}>{tx.delete}</button>
+                  </div>
+                </td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      )}
+      {editUser && (
+        <Modal title={tx.editUser} onClose={() => { setEditUser(null); setEditMsg(""); }}>
+          <FG label={tx.fullName}><Input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} /></FG>
+          <FG label={tx.colEmail}><Input type="email" value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} /></FG>
+          <FG label={tx.colRole}>
+            <Sel value={editForm.role} onChange={e => setEditForm(f => ({ ...f, role: e.target.value }))}>
+              <option value="patient">{tx.rolePatient}</option>
+              <option value="doctor">{tx.roleDoctor}</option>
+              <option value="admin">{tx.roleAdmin}</option>
+              <option value="clinic_admin">{tx.roleClinicAdmin}</option>
+            </Sel>
+          </FG>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <FG label={tx.colAge}><Input type="number" value={editForm.age} onChange={e => setEditForm(f => ({ ...f, age: e.target.value }))} /></FG>
+            <FG label={tx.colGender}><Input value={editForm.gender} onChange={e => setEditForm(f => ({ ...f, gender: e.target.value }))} /></FG>
+          </div>
+          <button style={s.submitBtn} onClick={save}>{tx.invSaveChanges}</button>
+          {editMsg && <p style={editMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{editMsg.startsWith("ok:") ? tx.addedOk : editMsg.slice(3)}</p>}
+        </Modal>
+      )}
+    </>
+  );
+}
+
+// CLINIC ADMINS TAB
+function ClinicAdminsTab({ clinicAdmins, setClinicAdmins, clinics, tx }) {
+  const [open, setOpen] = useState(false);
+  const [editAdmin, setEditAdmin] = useState(null);
+  const [editForm, setEditForm] = useState({});
+  const [editMsg, setEditMsg] = useState("");
+  const EMPTY = { clinic_id: "", name: "", email: "", password: "", is_active: true };
+  const [form, setForm] = useState(EMPTY);
+  const [msg, setMsg] = useState("");
+
+  const hc = (e) => {
+    const { name, value, type, checked } = e.target;
+    setForm({ ...form, [name]: type === "checkbox" ? checked : value });
+  };
+
+  const submit = async () => {
+    if (!form.name || !form.email || !form.password || !form.clinic_id) {
+      setMsg("err:" + tx.allFieldsRequired); return;
+    }
+    try {
+      const res = await authFetch(`${API_BASE}/api/clinic-admins`, {
+        method: "POST",
+        body: JSON.stringify({ clinic_id: form.clinic_id, name: form.name, email: form.email, password: form.password, is_active: form.is_active }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (handle401(res.status, setMsg)) return;
+      if (!res.ok) { setMsg("err:" + (data.message || data.error || "Failed")); return; }
+      const newId = data.clinic_admin_id || data.id || String(Date.now());
+      setClinicAdmins(prev => [...prev, { ...form, id: newId }]);
+      setMsg("ok:" + tx.addedOk);
+      setTimeout(() => { setOpen(false); setForm(EMPTY); setMsg(""); }, 1200);
+    } catch (e) { setMsg("err:" + e.message); }
+  };
+
+  const updateAdmin = async () => {
+    if (!editAdmin) return;
+    try {
+      const payload = { clinic_id: editForm.clinic_id, name: editForm.name, email: editForm.email, new_password: editForm.new_password || "", is_active: !!editForm.is_active };
+      const res = await authFetch(`${API_BASE}/api/clinic-admins/${editAdmin.id}`, { method: "PUT", body: JSON.stringify(payload) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setEditMsg("err:" + (data.message || "Failed")); return; }
+      setClinicAdmins(prev => prev.map(a => a.id === editAdmin.id ? { ...a, ...payload } : a));
+      setEditMsg("ok:Updated!"); setTimeout(() => { setEditAdmin(null); setEditMsg(""); }, 1000);
+    } catch (e) { setEditMsg("err:" + e.message); }
+  };
+
+  const del = async (id) => {
+    if (!window.confirm(tx.confirmDelete)) return;
+    try {
+      await authFetch(`${API_BASE}/api/clinic-admins/${id}`, { method: "DELETE" });
+      setClinicAdmins(prev => prev.filter(a => a.id !== id));
+    } catch (_) {}
+  };
+
+  return (
+    <>
+      <div style={s.sectionHeader}>
+        <span style={s.sectionTitle}>{tx.manageClinicAdmins}</span>
+        <button style={s.addBtn} onClick={() => setOpen(true)}>{tx.addClinicAdmin}</button>
+      </div>
+
+      {clinicAdmins.length === 0 ? (
+        <Empty icon="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" text={tx.noClinicAdmins} />
+      ) : (
+        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+          <table style={s.table} cellSpacing={0}>
+            <thead style={s.thead}><tr>
+              <th style={s.th}>{tx.colName}</th>
+              <th style={s.th}>{tx.colEmail}</th>
+              <th style={s.th}>{tx.colClinic}</th>
+              <th style={s.th}>{tx.colStatus}</th>
+              <th style={s.th}>{tx.colActions}</th>
+            </tr></thead>
+            <tbody>{clinicAdmins.map((a) => (
+              <tr key={a.id}>
+                <td style={s.td}><b>{a.name}</b></td>
+                <td style={s.td}>{a.email}</td>
+                <td style={s.td}>{clinics.find(c => c.id === a.clinic_id)?.name || "—"}</td>
+                <td style={s.td}>
+                  <span style={s.badge(a.is_active !== false ? "#22c55e" : "#94A3B8")}>
+                    {a.is_active !== false ? tx.active : tx.inactive}
+                  </span>
+                </td>
+                <td style={s.td}>
+                  <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "nowrap" }}>
+                    <button style={s.editBtn} onClick={() => { setEditAdmin(a); setEditForm({ ...a, new_password: "" }); setEditMsg(""); }}>{tx.invEdit}</button>
+                    <button style={{ ...s.deleteBtn, marginLeft: 0 }} onClick={() => del(a.id)}>{tx.delete}</button>
+                  </div>
+                </td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      )}
+
+      {editAdmin && (
+        <Modal title={tx.editClinicAdmin} onClose={() => { setEditAdmin(null); setEditMsg(""); }}>
+          <FG label={tx.fullName}><Input value={editForm.name||""} onChange={e => setEditForm({...editForm,name:e.target.value})} /></FG>
+          <FG label={tx.emailAddr}><Input type="email" value={editForm.email||""} onChange={e => setEditForm({...editForm,email:e.target.value})} /></FG>
+          <FG label={tx.assignClinic}>
+            <Sel value={editForm.clinic_id||""} onChange={e => setEditForm({...editForm,clinic_id:e.target.value})}>
+              <option value="">{tx.selectClinic}</option>
+              {clinics.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </Sel>
+          </FG>
+          <FG label={tx.newPasswordLabel}><Input type="password" value={editForm.new_password||""} onChange={e => setEditForm({...editForm,new_password:e.target.value})} placeholder={tx.keepCurrentPassword} /></FG>
+          <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: C.text, marginBottom: 16, cursor: "pointer" }}>
+            <input type="checkbox" checked={!!editForm.is_active} onChange={e => setEditForm({...editForm,is_active:e.target.checked})} />
+            {tx.accountActive}
+          </label>
+          <button style={s.submitBtn} onClick={updateAdmin}>{tx.invSaveChanges}</button>
+          {editMsg && <p style={editMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{editMsg.slice(3)}</p>}
+        </Modal>
+      )}
+
+      {open && (
+        <Modal title={tx.modalAddClinicAdmin} onClose={() => { setOpen(false); setForm(EMPTY); setMsg(""); }}>
+          <FG label={tx.fullName}><Input name="name" value={form.name} onChange={hc} placeholder={tx.doctorNamePh} /></FG>
+          <FG label={tx.emailAddr}><Input name="email" type="email" value={form.email} onChange={hc} placeholder={tx.doctorEmailPh} /></FG>
+          <FG label={tx.passwordLabel}><Input name="password" type="password" value={form.password} onChange={hc} placeholder={tx.passwordPlaceholder} /></FG>
+          <FG label={tx.assignClinic}>
+            <Sel name="clinic_id" value={form.clinic_id} onChange={hc}>
+              <option value="">{tx.selectClinic}</option>
+              {clinics.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </Sel>
+          </FG>
+          <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: C.text, marginBottom: 16, cursor: "pointer" }}>
+            <input type="checkbox" name="is_active" checked={!!form.is_active} onChange={e => setForm(f => ({...f,is_active:e.target.checked}))} />
+            {tx.accountActive}
+          </label>
+          <button style={s.submitBtn} onClick={submit}>{tx.modalAddClinicAdmin}</button>
+          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+        </Modal>
+      )}
+    </>
+  );
+}
+
 // MAIN
 const LANGUAGES = [
   { code: "EN", label: "English" },
@@ -2337,6 +3070,9 @@ export default function AdminDashboard({ setPage, lang: propLang, setLang: propS
   const [services,     setServices]     = useState([]);
   const [addresses,    setAddresses]    = useState([]);
   const [appointments, setAppointments] = useState([]);
+  const [clinicAdmins, setClinicAdmins] = useState([]);
+  const [users,        setUsers]        = useState([]);
+  const [profileOpen,  setProfileOpen]  = useState(false);
 
   const normalize = (item) => {
     const id =
@@ -2369,9 +3105,11 @@ export default function AdminDashboard({ setPage, lang: propLang, setLang: propS
     };
     await load("/api/clinics", setClinics, "clinics");
     await Promise.all([
-      load("/api/doctors",      setDoctors,      "doctors"),
-      load("/api/services",     setServices,     "services"),
-      load("/api/appointment", setAppointments, "appointment"),
+      load("/api/doctors",        setDoctors,      "doctors"),
+      load("/api/services",       setServices,     "services"),
+      load("/api/appointment",    setAppointments, "appointment"),
+      load("/api/clinic-admins",  setClinicAdmins, "clinic_admins"),
+      load("/api/users",          setUsers,        "users"),
     ]);
 
     // Load addresses: GET /api/clinics/{id}/address for each clinic
@@ -2429,9 +3167,11 @@ export default function AdminDashboard({ setPage, lang: propLang, setLang: propS
     addresses:    addresses.length,
     appointments: appointments.length,
     reviews:      appointments.filter(a => a.is_reviewed).length,
-    schedule:     0,
-    inventory:    0,
-    reports:      0,
+    schedule:      0,
+    inventory:     0,
+    reports:       0,
+    clinic_admins: clinicAdmins.length,
+    users:         users.length,
   };
 
   const { isMobile } = useResponsive();
@@ -2480,7 +3220,7 @@ export default function AdminDashboard({ setPage, lang: propLang, setLang: propS
               onClick={() => setLangOpen(o => !o)}
             >
               <GlobeIcon />
-              <span>{LANGUAGES.find(l => l.code === lang)?.flag} {lang}</span>
+              <span>{lang}</span>
               <span style={{ fontSize: 10, marginLeft: 2, transition: "transform 0.2s", display: "inline-block", transform: langOpen ? "rotate(180deg)" : "rotate(0deg)" }}>▼</span>
             </button>
             {langOpen && (
@@ -2501,6 +3241,12 @@ export default function AdminDashboard({ setPage, lang: propLang, setLang: propS
               </div>
             )}
           </div>
+          <button style={{ ...s.logoutBtn, color: C.primary }} onClick={() => setProfileOpen(true)} title={tx.profileSettings}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            {!isMobile && tx.profileSettings}
+          </button>
           <button style={s.logoutBtn} onClick={() => { sessionStorage.removeItem("token"); setPage("login"); }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <path d="M16 17l5-5-5-5M21 12H9M13 22H5a2 2 0 01-2-2V4a2 2 0 012-2h8"
@@ -2510,6 +3256,7 @@ export default function AdminDashboard({ setPage, lang: propLang, setLang: propS
           </button>
         </div>
       </div>
+      {profileOpen && <ProfileModal tx={tx} onClose={() => setProfileOpen(false)} />}
 
       {isMobile && (
         <div style={tabsRowStyle}>
@@ -2548,7 +3295,9 @@ export default function AdminDashboard({ setPage, lang: propLang, setLang: propS
             {tab === "reviews"      && <ReviewsTab       appointments={appointments} doctors={doctors} tx={tx} />}
             {tab === "schedule"     && <ScheduleTab      doctors={doctors} addresses={addresses} tx={tx} />}
         {tab === "inventory"    && <InventoryTab     addresses={addresses} services={services} clinics={clinics} tx={tx} />}
-            {tab === "reports"      && <ReportsTab       clinics={clinics} addresses={addresses} tx={tx} />}
+            {tab === "reports"       && <ReportsTab       clinics={clinics} addresses={addresses} tx={tx} />}
+            {tab === "clinic_admins" && <ClinicAdminsTab  clinicAdmins={clinicAdmins} setClinicAdmins={setClinicAdmins} clinics={clinics} tx={tx} />}
+            {tab === "users"         && <UsersTab          users={users} setUsers={setUsers} tx={tx} />}
           </div>
         </div>
       </div>

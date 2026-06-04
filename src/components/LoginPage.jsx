@@ -47,7 +47,11 @@ export default function LoginPage({ setPage, lang = "EN" }) {
       const role = (data.role || data.Role || "").toLowerCase();
       if (role === "patient") { sessionStorage.removeItem("token"); setMessage("Access denied. Please use the patient login portal."); return; }
       setMessage(tx.success);
-      setTimeout(() => { if (role === "doctor") setPage("doctor"); else setPage("admin"); }, 800);
+      setTimeout(() => {
+        if (role === "doctor") setPage("doctor");
+        else if (role === "clinic_admin") setPage("clinicAdmin");
+        else setPage("admin");
+      }, 800);
     } catch (error) {
       setMessage(error?.message || "Network error");
     }

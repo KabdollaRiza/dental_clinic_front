@@ -9,6 +9,7 @@ import BookingPage from "./components/BookingPage";
 import AdminDashboard from "./components/AdminDashboard";
 import ClinicsPage from "./components/ClinicsPage";
 import DoctorDashboard from "./components/DoctorDashboard";
+import ClinicAdminDashboard from "./components/ClinicAdminDashboard";
 import ServicesPage from "./components/ServicesPage";
 import PatientLoginPage from "./components/PatientLoginPage";
 import PatientRegisterPage from "./components/PatientRegisterPage";
@@ -27,6 +28,7 @@ function getInitialPage() {
       }
       const role = (payload.role || payload.Role || "").toLowerCase();
       if (role === "doctor") return "doctor";
+      if (role === "clinic_admin") return "clinicAdmin";
       if (role === "admin") return "admin";
     } catch {}
   }
@@ -37,8 +39,8 @@ export default function App() {
   const [page, setPage] = useState(getInitialPage);
   const [lang, setLang] = useState("RU");
 
-  const noFooter  = page === "admin" || page === "doctor" || page === "patientDashboard";
-  const noHeader  = page === "admin" || page === "doctor" || page === "patientDashboard";
+  const noFooter  = page === "admin" || page === "doctor" || page === "patientDashboard" || page === "clinicAdmin";
+  const noHeader  = page === "admin" || page === "doctor" || page === "patientDashboard" || page === "clinicAdmin";
 
 
   return (
@@ -53,7 +55,8 @@ export default function App() {
       {page === "services"  && <ServicesPage setPage={setPage} lang={lang} />}
       {page === "doctors"   && <DoctorsPage  setPage={setPage} lang={lang} />}
       {page === "admin"    && <AdminDashboard key="admin-dashboard" setPage={setPage} lang={lang} setLang={setLang} />}
-      {page === "doctor"   && <DoctorDashboard setPage={setPage} lang={lang} />}
+      {page === "doctor"      && <DoctorDashboard      setPage={setPage} lang={lang} />}
+      {page === "clinicAdmin" && <ClinicAdminDashboard setPage={setPage} lang={lang} setLang={setLang} />}
       {page === "patientLogin"      && <PatientLoginPage      setPage={setPage} lang={lang} />}
       {page === "patientRegister"   && <PatientRegisterPage   setPage={setPage} lang={lang} />}
       {page === "patientDashboard"  && <PatientDashboardPage  setPage={setPage} lang={lang} />}

@@ -64,6 +64,7 @@ const TR = {
     diagnosis: "Diagnosis:", notes: "Notes:", saveChanges: "Save Changes", cancel: "Cancel",
     failedSave: "Failed to save. Please try again.", networkError: "Network error. Please try again.",
     enterDiagnosis: "Enter diagnosis", enterNotes: "Enter medical notes, treatment plan, observations...",
+    files: "Files", noFiles: "No files attached", preview: "Preview", download: "Download", deleteFile: "Delete", uploadFile: "Upload file",
   },
   RU: {
     locale: "ru-RU",
@@ -84,6 +85,7 @@ const TR = {
     diagnosis: "Диагноз:", notes: "Заметки:", saveChanges: "Сохранить", cancel: "Отмена",
     failedSave: "Не удалось сохранить. Попробуйте снова.", networkError: "Ошибка сети. Попробуйте снова.",
     enterDiagnosis: "Введите диагноз", enterNotes: "Заметки, план лечения, наблюдения...",
+    files: "Файлы", noFiles: "Файлы не прикреплены", preview: "Просмотр", download: "Скачать", deleteFile: "Удалить", uploadFile: "Загрузить файл",
   },
   KZ: {
     locale: "kk-KZ",
@@ -104,6 +106,7 @@ const TR = {
     diagnosis: "Диагноз:", notes: "Ескертпелер:", saveChanges: "Сақтау", cancel: "Бас тарту",
     failedSave: "Сақтау мүмкін болмады.", networkError: "Желі қатесі.",
     enterDiagnosis: "Диагнозды енгізіңіз", enterNotes: "Ескертпелер, емдеу жоспары...",
+    files: "Файлдар", noFiles: "Файлдар жоқ", preview: "Қарау", download: "Жүктеу", deleteFile: "Жою", uploadFile: "Файл жүктеу",
   },
 };
 
@@ -291,6 +294,23 @@ function MedicalRecordModal({ record, onClose, onSaved, t }) {
   const [editData, setEditData] = useState({ diagnosis: record.diagnosis || "", notes: record.notes || "" });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [files, setFiles] = useState(record.files || []);
+  const [fileLoading, setFileLoading] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [previewSrc, setPreviewSrc] = useState(null);
+  const [previewMime, setPreviewMime] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const refreshFiles = () => {
+    fetch(`${API_BASE}/api/medical-records/${record.id}`, {
+      headers: { Authorization: getAuthHeader() },
+    })
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data.files)) setFiles(data.files); })
+      .catch(() => {});
+  };
+
+  useEffect(() => { refreshFiles(); }, [record.id]);
 
   const isDone = !!(record.diagnosis || record.notes);
 
@@ -321,77 +341,206 @@ function MedicalRecordModal({ record, onClose, onSaved, t }) {
     }
   };
 
+  const handlePreview = async (file) => {
+    setFileLoading(file.id);
+    try {
+      const res = await fetch(`${API_BASE}/api/files/medical-records/${file.id}`, {
+        headers: { Authorization: getAuthHeader() },
+      });
+      if (!res.ok) return;
+      const blob = await res.blob();
+      setPreviewSrc(URL.createObjectURL(blob));
+      setPreviewMime(file.mime_type || "");
+    } catch {}
+    finally { setFileLoading(null); }
+  };
+
+  const handleDownload = async (file) => {
+    setFileLoading(file.id);
+    try {
+      const res = await fetch(`${API_BASE}/api/files/medical-records/${file.id}/download`, {
+        headers: { Authorization: getAuthHeader() },
+      });
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = file.name;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {}
+    finally { setFileLoading(null); }
+  };
+
+  const handleDeleteFile = async (fileId) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/files/medical-records/${fileId}`, {
+        method: "DELETE",
+        headers: { Authorization: getAuthHeader() },
+      });
+      if (res.ok) setFiles(prev => prev.filter(f => f.id !== fileId));
+    } catch {}
+  };
+
+  const handleUpload = async (e) => {
+    const selected = e.target.files;
+    if (!selected || selected.length === 0) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("diagnosis", editData.diagnosis);
+      formData.append("notes", editData.notes);
+      for (const f of selected) formData.append("files", f);
+      const res = await fetch(`${API_BASE}/api/medical-records/${record.id}`, {
+        method: "PUT",
+        headers: { Authorization: getAuthHeader() },
+        body: formData,
+      });
+      if (res.ok) refreshFiles();
+    } catch {}
+    finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const closePreview = () => {
+    if (previewSrc) URL.revokeObjectURL(previewSrc);
+    setPreviewSrc(null);
+    setPreviewMime(null);
+  };
+
   const patientName = record.patient_name || record.name || record.email || "Patient";
   const apptDate = record.appointment_date || record.created_at || "";
 
   return (
-    <div style={st.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div style={st.modal}>
-        <div style={st.modalHead}>
-          <div style={st.modalAvatar}>{initials(patientName)}</div>
-          <div>
-            <div style={st.modalName}>{patientName}</div>
-            <div style={st.modalMeta}>{apptDate ? apptDate.slice(0, 10) : "—"}</div>
+    <>
+      <div style={st.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
+        <div style={st.modal}>
+          <div style={st.modalHead}>
+            <div style={st.modalAvatar}>{initials(patientName)}</div>
+            <div>
+              <div style={st.modalName}>{patientName}</div>
+              <div style={st.modalMeta}>{apptDate ? apptDate.slice(0, 10) : "—"}</div>
+            </div>
+            <div style={{ position: "absolute", top: 16, right: 56, ...st.statusBadge(!isDone ? false : true), background: isDone ? "rgba(209,250,229,0.25)" : "rgba(254,243,199,0.25)", color: isDone ? "#D1FAE5" : "#FEF3C7" }}>
+              {isDone ? t.completed : t.pending}
+            </div>
+            <button style={st.closeBtn} onClick={onClose}>×</button>
           </div>
-          <div style={{ position: "absolute", top: 16, right: 56, ...st.statusBadge(!isDone ? false : true), background: isDone ? "rgba(209,250,229,0.25)" : "rgba(254,243,199,0.25)", color: isDone ? "#D1FAE5" : "#FEF3C7" }}>
-            {isDone ? t.completed : t.pending}
-          </div>
-          <button style={st.closeBtn} onClick={onClose}>×</button>
-        </div>
 
-        <div style={st.modalBody}>
-          {!editing ? (
+          <div style={st.modalBody}>
+            {!editing ? (
+              <div style={st.section}>
+                <div style={st.secHead}>
+                  <span style={st.secTitle}>{t.records}</span>
+                  <button style={st.editBtn} onClick={() => setEditing(true)}>
+                    <EditIcon /> {isDone ? t.edit : t.fillIn}
+                  </button>
+                </div>
+                <div style={st.infoBox}>
+                  <div style={st.infoRow}>
+                    <span style={st.infoKey}>{t.diagnosis}</span>
+                    {editData.diagnosis ? <span style={{ color: "#0F172A" }}>{editData.diagnosis}</span> : <span style={{ color: "#94A3B8", fontStyle: "italic" }}>—</span>}
+                  </div>
+                  <div style={st.infoRow}>
+                    <span style={st.infoKey}>{t.notes}</span>
+                    {editData.notes ? <span style={{ color: "#0F172A" }}>{editData.notes}</span> : <span style={{ color: "#94A3B8", fontStyle: "italic" }}>—</span>}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={st.section}>
+                <div style={st.secHead}>
+                  <span style={st.secTitle}>{t.records}</span>
+                </div>
+                <div style={st.editField}>
+                  <label style={st.editLabel}>{t.diagnosis}</label>
+                  <input style={st.editInput} name="diagnosis" value={editData.diagnosis} onChange={hc}
+                    placeholder={t.enterDiagnosis}
+                    onFocus={(e) => (e.target.style.borderColor = P.primary)}
+                    onBlur={(e) => (e.target.style.borderColor = "#E5E7EB")} />
+                </div>
+                <div style={st.editField}>
+                  <label style={st.editLabel}>{t.notes}</label>
+                  <textarea style={st.editTextarea} name="notes" value={editData.notes} onChange={hc}
+                    placeholder={t.enterNotes}
+                    onFocus={(e) => (e.target.style.borderColor = P.primary)}
+                    onBlur={(e) => (e.target.style.borderColor = "#E5E7EB")} />
+                </div>
+                {error && <div style={{ color: "#EF4444", fontSize: 13, marginBottom: 12 }}>{error}</div>}
+                <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
+                  <button style={{ ...st.saveBtn, opacity: saving ? 0.7 : 1 }} onClick={handleSave} disabled={saving}>
+                    {saving ? "..." : t.saveChanges}
+                  </button>
+                  <button style={st.cancelBtn} onClick={() => { setEditing(false); setError(""); }}>
+                    {t.cancel}
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div style={st.section}>
               <div style={st.secHead}>
-                <span style={st.secTitle}>{t.records}</span>
-                <button style={st.editBtn} onClick={() => setEditing(true)}>
-                  <EditIcon /> {isDone ? t.edit : t.fillIn}
-                </button>
+                <span style={st.secTitle}>{t.files}</span>
+                <label style={{ ...st.uploadBtn, cursor: uploading ? "not-allowed" : "pointer", opacity: uploading ? 0.6 : 1 }}>
+                  <UploadIcon /> {uploading ? "..." : t.uploadFile}
+                  <input ref={fileInputRef} type="file" multiple style={{ display: "none" }} onChange={handleUpload} disabled={uploading} />
+                </label>
               </div>
-              <div style={st.infoBox}>
-                <div style={st.infoRow}>
-                  <span style={st.infoKey}>{t.diagnosis}</span>
-                  {editData.diagnosis ? <span style={{ color: "#0F172A" }}>{editData.diagnosis}</span> : <span style={{ color: "#94A3B8", fontStyle: "italic" }}>—</span>}
-                </div>
-                <div style={st.infoRow}>
-                  <span style={st.infoKey}>{t.notes}</span>
-                  {editData.notes ? <span style={{ color: "#0F172A" }}>{editData.notes}</span> : <span style={{ color: "#94A3B8", fontStyle: "italic" }}>—</span>}
-                </div>
-              </div>
+              {files.length === 0 ? (
+                <div style={{ color: "#94A3B8", fontSize: 14, padding: "10px 0" }}>{t.noFiles}</div>
+              ) : (
+                files.map(file => (
+                  <div key={file.id} style={st.resultItem}>
+                    <div style={st.resultLeft}>
+                      <DocIcon />
+                      <div>
+                        <div style={st.resultName}>{file.name}</div>
+                        <div style={st.resultDate}>{file.mime_type}</div>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
+                      <button
+                        style={{ ...st.viewLink, opacity: fileLoading === file.id ? 0.5 : 1 }}
+                        onClick={() => handlePreview(file)}
+                        disabled={fileLoading === file.id}
+                      >{t.preview}</button>
+                      <button
+                        style={{ ...st.viewLink, opacity: fileLoading === file.id ? 0.5 : 1 }}
+                        onClick={() => handleDownload(file)}
+                        disabled={fileLoading === file.id}
+                      >{t.download}</button>
+                      <button
+                        style={{ ...st.viewLink, color: "#EF4444" }}
+                        onClick={() => handleDeleteFile(file.id)}
+                      >{t.deleteFile}</button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
-          ) : (
-            <div style={st.section}>
-              <div style={st.secHead}>
-                <span style={st.secTitle}>{t.records}</span>
-              </div>
-              <div style={st.editField}>
-                <label style={st.editLabel}>{t.diagnosis}</label>
-                <input style={st.editInput} name="diagnosis" value={editData.diagnosis} onChange={hc}
-                  placeholder={t.enterDiagnosis}
-                  onFocus={(e) => (e.target.style.borderColor = P.primary)}
-                  onBlur={(e) => (e.target.style.borderColor = "#E5E7EB")} />
-              </div>
-              <div style={st.editField}>
-                <label style={st.editLabel}>{t.notes}</label>
-                <textarea style={st.editTextarea} name="notes" value={editData.notes} onChange={hc}
-                  placeholder={t.enterNotes}
-                  onFocus={(e) => (e.target.style.borderColor = P.primary)}
-                  onBlur={(e) => (e.target.style.borderColor = "#E5E7EB")} />
-              </div>
-              {error && <div style={{ color: "#EF4444", fontSize: 13, marginBottom: 12 }}>{error}</div>}
-              <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
-                <button style={{ ...st.saveBtn, opacity: saving ? 0.7 : 1 }} onClick={handleSave} disabled={saving}>
-                  {saving ? "..." : t.saveChanges}
-                </button>
-                <button style={st.cancelBtn} onClick={() => { setEditing(false); setError(""); }}>
-                  {t.cancel}
-                </button>
-              </div>
-            </div>
-          )}
+          </div>
         </div>
       </div>
-    </div>
+
+      {previewSrc && (
+        <div style={{ ...st.overlay, zIndex: 500 }} onClick={closePreview}>
+          <div
+            style={{ background: "#fff", borderRadius: 16, padding: 20, maxWidth: "90vw", maxHeight: "90vh", overflow: "auto", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}
+            onClick={e => e.stopPropagation()}
+          >
+            {previewMime.startsWith("image/") ? (
+              <img src={previewSrc} alt="preview" style={{ maxWidth: "80vw", maxHeight: "75vh", objectFit: "contain", borderRadius: 8 }} />
+            ) : (
+              <iframe src={previewSrc} title="preview" style={{ width: "80vw", height: "75vh", border: "none", borderRadius: 8 }} />
+            )}
+            <button style={{ ...st.cancelBtn, minWidth: 120 }} onClick={closePreview}>{t.cancel}</button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

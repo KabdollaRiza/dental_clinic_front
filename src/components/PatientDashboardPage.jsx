@@ -372,7 +372,10 @@ export default function PatientDashboardPage({ setPage, lang = "EN" }) {
   // ── Appointment cards ─────────────────────────────────────────────
   const UpcomingCard = ({ a }) => (
     <div style={{ background: "#fff", borderRadius: 12, border: `1px solid ${COLORS.border}`, padding: isMobile ? "16px" : "22px 24px", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
-      <div style={{ fontSize: isMobile ? 15 : 17, fontWeight: 800, color: COLORS.text, marginBottom: 14 }}>
+      <div style={{ fontSize: isMobile ? 15 : 17, fontWeight: 800, color: COLORS.text, marginBottom: 4 }}>
+        {a.name || name}
+      </div>
+      <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 14 }}>
         {getName(services, a.service_id || a.Service_id)}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? "10px" : "14px 32px" }}>
@@ -396,6 +399,9 @@ export default function PatientDashboardPage({ setPage, lang = "EN" }) {
     const alreadyReviewed = a.is_reviewed || submittedReviews.has(a.id);
     return (
       <div style={{ background: "#F8FAFF", borderRadius: 12, border: `1px solid ${COLORS.border}`, padding: isMobile ? "14px" : "20px 24px" }}>
+        <div style={{ fontSize: isMobile ? 14 : 15, fontWeight: 700, color: COLORS.text, marginBottom: 10 }}>
+          {a.name || name}
+        </div>
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? "10px" : "12px 32px", marginBottom: 12 }}>
           <div>
             <div style={labelStyle}>{tx.clinicDoctor}</div>
