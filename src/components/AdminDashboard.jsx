@@ -430,7 +430,7 @@ function ClinicsTab({ clinics, setClinics, tx, addresses, setAddresses }) {
                   </span>
                 </td>
                 <td style={s.td}>
-                  <button style={s.editBtn} onClick={() => { setEditClinic(c); setEditForm2({...c}); setEditMsg2(""); }}>Edit</button>
+                  <button style={s.editBtn} onClick={() => { setEditClinic(c); setEditForm2({...c}); setEditMsg2(""); }}>{tx.invEdit}</button>
                   <button style={s.deleteBtn} onClick={() => del(c.id)}>{tx.delete}</button>
                 </td>
               </tr>
@@ -442,7 +442,7 @@ function ClinicsTab({ clinics, setClinics, tx, addresses, setAddresses }) {
 
       {/* Edit Clinic Modal */}
       {editClinic && (
-        <Modal title="Edit Clinic" onClose={() => { setEditClinic(null); setEditMsg2(""); }}>
+        <Modal title={tx.editClinic} onClose={() => { setEditClinic(null); setEditMsg2(""); }}>
           <FG label={tx.clinicName}><Input name="name" value={editForm2.name||""} onChange={(e)=>setEditForm2({...editForm2,name:e.target.value})} /></FG>
           <FG label={tx.description}><textarea style={s.textarea} name="description" value={editForm2.description||""} onChange={(e)=>setEditForm2({...editForm2,description:e.target.value})} onFocus={(e)=>(e.target.style.borderColor=C.primary)} onBlur={(e)=>(e.target.style.borderColor=C.border)} /></FG>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
@@ -451,7 +451,7 @@ function ClinicsTab({ clinics, setClinics, tx, addresses, setAddresses }) {
           </div>
           <FG label={tx.websiteUrl}><Input value={editForm2.website||""} onChange={(e)=>setEditForm2({...editForm2,website:e.target.value})} /></FG>
           <FG label=""><label style={{display:"flex",alignItems:"center",gap:8,fontSize:14,cursor:"pointer"}}><input type="checkbox" checked={!!editForm2.is_active} onChange={(e)=>setEditForm2({...editForm2,is_active:e.target.checked})} />{tx.setActive}</label></FG>
-          <button style={s.submitBtn} onClick={updateClinic}>Save Changes</button>
+          <button style={s.submitBtn} onClick={updateClinic}>{tx.invSaveChanges}</button>
           {editMsg2 && <p style={editMsg2.startsWith("ok:") ? s.msgOk : s.msgErr}>{editMsg2.slice(3)}</p>}
         </Modal>
       )}
@@ -459,7 +459,7 @@ function ClinicsTab({ clinics, setClinics, tx, addresses, setAddresses }) {
       {open && (
         <Modal title={tx.modalAddClinic} onClose={() => { setOpen(false); setForm(EMPTY); setMsg(""); }}>
           <FG label={tx.clinicName}>
-            <Input name="name" value={form.name} onChange={hc} placeholder="e.g. SmileDent Astana" />
+            <Input name="name" value={form.name} onChange={hc} placeholder={tx.clinicNamePh} />
           </FG>
           <FG label={tx.description}>
             <textarea style={s.textarea} name="description" value={form.description} onChange={hc}
@@ -469,14 +469,14 @@ function ClinicsTab({ clinics, setClinics, tx, addresses, setAddresses }) {
           </FG>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <FG label={tx.phoneNum}>
-              <Input name="phone" value={form.phone} onChange={hc} placeholder="+7 (7172) 55-66-77" />
+              <Input name="phone" value={form.phone} onChange={hc} placeholder={tx.phonePh} />
             </FG>
             <FG label={tx.emailAddr}>
-              <Input name="email" type="email" value={form.email} onChange={hc} placeholder="contact@clinic.kz" />
+              <Input name="email" type="email" value={form.email} onChange={hc} placeholder={tx.emailClinicPh} />
             </FG>
           </div>
           <FG label={tx.websiteUrl}>
-            <Input name="website" value={form.website} onChange={hc} placeholder="https://clinic.kz" />
+            <Input name="website" value={form.website} onChange={hc} placeholder={tx.websitePh} />
           </FG>
           <FG label={tx.assignAddress}>
             {addresses.length === 0 ? (
@@ -520,6 +520,7 @@ function DoctorsTab({ doctors, setDoctors, clinics, services, tx }) {
   const [form, setForm] = useState(EMPTY);
   const [msg, setMsg] = useState("");
   const [clinicServices, setClinicServices] = useState([]);
+  const [confirmationCode, setConfirmationCode] = useState("");
 
   const hc = (e) => {
     const { name, value } = e.target;
@@ -543,9 +544,9 @@ function DoctorsTab({ doctors, setDoctors, clinics, services, tx }) {
 
   const submit = async () => {
     if (!form.name || !form.email) { setMsg("err:" + tx.nameEmailRequired); return; }
-    if (!form.password) { setMsg("err:Password is required."); return; }
+    if (!form.password) { setMsg("err:" + tx.passwordRequired); return; }
     if (doctors.some(d => d.email.toLowerCase() === form.email.toLowerCase())) {
-      setMsg("err:A doctor with this email already exists."); return;
+      setMsg("err:" + tx.doctorEmailExists); return;
     }
     try {
       const res = await authFetch(`${API_BASE}/api/doctors`, {
@@ -555,8 +556,13 @@ function DoctorsTab({ doctors, setDoctors, clinics, services, tx }) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { setMsg("err:" + (data.message || "Failed")); return; }
       setDoctors((prev) => [...prev, { ...form, id: data.data?.id || data.data?.Id || data.doctor_id || data.id || data.Id || String(Date.now()) }]);
-      setMsg("ok:" + tx.addedOk);
-      setTimeout(() => { setOpen(false); setForm(EMPTY); setMsg(""); }, 1200);
+      if (data.confirmation_code) {
+        setConfirmationCode(data.confirmation_code);
+        setMsg("ok:" + tx.addedOk);
+      } else {
+        setMsg("ok:" + tx.addedOk);
+        setTimeout(() => { setOpen(false); setForm(EMPTY); setMsg(""); }, 1200);
+      }
     } catch (e) { alert(e.message); }
   };
 
@@ -605,9 +611,9 @@ function DoctorsTab({ doctors, setDoctors, clinics, services, tx }) {
               <td style={s.td}><b>{d.name}</b></td>
               <td style={s.td}>{d.email}</td>
               <td style={s.td}>{d.specialization || "—"}</td>
-              <td style={s.td}>{d.experience ? `${d.experience} yrs` : "—"}</td>
+              <td style={s.td}>{d.experience ? `${d.experience} ${tx.yearsAbbr}` : "—"}</td>
               <td style={s.td}>
-                <button style={s.editBtn} onClick={() => { setEditDoc(d); setEditDocForm({ ...d, new_password: "", is_active: d.is_active ?? true }); setEditDocMsg(""); }}>Edit</button>
+                <button style={s.editBtn} onClick={() => { setEditDoc(d); setEditDocForm({ ...d, new_password: "", is_active: d.is_active ?? true }); setEditDocMsg(""); }}>{tx.invEdit}</button>
                 <button style={s.deleteBtn} onClick={() => del(d.id)}>{tx.delete}</button>
               </td>
             </tr>
@@ -616,54 +622,88 @@ function DoctorsTab({ doctors, setDoctors, clinics, services, tx }) {
         </div>
       )}
       {editDoc && (
-        <Modal title="Edit Doctor" onClose={() => { setEditDoc(null); setEditDocMsg(""); }}>
+        <Modal title={tx.editDoctor} onClose={() => { setEditDoc(null); setEditDocMsg(""); }}>
           <FG label={tx.fullName}><Input value={editDocForm.name||""} onChange={(e)=>setEditDocForm({...editDocForm,name:e.target.value})} /></FG>
           <FG label={tx.emailAddr}><Input type="email" value={editDocForm.email||""} onChange={(e)=>setEditDocForm({...editDocForm,email:e.target.value})} /></FG>
           <FG label={tx.colSpec}><Input value={editDocForm.specialization||""} onChange={(e)=>setEditDocForm({...editDocForm,specialization:e.target.value})} /></FG>
           <FG label={tx.yearsExp}><Input type="number" value={editDocForm.experience||""} onChange={(e)=>setEditDocForm({...editDocForm,experience:e.target.value})} /></FG>
-          <FG label="New Password"><Input type="password" value={editDocForm.new_password||""} onChange={(e)=>setEditDocForm({...editDocForm,new_password:e.target.value})} placeholder="Leave blank to keep current" /></FG>
+          <FG label={tx.newPasswordLabel}><Input type="password" value={editDocForm.new_password||""} onChange={(e)=>setEditDocForm({...editDocForm,new_password:e.target.value})} placeholder={tx.keepCurrentPassword} /></FG>
           <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: C.text, marginBottom: 16, cursor: "pointer" }}>
             <input type="checkbox" checked={!!editDocForm.is_active} onChange={(e)=>setEditDocForm({...editDocForm,is_active:e.target.checked})} />
-            Account active
+            {tx.accountActive}
           </label>
-          <button style={s.submitBtn} onClick={updateDoctor}>Save Changes</button>
+          <button style={s.submitBtn} onClick={updateDoctor}>{tx.invSaveChanges}</button>
           {editDocMsg && <p style={editDocMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{editDocMsg.slice(3)}</p>}
         </Modal>
       )}
       {open && (
-        <Modal title={tx.modalAddDoctor} onClose={() => { setOpen(false); setForm(EMPTY); setMsg(""); }}>
-          <FG label={tx.fullName}><Input name="name" value={form.name} onChange={hc} placeholder="Dr. John Smith" /></FG>
-          <FG label={tx.emailAddr}><Input name="email" type="email" value={form.email} onChange={hc} placeholder="doctor@clinic.kz" /></FG>
-          <FG label="Password"><Input name="password" type="password" value={form.password} onChange={hc} placeholder="Set login password" /></FG>
-          <FG label={tx.colSpec}><Input name="specialization" value={form.specialization} onChange={hc} placeholder="e.g. Orthodontics" /></FG>
-          <FG label={tx.yearsExp}><Input name="experience" type="number" value={form.experience} onChange={hc} placeholder="e.g. 5" /></FG>
-          <FG label={tx.assignClinic}>
-            <Sel name="clinic_id" value={form.clinic_id} onChange={hc}>
-              <option value="">{tx.selectClinic}</option>
-              {clinics.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </Sel>
-          </FG>
-          <FG label={tx.services}>
-            <div style={s.checkList}>
-              {clinicServices.length === 0
-                ? <p style={{ color: C.muted, fontSize: 13, margin: "6px 0" }}>
-                    {form.clinic_id ? tx.noServicesForClinic : tx.selectClinicFirst}
-                  </p>
-                : clinicServices.map((sv) => (
-                  <label key={sv.id} style={s.checkItem}>
-                    <input type="checkbox" checked={form.service_ids.includes(sv.id)} onChange={() => toggleSv(sv.id)} />
-                    {sv.name}
-                  </label>
-                ))
-              }
+        <Modal title={tx.modalAddDoctor} onClose={() => { setOpen(false); setForm(EMPTY); setMsg(""); setConfirmationCode(""); }}>
+          {confirmationCode ? (
+            <div>
+              <div style={{ textAlign: "center", marginBottom: 20 }}>
+                <div style={{ fontSize: 48, marginBottom: 8 }}>✅</div>
+                <p style={{ fontSize: 16, fontWeight: 700, color: "#22c55e", marginBottom: 4 }}>{tx.addedOk}</p>
+                <p style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>
+                  {tx.confirmationCodeSentEmail || "Код подтверждения отправлен на email доктора. Сохраните его."}
+                </p>
+              </div>
+              <div style={{ background: "#F0FDF4", border: "2px solid #22c55e", borderRadius: 12, padding: "20px 24px", textAlign: "center", marginBottom: 20 }}>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#15803D", marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>
+                  {tx.confirmationCodeLabel || "Код подтверждения"}
+                </p>
+                <div style={{ fontSize: 36, fontWeight: 900, letterSpacing: 8, color: "#166534", fontFamily: "monospace" }}>
+                  {confirmationCode}
+                </div>
+              </div>
+              <button
+                style={{ ...s.submitBtn, background: "#22c55e" }}
+                onClick={() => { navigator.clipboard?.writeText(confirmationCode); }}
+              >
+                {tx.copyCode || "Скопировать код"}
+              </button>
+              <button
+                style={{ ...s.submitBtn, background: C.muted, marginTop: 10 }}
+                onClick={() => { setOpen(false); setForm(EMPTY); setMsg(""); setConfirmationCode(""); }}
+              >
+                {tx.close || "Закрыть"}
+              </button>
             </div>
-          </FG>
-          <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: C.text, marginBottom: 16, cursor: "pointer" }}>
-            <input type="checkbox" name="is_active" checked={!!form.is_active} onChange={(e) => setForm(f => ({ ...f, is_active: e.target.checked }))} />
-            Account active
-          </label>
-          <button style={s.submitBtn} onClick={submit}>{tx.modalAddDoctor}</button>
-          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+          ) : (
+            <>
+              <FG label={tx.fullName}><Input name="name" value={form.name} onChange={hc} placeholder={tx.doctorNamePh} /></FG>
+              <FG label={tx.emailAddr}><Input name="email" type="email" value={form.email} onChange={hc} placeholder={tx.doctorEmailPh} /></FG>
+              <FG label={tx.passwordLabel}><Input name="password" type="password" value={form.password} onChange={hc} placeholder={tx.passwordPlaceholder} /></FG>
+              <FG label={tx.colSpec}><Input name="specialization" value={form.specialization} onChange={hc} placeholder={tx.specPh} /></FG>
+              <FG label={tx.yearsExp}><Input name="experience" type="number" value={form.experience} onChange={hc} placeholder={tx.expPh} /></FG>
+              <FG label={tx.assignClinic}>
+                <Sel name="clinic_id" value={form.clinic_id} onChange={hc}>
+                  <option value="">{tx.selectClinic}</option>
+                  {clinics.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </Sel>
+              </FG>
+              <FG label={tx.services}>
+                <div style={s.checkList}>
+                  {clinicServices.length === 0
+                    ? <p style={{ color: C.muted, fontSize: 13, margin: "6px 0" }}>
+                        {form.clinic_id ? tx.noServicesForClinic : tx.selectClinicFirst}
+                      </p>
+                    : clinicServices.map((sv) => (
+                      <label key={sv.id} style={s.checkItem}>
+                        <input type="checkbox" checked={form.service_ids.includes(sv.id)} onChange={() => toggleSv(sv.id)} />
+                        {sv.name}
+                      </label>
+                    ))
+                  }
+                </div>
+              </FG>
+              <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: C.text, marginBottom: 16, cursor: "pointer" }}>
+                <input type="checkbox" name="is_active" checked={!!form.is_active} onChange={(e) => setForm(f => ({ ...f, is_active: e.target.checked }))} />
+                {tx.accountActive}
+              </label>
+              <button style={s.submitBtn} onClick={submit}>{tx.modalAddDoctor}</button>
+              {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+            </>
+          )}
         </Modal>
       )}
     </>
@@ -690,7 +730,7 @@ function ServicesTab({ services, setServices, clinics, tx }) {
     if (!form.name || !form.price) { setMsg("err:" + tx.namePriceRequired); return; }
     if (!form.clinic_id) { setMsg("err:" + tx.selectClinicRequired); return; }
     const dur = parseInt(form.duration, 10) || 0;
-    if (dur > 0 && dur % 30 !== 0) { setMsg("err:Duration must be a multiple of 30 minutes (e.g. 30, 60, 90)."); return; }
+    if (dur > 0 && dur % 30 !== 0) { setMsg("err:" + tx.durationMultiple); return; }
     setSaving(true);
     try {
       // Step 1: create global catalog entry (name + description only)
@@ -779,43 +819,43 @@ function ServicesTab({ services, setServices, clinics, tx }) {
               <td style={s.td}><b>{sv.name}</b></td>
               <td style={s.td}>{sv.description?.length > 40 ? sv.description.slice(0, 40) + "…" : sv.description || "—"}</td>
               <td style={s.td}><span style={s.badge()}>{Number(sv.price).toLocaleString()} ₸</span></td>
-              <td style={s.td}>{sv.duration ? `${sv.duration} min` : "—"}</td>
+              <td style={s.td}>{sv.duration ? `${sv.duration} ${tx.minLabel}` : "—"}</td>
               <td style={s.td}>
                 <span style={s.badge(sv.is_active ? "#22c55e" : "#94A3B8")}>
                   {sv.is_active ? tx.active : tx.inactive}
                 </span>
               </td>
-              <td style={s.td}><button style={s.editBtn} onClick={() => { setEditSvc(sv); setEditSvcForm({...sv, price: String(sv.price), duration: String(sv.duration)}); setEditSvcMsg(""); }}>Edit</button><button style={s.deleteBtn} onClick={() => del(sv.id)}>{tx.delete}</button></td>
+              <td style={s.td}><button style={s.editBtn} onClick={() => { setEditSvc(sv); setEditSvcForm({...sv, price: String(sv.price), duration: String(sv.duration)}); setEditSvcMsg(""); }}>{tx.invEdit}</button><button style={s.deleteBtn} onClick={() => del(sv.id)}>{tx.delete}</button></td>
             </tr>
           ))}</tbody>
         </table>
         </div>
       )}
       {editSvc && (
-        <Modal title="Edit Service" onClose={() => { setEditSvc(null); setEditSvcMsg(""); }}>
+        <Modal title={tx.editService} onClose={() => { setEditSvc(null); setEditSvcMsg(""); }}>
           <FG label={tx.serviceName}><Input value={editSvcForm.name||""} onChange={(e)=>setEditSvcForm({...editSvcForm,name:e.target.value})} /></FG>
           <FG label={tx.description}><textarea style={s.textarea} value={editSvcForm.description||""} onChange={(e)=>setEditSvcForm({...editSvcForm,description:e.target.value})} onFocus={(e)=>(e.target.style.borderColor=C.primary)} onBlur={(e)=>(e.target.style.borderColor=C.border)} /></FG>
           <FG label={tx.price}><Input type="number" value={editSvcForm.price||""} onChange={(e)=>setEditSvcForm({...editSvcForm,price:e.target.value})} /></FG>
-          <FG label={tx.duration}><Sel value={editSvcForm.duration||""} onChange={(e)=>setEditSvcForm({...editSvcForm,duration:e.target.value})}><option value="">—</option>{[30,60,90,120,150,180].map(d=><option key={d} value={d}>{d} min</option>)}</Sel></FG>
+          <FG label={tx.duration}><Sel value={editSvcForm.duration||""} onChange={(e)=>setEditSvcForm({...editSvcForm,duration:e.target.value})}><option value="">—</option>{[30,60,90,120,150,180].map(d=><option key={d} value={d}>{d} {tx.minLabel}</option>)}</Sel></FG>
           <FG label=""><label style={{display:"flex",alignItems:"center",gap:8,fontSize:14,cursor:"pointer"}}><input type="checkbox" checked={!!editSvcForm.is_active} onChange={(e)=>setEditSvcForm({...editSvcForm,is_active:e.target.checked})} />{tx.markActive}</label></FG>
-          <button style={s.submitBtn} onClick={updateService}>Save Changes</button>
+          <button style={s.submitBtn} onClick={updateService}>{tx.invSaveChanges}</button>
           {editSvcMsg && <p style={editSvcMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{editSvcMsg.slice(3)}</p>}
         </Modal>
       )}
       {open && (
         <Modal title={tx.modalAddService} onClose={() => { setOpen(false); setForm(EMPTY); setMsg(""); }}>
-          <FG label={tx.serviceName}><Input name="name" value={form.name} onChange={hc} placeholder="e.g. Dental Check-up" /></FG>
+          <FG label={tx.serviceName}><Input name="name" value={form.name} onChange={hc} placeholder={tx.serviceNamePh} /></FG>
           <FG label={tx.description}>
             <textarea style={s.textarea} name="description" value={form.description} onChange={hc}
               placeholder={tx.serviceDescPh}
               onFocus={(e) => (e.target.style.borderColor = C.primary)}
               onBlur={(e) => (e.target.style.borderColor = C.border)} />
           </FG>
-          <FG label={tx.price}><Input name="price" type="number" value={form.price} onChange={hc} placeholder="e.g. 5000" /></FG>
+          <FG label={tx.price}><Input name="price" type="number" value={form.price} onChange={hc} placeholder={tx.pricePh} /></FG>
           <FG label={tx.duration}>
             <Sel name="duration" value={form.duration} onChange={hc}>
-              <option value="">— Select duration —</option>
-              {[30,60,90,120,150,180].map(d => <option key={d} value={d}>{d} min</option>)}
+              <option value="">{tx.selectDurationPh}</option>
+              {[30,60,90,120,150,180].map(d => <option key={d} value={d}>{d} {tx.minLabel}</option>)}
             </Sel>
           </FG>
           <FG label={tx.assignClinic}>
@@ -859,10 +899,10 @@ function AddressesTab({ addresses, setAddresses, clinics, tx }) {
   // STEP 1: POST /api/address → CreateRequest → get Address_id from CreateResponse
   const submit = async () => {
     if (!form.country || !form.city || !form.street) {
-      setMsg("err:Country, city and street are required."); return;
+      setMsg("err:" + tx.addrRequiredFields); return;
     }
     if (isDuplicate(form)) {
-      setMsg("err:This address already exists."); return;
+      setMsg("err:" + tx.addressExists); return;
     }
     setSaving(true);
     try {
@@ -950,15 +990,15 @@ function AddressesTab({ addresses, setAddresses, clinics, tx }) {
       {open && (
         <Modal title={tx.modalAddAddress} onClose={() => { setOpen(false); setForm(EMPTY); setMsg(""); }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            <FG label={tx.country}><Input name="country" value={form.country} onChange={hc} placeholder="e.g. Kazakhstan" /></FG>
-            <FG label={tx.city}><Input name="city" value={form.city} onChange={hc} placeholder="e.g. Astana" /></FG>
+            <FG label={tx.country}><Input name="country" value={form.country} onChange={hc} placeholder={tx.countryPh} /></FG>
+            <FG label={tx.city}><Input name="city" value={form.city} onChange={hc} placeholder={tx.cityPh} /></FG>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            <FG label={tx.street}><Input name="street" value={form.street} onChange={hc} placeholder="e.g. Kabanbay Batyr Ave" /></FG>
-            <FG label={tx.building}><Input name="building" value={form.building} onChange={hc} placeholder="e.g. 42" /></FG>
+            <FG label={tx.street}><Input name="street" value={form.street} onChange={hc} placeholder={tx.streetPh} /></FG>
+            <FG label={tx.building}><Input name="building" value={form.building} onChange={hc} placeholder={tx.buildingPh} /></FG>
           </div>
           <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={submit} disabled={saving}>
-            {saving ? "Saving…" : tx.modalAddAddress}
+            {saving ? tx.invSaving : tx.modalAddAddress}
           </button>
           {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
         </Modal>
@@ -1063,7 +1103,7 @@ function AppointmentsTab({ appointments, setAppointments, addresses, doctors, se
 
   const submit = async () => {
     if (!form.doctor_id || !form.clinic_address_id || !form.service_id || !form.slot_id || !form.date || !form.name.trim() || !form.email.trim()) {
-      setMsg("err:All fields are required."); return;
+      setMsg("err:" + tx.allFieldsRequired); return;
     }
     setSaving(true);
     try {
@@ -1079,7 +1119,7 @@ function AppointmentsTab({ appointments, setAppointments, addresses, doctors, se
         end_time:   slot?.slot_end,
         status: "booked",
       }]);
-      setMsg("ok:Appointment booked!");
+      setMsg("ok:" + tx.appointmentBooked);
       setSlots([]);
       setTimeout(() => { setShowModal(false); setForm(EMPTY); setMsg(""); }, 1200);
     } catch(e) { setMsg("err:" + e.message); }
@@ -1150,7 +1190,7 @@ function AppointmentsTab({ appointments, setAppointments, addresses, doctors, se
                       <div style={{ opacity: 0.9, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{getName(doctors, a.doctor_id)}</div>
                       <div style={{ opacity: 0.8, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{getName(services, a.service_id)}</div>
                       <button
-                        onClick={(e) => { e.stopPropagation(); if(window.confirm("Delete this appointment?")) del(a.id); }}
+                        onClick={(e) => { e.stopPropagation(); if(window.confirm(tx.deleteApptConfirm)) del(a.id); }}
                         style={{ position: "absolute", top: 2, right: 4, background: "none", border: "none", color: "#fff", cursor: "pointer", fontSize: 13, opacity: 0.7, padding: 0, lineHeight: 1 }}
                       >×</button>
                     </div>
@@ -1173,9 +1213,9 @@ function AppointmentsTab({ appointments, setAppointments, addresses, doctors, se
             </div>
             <div style={{ padding: "24px 28px 28px" }}>
 
-              <FG label="Clinic">
+              <FG label={tx.colClinic}>
                 <Sel value={form.clinic_id} onChange={(e) => handleFormChange("clinic_id", e.target.value)}>
-                  <option value="">— Select clinic —</option>
+                  <option value="">{tx.selectClinic}</option>
                   {clinics.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </Sel>
               </FG>
@@ -1187,11 +1227,11 @@ function AppointmentsTab({ appointments, setAppointments, addresses, doctors, se
                 </Sel>
               </FG>
 
-              <FG label="Clinic Address">
+              <FG label={tx.clinicAddressLabel}>
                 {filteredAddresses.length === 0
-                  ? <p style={{ fontSize: 13, color: "#F59E0B" }}>{form.clinic_id ? "No addresses for this clinic." : "Select a clinic first."}</p>
+                  ? <p style={{ fontSize: 13, color: "#F59E0B" }}>{form.clinic_id ? tx.noAddressForClinic : tx.selectClinicFirst}</p>
                   : <Sel value={form.clinic_address_id} onChange={(e) => handleFormChange("clinic_address_id", e.target.value)}>
-                      <option value="">— Select address —</option>
+                      <option value="">{tx.selectAddress}</option>
                       {filteredAddresses.map(a => (
                         <option key={a.id} value={a.id}>
                           {[a.address_name, a.address_building].filter(Boolean).join(", ") || a.id.slice(0, 8)}
@@ -1214,13 +1254,13 @@ function AppointmentsTab({ appointments, setAppointments, addresses, doctors, se
                   onChange={(e) => handleFormChange("date", e.target.value)} />
               </FG>
 
-              <FG label="Time Slot">
+              <FG label={tx.timeSlotLabel}>
                 {loadSlots
-                  ? <p style={{ fontSize: 13, color: C.muted }}>Loading slots…</p>
+                  ? <p style={{ fontSize: 13, color: C.muted }}>{tx.loadingSlots}</p>
                   : !form.doctor_id || !form.clinic_address_id || !form.service_id || !form.date
-                  ? <p style={{ fontSize: 13, color: C.muted }}>Fill all fields above to see slots.</p>
+                  ? <p style={{ fontSize: 13, color: C.muted }}>{tx.fillFieldsForSlots}</p>
                   : slots.length === 0
-                  ? <p style={{ fontSize: 13, color: "#F59E0B" }}>No available slots for this date.</p>
+                  ? <p style={{ fontSize: 13, color: "#F59E0B" }}>{tx.noSlotsForDate}</p>
                   : <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
                       {slots.map(sl => (
                         <button key={sl.id}
@@ -1234,17 +1274,17 @@ function AppointmentsTab({ appointments, setAppointments, addresses, doctors, se
               </FG>
 
               <FG label={tx.patientName}>
-                <Input name="name" value={form.name} placeholder="Full name"
+                <Input name="name" value={form.name} placeholder={tx.fullNamePh}
                   onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} />
               </FG>
 
-              <FG label="Email">
-                <Input name="email" type="email" value={form.email} placeholder="patient@email.com"
+              <FG label={tx.emailLabel}>
+                <Input name="email" type="email" value={form.email} placeholder={tx.patientEmailPh}
                   onChange={(e) => setForm(f => ({ ...f, email: e.target.value }))} />
               </FG>
 
               <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={submit} disabled={saving}>
-                {saving ? "Booking…" : tx.addAppointment}
+                {saving ? tx.booking : tx.addAppointment}
               </button>
               {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
             </div>
@@ -1314,7 +1354,7 @@ function ReviewsTab({ appointments, doctors, tx }) {
 
 // SCHEDULE TAB
 function ScheduleTab({ doctors, addresses, tx }) {
-  const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const DAY_NAMES = tx.dayNames || ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
   const [schedules,    setSchedules]   = useState([]);
   const [loadingDoc,   setLoadingDoc]  = useState(false);
@@ -1410,7 +1450,7 @@ function ScheduleTab({ doctors, addresses, tx }) {
   };
 
   const handleDelete = async (sc) => {
-    if (!window.confirm("Delete this working hours entry?")) return;
+    if (!window.confirm(tx.deleteWorkHoursConfirm)) return;
     const id = sc.Id || sc.id;
     try {
       const res = await authFetch(`${API_BASE}/api/schedule/working-hours/${id}`, { method: "DELETE" });
@@ -1459,7 +1499,7 @@ function ScheduleTab({ doctors, addresses, tx }) {
             setShowHoursModal(true);
             setMsg("");
           }}>
-            + Add Working Hours
+            + {tx.addWorkingHours}
           </button>
         )}
       </div>
@@ -1468,15 +1508,15 @@ function ScheduleTab({ doctors, addresses, tx }) {
       {selectedDoc && (
         <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden" }}>
           {loadingDoc
-            ? <p style={{ padding: 24, color: C.muted, fontSize: 14 }}>Loading…</p>
+            ? <p style={{ padding: 24, color: C.muted, fontSize: 14 }}>{tx.invLoading}</p>
             : schedules.length === 0
-            ? <p style={{ padding: 24, color: C.muted, fontSize: 14 }}>No working hours set for this doctor yet.</p>
+            ? <p style={{ padding: 24, color: C.muted, fontSize: 14 }}>{tx.noWorkingHours}</p>
             : (
               <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
               <table style={s.table} cellSpacing={0}>
                 <thead>
                   <tr style={{ background: "#F8F9FF" }}>
-                    {["Day", "Address", "Start", "End", ""].map(h => (
+                    {[tx.colDay, tx.colAddress, tx.colStart, tx.colEnd, ""].map(h => (
                       <th key={h} style={{ padding: "13px 18px", textAlign: "left", fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: 0.5 }}>{h}</th>
                     ))}
                   </tr>
@@ -1493,11 +1533,11 @@ function ScheduleTab({ doctors, addresses, tx }) {
                           <button
                             onClick={() => handleEdit(sc)}
                             style={{ padding: "5px 12px", fontSize: 12, fontWeight: 600, background: C.primaryLight, color: C.primary, border: `1px solid ${C.primary}`, borderRadius: 7, cursor: "pointer" }}
-                          >Edit</button>
+                          >{tx.invEdit}</button>
                           <button
                             onClick={() => handleDelete(sc)}
                             style={{ padding: "5px 12px", fontSize: 12, fontWeight: 600, background: "#FEF2F2", color: "#DC2626", border: "1px solid #FCA5A5", borderRadius: 7, cursor: "pointer" }}
-                          >Delete</button>
+                          >{tx.delete}</button>
                         </div>
                       </td>
                     </tr>
@@ -1512,10 +1552,10 @@ function ScheduleTab({ doctors, addresses, tx }) {
 
       {/* Add Working Hours Modal */}
       {showHoursModal && (
-        <Modal title="Add Working Hours" onClose={() => setShowHoursModal(false)}>
-          <FG label="Clinic Address">
+        <Modal title={tx.addWorkingHours} onClose={() => setShowHoursModal(false)}>
+          <FG label={tx.clinicAddressLabel}>
             <Sel value={whForm.clinic_address_id} onChange={(e) => setWhForm(f => ({ ...f, clinic_address_id: e.target.value }))}>
-              <option value="">— Select address —</option>
+              <option value="">{tx.selectAddress}</option>
               {addresses.map(a => (
                 <option key={a.id} value={a.id}>
                   {[a.address_name, a.address_building].filter(Boolean).join(", ") || a.id}
@@ -1523,32 +1563,32 @@ function ScheduleTab({ doctors, addresses, tx }) {
               ))}
             </Sel>
           </FG>
-          <FG label="Day of Week">
+          <FG label={tx.dayOfWeekLabel}>
             <Sel value={whForm.day_of_week} onChange={(e) => setWhForm(f => ({ ...f, day_of_week: e.target.value }))}>
               {[
-                { value: "1", label: "Monday" },
-                { value: "2", label: "Tuesday" },
-                { value: "3", label: "Wednesday" },
-                { value: "4", label: "Thursday" },
-                { value: "5", label: "Friday" },
-                { value: "6", label: "Saturday" },
-                { value: "0", label: "Sunday" },
+                { value: "1", label: DAY_NAMES[1] },
+                { value: "2", label: DAY_NAMES[2] },
+                { value: "3", label: DAY_NAMES[3] },
+                { value: "4", label: DAY_NAMES[4] },
+                { value: "5", label: DAY_NAMES[5] },
+                { value: "6", label: DAY_NAMES[6] },
+                { value: "0", label: DAY_NAMES[0] },
               ].filter(d => !schedules.some(sc => String(sc.Day_of_week ?? sc.day_of_week) === d.value))
                .map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
             </Sel>
           </FG>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            <FG label="Start Time">
+            <FG label={tx.startTimeLabel}>
               <Input name="start_time" type="time" value={whForm.start_time}
                 onChange={(e) => setWhForm(f => ({ ...f, start_time: e.target.value }))} />
             </FG>
-            <FG label="End Time">
+            <FG label={tx.endTimeLabel}>
               <Input name="end_time" type="time" value={whForm.end_time}
                 onChange={(e) => setWhForm(f => ({ ...f, end_time: e.target.value }))} />
             </FG>
           </div>
           <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={submitWorkingHours} disabled={saving}>
-            {saving ? "Saving…" : "Save Working Hours"}
+            {saving ? tx.invSaving : tx.saveWorkingHours}
           </button>
           {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
         </Modal>
@@ -1556,22 +1596,22 @@ function ScheduleTab({ doctors, addresses, tx }) {
 
       {/* Edit Working Hours Modal */}
       {editingSchedule && (
-        <Modal title="Edit Working Hours" onClose={() => setEditingSchedule(null)}>
+        <Modal title={tx.editWorkingHours} onClose={() => setEditingSchedule(null)}>
           <p style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
             {DAY_NAMES[editingSchedule.Day_of_week ?? editingSchedule.day_of_week]} — {getAddrLabel(editingSchedule.Clinic_address_id || editingSchedule.clinic_address_id)}
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            <FG label="Start Time">
+            <FG label={tx.startTimeLabel}>
               <Input name="start_time" type="time" value={editForm.start_time}
                 onChange={(e) => setEditForm(f => ({ ...f, start_time: e.target.value }))} />
             </FG>
-            <FG label="End Time">
+            <FG label={tx.endTimeLabel}>
               <Input name="end_time" type="time" value={editForm.end_time}
                 onChange={(e) => setEditForm(f => ({ ...f, end_time: e.target.value }))} />
             </FG>
           </div>
           <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={submitEdit} disabled={saving}>
-            {saving ? "Saving…" : "Save Changes"}
+            {saving ? tx.invSaving : tx.invSaveChanges}
           </button>
           {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
         </Modal>
@@ -1584,11 +1624,11 @@ function ScheduleTab({ doctors, addresses, tx }) {
             {tx.generateSlotsDesc}
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            <FG label="From Date">
+            <FG label={tx.fromDate}>
               <Input name="from_date" type="date" value={genForm.from_date}
                 onChange={(e) => setGenForm(f => ({ ...f, from_date: e.target.value }))} />
             </FG>
-            <FG label="To Date">
+            <FG label={tx.toDate}>
               <Input name="to_date" type="date" value={genForm.to_date}
                 onChange={(e) => setGenForm(f => ({ ...f, to_date: e.target.value }))} />
             </FG>
@@ -1701,7 +1741,7 @@ function ProductsSubTab({ products, setProducts, loading, tx }) {
 
       {open && (
         <Modal title={tx.invAddProductModal} onClose={() => { setOpen(false); setForm(EMPTY); setMsg(""); }}>
-          <FG label={tx.invProductName}><Input name="name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Anesthetic cartridge" /></FG>
+          <FG label={tx.invProductName}><Input name="name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder={tx.productNamePh} /></FG>
           <FG label={tx.invUnit}>
             <Sel name="unit" value={form.unit} onChange={e => setForm(f => ({ ...f, unit: e.target.value }))}>
               {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
@@ -1843,7 +1883,7 @@ function StockSubTab({ addresses, clinics, products, tx }) {
             {getProd(editInv.product_id || editInv.ProductId)?.name || tx.invProduct}
           </p>
           <FG label={tx.invNewQty}>
-            <Input type="number" value={editQty} onChange={e => setEditQty(e.target.value)} placeholder="e.g. 80" />
+            <Input type="number" value={editQty} onChange={e => setEditQty(e.target.value)} placeholder={tx.quantityPh} />
           </FG>
           <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={updateStock} disabled={saving}>
             {saving ? tx.invSaving : tx.invSaveQty}
@@ -1861,7 +1901,7 @@ function StockSubTab({ addresses, clinics, products, tx }) {
             </Sel>
           </FG>
           <FG label={tx.invQtyToAdd}>
-            <Input type="number" value={addForm.quantity} onChange={e => setAddForm(f => ({ ...f, quantity: e.target.value }))} placeholder="e.g. 100" />
+9
           </FG>
           <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={addStock} disabled={saving}>
             {saving ? tx.adding : tx.invAddStockModal}
@@ -2028,7 +2068,7 @@ function MaterialsSubTab({ clinics, products, tx }) {
             </Sel>
           </FG>
           <FG label={tx.invQtyPerAppt}>
-            <Input type="number" value={form.quantity_required} onChange={e => setForm(f => ({ ...f, quantity_required: e.target.value }))} placeholder="e.g. 2" />
+            <Input type="number" value={form.quantity_required} onChange={e => setForm(f => ({ ...f, quantity_required: e.target.value }))} placeholder={tx.quantityPerApptPh} />
           </FG>
           <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={addMaterial} disabled={saving}>
             {saving ? tx.invSaving : tx.invAssignBtn}
@@ -2486,7 +2526,7 @@ export default function AdminDashboard({ setPage, lang: propLang, setLang: propS
         {!isMobile && (
           <nav style={{ ...s.sidebar, width: sidebarOpen ? 240 : 0, overflow: "hidden", transition: "width 0.25s ease" }}>
             <div style={s.sideBody}>
-              <div style={s.sideLabel}>Navigation</div>
+              <div style={s.sideLabel}>{tx.sidebarNav}</div>
               {TABS.map((t) => (
                 <button key={t.key} style={s.sideItem(tab === t.key)} onClick={() => setTab(t.key)}>
                   <Icon d={t.icon} size={16} />

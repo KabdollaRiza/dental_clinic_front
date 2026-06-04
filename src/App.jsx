@@ -59,7 +59,7 @@ export default function App() {
       {page === "patientDashboard"  && <PatientDashboardPage  setPage={setPage} lang={lang} />}
       
       {!noFooter && <Footer lang={lang} />}
-      <ChatWidget page={page} setPage={setPage} />
+      <ChatWidget page={page} setPage={setPage} lang={lang} />
     </div>
   );
 }

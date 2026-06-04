@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { COLORS } from "./constants";
+import { t } from "./translation";
 
 const API_BASE = "http://localhost:8080";
 
@@ -49,9 +50,8 @@ const BotIcon = () => (
   </svg>
 );
 
-const WELCOME = "Привет! Я помогу вам записаться к врачу. Напишите, например: «Хочу записаться на приём».";
-
-export default function ChatWidget({ page, setPage }) {
+export default function ChatWidget({ page, setPage, lang = "RU" }) {
+  const c = (key) => t(lang, "chat", key);
   const [open, setOpen]                   = useState(false);
   const [messages, setMessages]           = useState([]);
   const [input, setInput]                 = useState("");
@@ -85,12 +85,32 @@ export default function ChatWidget({ page, setPage }) {
 
   useEffect(() => {
     if (open && messages.length === 0) {
-      setMessages([{ role: "bot", content: WELCOME }]);
+      setMessages([{ role: "bot", content: c("welcome") }]);
     }
     if (open && !started) {
       setTimeout(() => inputRef.current?.focus(), 50);
     }
   }, [open]);
+
+  useEffect(() => {
+    if (messages.length === 0) return;
+    setMessages([{ role: "bot", content: c("welcome") }]);
+    setStarted(false);
+    setChoiceRequired(false);
+    setChoiceType("");
+    setChoices([]);
+    setCurrentStep("");
+    setAppointmentDone(false);
+    setFallbackServices([]);
+    setSelectedClinicId("");
+    const token = getToken();
+    if (token) {
+      fetch(`${API_BASE}/api/ai/chat/reset`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => {});
+    }
+  }, [lang]);
 
   const loadAvailableServices = async (tok) => {
     const clinicsRes = await fetch(`${API_BASE}/api/clinics`, {
@@ -132,9 +152,15 @@ export default function ChatWidget({ page, setPage }) {
     if (open && fallbackServices.length === 0) {
       const tok = getToken();
       if (!tok) return;
-      loadAvailableServices(tok)
-        .then((list) => setFallbackServices(list))
-        .catch(() => setFallbackServices([]));
+      const load = async () => {
+        try {
+          const list = await loadAvailableServices(tok);
+          setFallbackServices(list);
+        } catch {
+          setFallbackServices([]);
+        }
+      };
+      load();
     }
   }, [open]);
 
@@ -181,7 +207,7 @@ export default function ChatWidget({ page, setPage }) {
       setCurrentStep(step);
 
       if (data.appointment_id) {
-        addBot("Запись успешно создана!", { appointmentId: data.appointment_id });
+        addBot(c("booked"), { appointmentId: data.appointment_id });
         setAppointmentDone(true);
         setChoiceRequired(false);
         setChoiceType("");
@@ -190,7 +216,7 @@ export default function ChatWidget({ page, setPage }) {
       }
 
       if (data.choice_required && data.choice_type === "slot") {
-        addBot("Выберите время:");
+        addBot(c("pickTime"));
         setChoiceRequired(true);
         setChoiceType("slot");
         const seen = new Set();
@@ -204,23 +230,23 @@ export default function ChatWidget({ page, setPage }) {
       }
 
       if (step === "collect_date" || step === "collect_time") {
-        addBot("Выберите дату:");
+        if (data.reply && !data.available_slots?.length) {
+          addBot(data.reply);
+        } else {
+          addBot(c("pickDate"));
+        }
         setChoiceRequired(false);
         setChoiceType("");
         setChoices([]);
         return;
       }
 
-      if (data.reply?.includes("No available slots")) {
-        addBot("На эту дату нет свободных слотов. Выберите другую дату.");
-        setChoiceRequired(false);
-        setChoiceType("");
-        setChoices([]);
-        return;
+      if (data.reply) {
+        addBot(data.reply);
       }
 
     } catch (e) {
-      addBot(`Ошибка: ${e.message}`);
+      addBot(`${c("error")}${e.message}`);
     } finally {
       setLoading(false);
     }
@@ -235,7 +261,7 @@ export default function ChatWidget({ page, setPage }) {
     addUser(msg);
 
     const showServices = (list) => {
-      addBot("Хорошо! Выберите нужную услугу:");
+      addBot(c("pickService"));
       setChoiceRequired(true);
       setChoiceType("service");
       setChoices(list);
@@ -252,7 +278,7 @@ export default function ChatWidget({ page, setPage }) {
           showServices(list);
         })
         .catch(() => {
-          addBot("Не удалось загрузить услуги. Попробуйте ещё раз.");
+          addBot(c("noServices"));
           setStarted(false);
         })
         .finally(() => setLoading(false));
@@ -272,15 +298,15 @@ export default function ChatWidget({ page, setPage }) {
       const json = await clinicsRes.json();
       const list = Array.isArray(json?.data) ? json.data : [];
       if (list.length === 0) {
-        addBot("Нет доступных клиник. Попробуйте позже.");
+        addBot(c("noClinics"));
         return;
       }
-      addBot("Выберите клинику:");
+      addBot(c("pickClinic"));
       setChoiceRequired(true);
       setChoiceType("frontend_clinic");
       setChoices(list);
     } catch (e) {
-      addBot(`Ошибка: ${e.message}`);
+      addBot(`${c("error")}${e.message}`);
     } finally {
       setLoading(false);
     }
@@ -299,19 +325,19 @@ export default function ChatWidget({ page, setPage }) {
       const addresses = await res.json();
       const list = Array.isArray(addresses) ? addresses : [];
       if (list.length === 0) {
-        addBot("У этой клиники нет адресов. Выберите другую клинику.");
+        addBot(c("noAddresses"));
         return;
       }
       if (list.length === 1) {
         await handleAddressPicked(list[0].id, clinicId);
       } else {
-        addBot("Выберите адрес клиники:");
+        addBot(c("pickAddress"));
         setChoiceRequired(true);
         setChoiceType("frontend_address");
         setChoices(list);
       }
     } catch (e) {
-      addBot(`Ошибка: ${e.message}`);
+      addBot(`${c("error")}${e.message}`);
     } finally {
       setLoading(false);
     }
@@ -333,15 +359,15 @@ export default function ChatWidget({ page, setPage }) {
         .filter((d) => d.clinic_id === cid);
       const display = list.length > 0 ? list : (Array.isArray(doctors) ? doctors : []);
       if (display.length === 0) {
-        addBot("Нет доступных врачей. Попробуйте позже.");
+        addBot(c("noDoctors"));
         return;
       }
-      addBot("Выберите врача:");
+      addBot(c("pickDoctor"));
       setChoiceRequired(true);
       setChoiceType("frontend_doctor");
       setChoices(display);
     } catch (e) {
-      addBot(`Ошибка: ${e.message}`);
+      addBot(`${c("error")}${e.message}`);
     } finally {
       setLoading(false);
     }
@@ -386,7 +412,7 @@ export default function ChatWidget({ page, setPage }) {
       setAppointmentDone(false);
       setFallbackServices([]);
       setSelectedClinicId("");
-      setMessages([{ role: "bot", content: "Бронирование сброшено. Напишите что-нибудь, чтобы начать снова." }]);
+      setMessages([{ role: "bot", content: c("resetDone") }]);
     } catch {
       // ignore
     } finally {
@@ -403,7 +429,7 @@ export default function ChatWidget({ page, setPage }) {
         {!open && (
           <button
             onClick={() => setOpen(true)}
-            title="AI Ассистент"
+            title={c("title")}
             style={{
               position: "fixed", bottom: 28, right: 28, zIndex: 1000,
               width: 56, height: 56, borderRadius: "50%",
@@ -433,17 +459,17 @@ export default function ChatWidget({ page, setPage }) {
                   <BotIcon />
                 </div>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 15 }}>AI Ассистент</div>
-                  <div style={{ fontSize: 11, opacity: 0.8 }}>Запись к врачу</div>
+                  <div style={{ fontWeight: 700, fontSize: 15 }}>{c("title")}</div>
+                  <div style={{ fontSize: 11, opacity: 0.8 }}>{c("subtitle")}</div>
                 </div>
               </div>
               <button onClick={() => setOpen(false)} style={{ background: "rgba(255,255,255,0.18)", border: "none", color: "#fff", width: 30, height: 30, borderRadius: 6, cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
             </div>
             <div style={{ padding: "28px 20px 24px", textAlign: "center" }}>
               <div style={{ fontSize: 36, marginBottom: 12 }}>🔒</div>
-              <p style={{ fontSize: 14, color: COLORS.text, fontWeight: 600, marginBottom: 8 }}>Требуется авторизация</p>
+              <p style={{ fontSize: 14, color: COLORS.text, fontWeight: 600, marginBottom: 8 }}>{c("authTitle")}</p>
               <p style={{ fontSize: 13, color: COLORS.muted, marginBottom: 20, lineHeight: 1.5 }}>
-                Для записи к врачу через AI-ассистента необходимо войти в аккаунт пациента.
+                {c("authDesc")}
               </p>
               <button
                 onClick={() => { setOpen(false); setPage("patientLogin"); }}
@@ -453,7 +479,7 @@ export default function ChatWidget({ page, setPage }) {
                   fontSize: 14, fontWeight: 700, cursor: "pointer",
                 }}
               >
-                Войти в аккаунт
+                {c("authBtn")}
               </button>
             </div>
           </div>
@@ -504,7 +530,7 @@ export default function ChatWidget({ page, setPage }) {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          title="AI Ассистент"
+          title={c("title")}
           style={{
             position: "fixed", bottom: 28, right: 28, zIndex: 1000,
             width: 56, height: 56, borderRadius: "50%",
@@ -547,8 +573,8 @@ export default function ChatWidget({ page, setPage }) {
                 <BotIcon />
               </div>
               <div>
-                <div style={{ fontWeight: 700, fontSize: 15 }}>AI Ассистент</div>
-                <div style={{ fontSize: 11, opacity: 0.8 }}>Запись к врачу</div>
+                <div style={{ fontWeight: 700, fontSize: 15 }}>{c("title")}</div>
+                <div style={{ fontSize: 11, opacity: 0.8 }}>{c("subtitle")}</div>
               </div>
             </div>
             <div style={{ display: "flex", gap: 6 }}>
@@ -562,7 +588,7 @@ export default function ChatWidget({ page, setPage }) {
                   fontWeight: 600, opacity: loading ? 0.6 : 1,
                 }}
               >
-                Сброс
+                {c("reset")}
               </button>
               <button
                 onClick={() => setOpen(false)}
@@ -629,7 +655,7 @@ export default function ChatWidget({ page, setPage }) {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                  placeholder="Например: хочу на чистку зубов..."
+                  placeholder={c("inputPh")}
                   disabled={loading}
                   style={{
                     flex: 1, padding: "9px 12px",
@@ -660,22 +686,22 @@ export default function ChatWidget({ page, setPage }) {
             {/* 2. Selection buttons */}
             {showChoices && (
               <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 190, overflowY: "auto" }}>
-                {choices.map((c, i) => {
+                {choices.map((ch, i) => {
                   let label = "", sub = "", id = "";
                   if (choiceType === "service") {
-                    label = c.name; sub = c.description || ""; id = c.id;
+                    label = ch.name; sub = ch.description || ""; id = ch.id;
                   } else if (choiceType === "frontend_clinic") {
-                    label = c.name; sub = c.description || ""; id = c.id;
+                    label = ch.name; sub = ch.description || ""; id = ch.id;
                   } else if (choiceType === "frontend_address") {
-                    label = c.address_name || "Адрес"; sub = c.address_building || ""; id = c.id;
+                    label = ch.address_name || c("addressLabel"); sub = ch.address_building || ""; id = ch.id;
                   } else if (choiceType === "frontend_doctor") {
-                    label = c.name; sub = c.specialization || ""; id = c.id;
+                    label = ch.name; sub = ch.specialization || ""; id = ch.id;
                   } else if (choiceType === "clinic") {
-                    label = c.clinic_name; sub = `${c.price} тг · ${c.duration} мин`; id = c.clinic_address_id;
+                    label = ch.clinic_name; sub = `${ch.price} тг · ${ch.duration} мин`; id = ch.clinic_address_id;
                   } else if (choiceType === "doctor") {
-                    label = c.name; sub = c.specialization || ""; id = c.id;
+                    label = ch.name; sub = ch.specialization || ""; id = ch.id;
                   } else if (choiceType === "slot") {
-                    label = fmtSlot(c); id = c.id;
+                    label = fmtSlot(ch); id = ch.id;
                   }
                   return (
                     <ChoiceButton key={i} label={label} sub={sub}
@@ -707,7 +733,7 @@ export default function ChatWidget({ page, setPage }) {
                   fontWeight: 700, fontSize: 14, cursor: "pointer",
                 }}
               >
-                Записаться ещё раз
+                {c("bookAgain")}
               </button>
             )}
           </div>
