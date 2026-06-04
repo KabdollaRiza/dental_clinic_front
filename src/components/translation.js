@@ -732,7 +732,6 @@ export const ADMIN_T = {
     manageUsers: "Manage Users", noUsers: "No users yet.",
     editUser: "Edit User", deleteUserConfirm: "Delete this user? This cannot be undone.",
     colRole: "Role", colAge: "Age", colGender: "Gender",
-    colEmail: "Email",
     rolePatient: "Patient", roleDoctor: "Doctor", roleAdmin: "Admin", roleClinicAdmin: "Clinic Admin",
     // Appointment status
     editApptStatus: "Edit Status", selectStatus: "— Select status —", statusUpdated: "Status updated!",
@@ -742,7 +741,6 @@ export const ADMIN_T = {
     changePassword: "Change Password", oldPassword: "Current Password", oldPasswordPh: "Enter current password",
     changeEmail: "Change Email", newEmail: "New Email Address", newEmailPh: "Enter new email",
     passwordChanged: "Password changed successfully!", emailChanged: "Verification email sent! Check your inbox.",
-    colStatus: "Status",
   },
   KZ: {
     title: "Әкімші тақтасы",
@@ -880,7 +878,6 @@ export const ADMIN_T = {
     manageUsers: "Пайдаланушыларды басқару", noUsers: "Пайдаланушылар жоқ.",
     editUser: "Пайдаланушыны өзгерту", deleteUserConfirm: "Пайдаланушыны жою? Бұл қайтарылмайды.",
     colRole: "Рөл", colAge: "Жасы", colGender: "Жынысы",
-    colEmail: "Email",
     rolePatient: "Пациент", roleDoctor: "Дәрігер", roleAdmin: "Әкімші", roleClinicAdmin: "Клиника әкімшісі",
     // Appointment status
     editApptStatus: "Мәртебені өзгерту", selectStatus: "— Мәртебе таңдаңыз —", statusUpdated: "Мәртебе жаңартылды!",
@@ -890,7 +887,6 @@ export const ADMIN_T = {
     changePassword: "Құпия сөзді өзгерту", oldPassword: "Ағымдағы құпия сөз", oldPasswordPh: "Ағымдағы құпия сөзді енгізіңіз",
     changeEmail: "Emailді өзгерту", newEmail: "Жаңа электрондық пошта", newEmailPh: "Жаңа email енгізіңіз",
     passwordChanged: "Құпия сөз сәтті өзгертілді!", emailChanged: "Растау хаты жіберілді! Поштаңызды тексеріңіз.",
-    colStatus: "Мәртебе",
   },
   RU: {
     title: "Панель администратора",
@@ -1028,7 +1024,6 @@ export const ADMIN_T = {
     manageUsers: "Управление пользователями", noUsers: "Пользователей пока нет.",
     editUser: "Редактировать пользователя", deleteUserConfirm: "Удалить пользователя? Это действие нельзя отменить.",
     colRole: "Роль", colAge: "Возраст", colGender: "Пол",
-    colEmail: "Email",
     rolePatient: "Пациент", roleDoctor: "Врач", roleAdmin: "Администратор", roleClinicAdmin: "Администратор клиники",
     // Appointment status
     editApptStatus: "Изменить статус", selectStatus: "— Выберите статус —", statusUpdated: "Статус обновлён!",
@@ -1038,7 +1033,6 @@ export const ADMIN_T = {
     changePassword: "Изменить пароль", oldPassword: "Текущий пароль", oldPasswordPh: "Введите текущий пароль",
     changeEmail: "Изменить email", newEmail: "Новый email", newEmailPh: "Введите новый email",
     passwordChanged: "Пароль успешно изменён!", emailChanged: "Письмо с подтверждением отправлено! Проверьте почту.",
-    colStatus: "Статус",
   },
 };
 
