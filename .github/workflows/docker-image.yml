@@ -28,4 +28,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/dental-clinic-frontend:latest
+          tags: ghcr.io/kabdollariza/dental-clinic-frontend:latest
