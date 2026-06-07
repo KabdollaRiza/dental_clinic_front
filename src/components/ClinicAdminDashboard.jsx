@@ -4,8 +4,7 @@ import { ADMIN_T } from "./translation";
 import { GlobeIcon } from "./Icons";
 import { useResponsive } from "./useResponsive";
 
-const API_BASE = typeof window !== "undefined" && window.location.hostname === "localhost"
-  ? "http://localhost:8080" : "";
+const API_BASE = "http://161.35.116.104:8080";
 const C = COLORS;
 
 function authFetch(url, options = {}) {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { COLORS, styles } from "./constants";
 import { PersonIcon, DoctorIcon, AdminIcon } from "./Icons";
 import { T } from "./translation";
@@ -14,7 +14,7 @@ const EyeIcon = ({ show }) => (
 
 export default function RegisterPage({ setPage, lang = "EN" }) {
   const tx = T[lang]?.register || T.EN.register;
-  const API_BASE = typeof window !== "undefined" && window.location.hostname === "localhost" ? "http://localhost:8080" : "";
+  const API_BASE = "http://161.35.116.104:8080";
   const [role, setRole] = useState("Doctor");
   const [formData, setFormData] = useState({ name: "", email: "", phone: "", specialization: "", password: "", confirm: "" });
   const [showPw, setShowPw] = useState(false);

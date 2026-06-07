@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { COLORS } from "./constants";
 import { SmileIcon, GlobeIcon } from "./Icons";
 
 const P = COLORS;
-const API_BASE = "http://localhost:8080";
+const API_BASE = "http://161.35.116.104:8080";
 
 function parseJwt(token) {
   try {

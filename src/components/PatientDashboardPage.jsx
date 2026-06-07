@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { COLORS } from "./constants";
 import Footer from "./Footer";
 import { useResponsive } from "./useResponsive";
 
-const API_BASE = "http://localhost:8080";
+const API_BASE = "http://161.35.116.104:8080";
 
 const TX = {
   EN: {

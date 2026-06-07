@@ -1,11 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { COLORS } from "./constants";
 import { T } from "./translation";
 import { useResponsive } from "./useResponsive";
 
-const API_BASE =
-  typeof window !== "undefined" && window.location.hostname === "localhost"
-    ? "http://localhost:8080" : "";
+const API_BASE = "http://161.35.116.104:8080";
 
 const PALETTE = [
   { color: "#3B5BDB", bg: "#EEF2FF", icon: "M12 2a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM6 14a6 6 0 0 0-4 5.5V20h20v-.5A6 6 0 0 0 18 14" },
@@ -218,7 +216,7 @@ export default function HomePage({ setPage, lang = "EN" }) {
           <div style={{ textAlign: "center", padding: "48px 24px" }}>
             <p style={{ color: "#EF4444", fontSize: 14, marginBottom: 16 }}>⚠ {error}</p>
             <p style={{ color: "#94A3B8", fontSize: 13, marginBottom: 20 }}>
-              {tx.backendHint} <code style={{ background: "#F1F5F9", padding: "2px 6px", borderRadius: 4 }}>localhost:8080</code>
+              {tx.backendHint} <code style={{ background: "#F1F5F9", padding: "2px 6px", borderRadius: 4 }}>161.35.116.104:8080</code>
             </p>
             <button onClick={fetchServices} style={{ padding: "10px 28px", background: "#3B5BDB", color: "#fff", border: "none", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
               {tx.retry}

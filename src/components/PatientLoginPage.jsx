@@ -1,7 +1,7 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { COLORS, styles } from "./constants";
 
-const API_BASE = "http://localhost:8080";
+const API_BASE = "http://161.35.116.104:8080";
 
 const TX = {
   EN: { title: "Patient Login", sub: "Login to access your patient portal", email: "Email Address", emailPh: "Enter your email", password: "Password", passwordPh: "Enter your password", btn: "Login", noAccount: "Don't have an account?", register: "Register here", fillAll: "Please fill all fields.", invalidEmail: "Invalid email format.", success: "Login successful!" },

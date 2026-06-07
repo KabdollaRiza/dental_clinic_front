@@ -3,8 +3,7 @@ import { COLORS } from "./constants";
 import { T } from "./translation";
 import { useResponsive } from "./useResponsive";
 
-const API_BASE = typeof window !== "undefined" && window.location.hostname === "localhost"
-    ? "http://localhost:8080" : "";
+const API_BASE = "http://161.35.116.104:8080";
 
 const SearchIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>;
 const ClinicIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>;

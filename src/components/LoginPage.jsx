@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { COLORS, styles } from "./constants";
 import { PersonIcon } from "./Icons";
 import { T } from "./translation";
@@ -14,7 +14,7 @@ const EyeIcon = ({ show }) => (
 
 export default function LoginPage({ setPage, lang = "EN" }) {
   const tx = T[lang]?.login || T.EN.login;
-  const API_BASE = typeof window !== "undefined" && window.location.hostname === "localhost" ? "http://localhost:8080" : "";
+  const API_BASE = "http://161.35.116.104:8080";
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [showPw, setShowPw] = useState(false);
   const [message, setMessage] = useState("");

@@ -1,7 +1,7 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { COLORS, styles } from "./constants";
 
-const API_BASE = "http://localhost:8080";
+const API_BASE = "http://161.35.116.104:8080";
 
 const TX = {
   EN: { title: "Patient Registration", sub: "Create your patient account", fullName: "Full Name", fullNamePh: "Enter your full name", email: "Email Address", emailPh: "Enter your email", phone: "Phone", phonePh: "+7 (777) 123-4567", password: "Password", passwordPh: "Enter your password", confirm: "Confirm Password", confirmPh: "Confirm Password", btn: "Register", hasAccount: "Already have an account?", loginLink: "Login here", fillAll: "Please fill all fields.", invalidEmail: "Invalid email format.", passNoMatch: "Passwords do not match.", success: "Account created! Please log in." },

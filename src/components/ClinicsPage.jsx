@@ -3,9 +3,7 @@ import { COLORS } from "./constants";
 import { T } from "./translation";
 import { useResponsive } from "./useResponsive";
 
-const API_BASE =
-  typeof window !== "undefined" && window.location.hostname === "localhost"
-    ? "http://localhost:8080" : "";
+const API_BASE = "http://161.35.116.104:8080";
 
 const Icon = ({ d, size = 16, color = "#64748B" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none">

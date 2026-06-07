@@ -1,12 +1,9 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { COLORS } from "./constants";
 import { T } from "./translation";
 import { useResponsive } from "./useResponsive";
 
-const API_BASE =
-  typeof window !== "undefined" && window.location.hostname === "localhost"
-    ? "http://localhost:8080"
-    : "";
+const API_BASE = "http://161.35.116.104:8080";
 
 const SPEC_COLORS = [
   "#3B5BDB", "#10B981", "#EC4899", "#F59E0B", "#8B5CF6", "#EF4444",
