@@ -869,7 +869,7 @@ function ScheduleView({ doctorId, t }) {
   );
 }
 
-const AI_BASE = "http://localhost:8000";
+const AI_BASE = "http://161.35.116.104:8001";
 
 function AIAnalysisView({ t }) {
   const [file, setFile]           = useState(null);
