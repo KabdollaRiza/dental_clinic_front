@@ -230,11 +230,7 @@ export default function ChatWidget({ page, setPage, lang = "RU" }) {
       }
 
       if (step === "collect_date" || step === "collect_time") {
-        if (data.reply && !data.available_slots?.length) {
-          addBot(data.reply);
-        } else {
-          addBot(c("pickDate"));
-        }
+        addBot(c("pickDate"));
         setChoiceRequired(false);
         setChoiceType("");
         setChoices([]);
@@ -246,7 +242,7 @@ export default function ChatWidget({ page, setPage, lang = "RU" }) {
       }
 
     } catch (e) {
-      addBot(`${c("error")}${e.message}`);
+      addBot(e.message === "Failed to fetch" ? c("networkError") : `${c("error")}${e.message}`);
     } finally {
       setLoading(false);
     }
@@ -306,7 +302,7 @@ export default function ChatWidget({ page, setPage, lang = "RU" }) {
       setChoiceType("frontend_clinic");
       setChoices(list);
     } catch (e) {
-      addBot(`${c("error")}${e.message}`);
+      addBot(e.message === "Failed to fetch" ? c("networkError") : `${c("error")}${e.message}`);
     } finally {
       setLoading(false);
     }
@@ -337,7 +333,7 @@ export default function ChatWidget({ page, setPage, lang = "RU" }) {
         setChoices(list);
       }
     } catch (e) {
-      addBot(`${c("error")}${e.message}`);
+      addBot(e.message === "Failed to fetch" ? c("networkError") : `${c("error")}${e.message}`);
     } finally {
       setLoading(false);
     }
@@ -367,7 +363,7 @@ export default function ChatWidget({ page, setPage, lang = "RU" }) {
       setChoiceType("frontend_doctor");
       setChoices(display);
     } catch (e) {
-      addBot(`${c("error")}${e.message}`);
+      addBot(e.message === "Failed to fetch" ? c("networkError") : `${c("error")}${e.message}`);
     } finally {
       setLoading(false);
     }

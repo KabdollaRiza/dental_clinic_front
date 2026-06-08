@@ -201,6 +201,8 @@ export default function BookingPage({ setPage, lang = "EN" }) {
   const handleSubmit = async () => {
     if (!doctorId || !clinicAddressId || !serviceId || !slotId || !date || !name || !email) return;
     setSubmitting(true);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 30000);
     try {
       const payload = {
         doctor_id:         doctorId,
@@ -219,6 +221,7 @@ export default function BookingPage({ setPage, lang = "EN" }) {
         method: "POST",
         headers,
         body: JSON.stringify(payload),
+        signal: controller.signal,
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { setMessage(data.message || data.error || "Booking failed."); return; }
@@ -234,12 +237,20 @@ export default function BookingPage({ setPage, lang = "EN" }) {
         setDate(""); setSlotId(""); setSlots([]); setName(""); setEmail("");
         setPage("home");
       }, 2500);
-    } catch (e) { setMessage(e.message || "Network error"); }
-    finally { setSubmitting(false); }
+    } catch (e) {
+      if (e.name === "AbortError") {
+        setMessage(tx.networkError || "Request timed out. Please try again.");
+      } else {
+        setMessage(e.message || "Network error");
+      }
+    } finally {
+      clearTimeout(timer);
+      setSubmitting(false);
+    }
   };
 
   const allReady = doctorId && clinicAddressId && serviceId && slotId && date && name.trim() && email.trim();
-  const selectedSvc = services.find(s => s.id === serviceId);
+  const selectedSvc = services.find(s => (s._catalog_id || s.id) === serviceId);
 
   const patientToken = sessionStorage.getItem("patient_token");
 

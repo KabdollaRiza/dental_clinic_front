@@ -3,10 +3,13 @@ import { COLORS } from "./constants";
 import { ADMIN_T } from "./translation";
 import { GlobeIcon } from "./Icons";
 import { useResponsive } from "./useResponsive";
+import { TableOrCards } from "./TableOrCards";
 
 const API_BASE = "http://161.35.116.104:8080";
 
 const C = COLORS;
+
+const msgTxt = m => m.slice(m.indexOf(':') + 1);
 
 function authFetch(url, options = {}) {
   const raw = sessionStorage.getItem("token") || "";
@@ -118,6 +121,7 @@ const s = {
   wrap: { padding: "0 48px 56px", flex: 1 },
   sectionHeader: {
     display: "flex", alignItems: "center", justifyContent: "space-between",
+    flexWrap: "wrap", gap: 12,
     marginBottom: 20, marginTop: 32,
   },
   sectionTitle: { fontSize: 22, fontWeight: 800, color: C.text },
@@ -293,6 +297,7 @@ function Empty({ icon, text }) {
   );
 }
 
+
 // Tab definitions 
 const TABS = [
   { key: "addresses",    label: "Addresses",    icon: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z" },
@@ -347,13 +352,13 @@ function ProfileModal({ tx, onClose }) {
         <FG label={tx.oldPassword}><Input type="password" value={pwForm.old_password} onChange={e => setPwForm(f => ({ ...f, old_password: e.target.value }))} placeholder={tx.oldPasswordPh} /></FG>
         <FG label={tx.newPasswordLabel}><Input type="password" value={pwForm.new_password} onChange={e => setPwForm(f => ({ ...f, new_password: e.target.value }))} placeholder={tx.passwordPlaceholder} /></FG>
         <button style={{ ...s.submitBtn, opacity: savingPw ? 0.7 : 1 }} onClick={changePassword} disabled={savingPw}>{tx.changePassword}</button>
-        {pwMsg && <p style={pwMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{pwMsg.startsWith("ok:") ? tx.passwordChanged : pwMsg.slice(3)}</p>}
+        {pwMsg && <p style={pwMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{pwMsg.startsWith("ok:") ? tx.passwordChanged : msgTxt(pwMsg)}</p>}
       </div>
       <div>
         <p style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 14 }}>{tx.changeEmail}</p>
         <FG label={tx.newEmail}><Input type="email" value={emailForm.new_email} onChange={e => setEmailForm({ new_email: e.target.value })} placeholder={tx.newEmailPh} /></FG>
         <button style={{ ...s.submitBtn, opacity: savingEmail ? 0.7 : 1 }} onClick={changeEmail} disabled={savingEmail}>{tx.changeEmail}</button>
-        {emailMsg && <p style={emailMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{emailMsg.startsWith("ok:") ? tx.emailChanged : emailMsg.slice(3)}</p>}
+        {emailMsg && <p style={emailMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{emailMsg.startsWith("ok:") ? tx.emailChanged : msgTxt(emailMsg)}</p>}
       </div>
     </Modal>
   );
@@ -370,7 +375,7 @@ function ClinicLogoModal({ clinic, onClose, onUpdate, tx }) {
     if (!file) { setMsg("err:Please select a file"); return; }
     setSaving(true);
     try {
-      const res = await authFetchFile(`${API_BASE}/api/clinics/${clinic.id}/logo`, "PUT", file, "logo");
+      const res = await authFetchFile(`${API_BASE}/api/clinics/${clinic.id}/logo`, "POST", file, "logo");
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { setMsg("err:" + (data.message || data.error || "Upload failed")); return; }
       const url = data.url || data.logo_url || data.image_url || data.data?.url || "";
@@ -412,7 +417,7 @@ function ClinicLogoModal({ clinic, onClose, onUpdate, tx }) {
           {tx.deleteLogo}
         </button>
       )}
-      {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+      {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(msg)}</p>}
     </Modal>
   );
 }
@@ -428,7 +433,7 @@ function AddressCoverModal({ address, onClose, onUpdate, tx }) {
     if (!file) { setMsg("err:Please select a file"); return; }
     setSaving(true);
     try {
-      const res = await authFetchFile(`${API_BASE}/api/clinic-addresses/${address.id}/cover`, "PUT", file, "cover");
+      const res = await authFetchFile(`${API_BASE}/api/clinic-addresses/${address.id}/cover`, "POST", file, "cover");
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { setMsg("err:" + (data.message || data.error || "Upload failed")); return; }
       const url = data.url || data.cover_url || data.image_url || data.data?.url || "";
@@ -472,7 +477,7 @@ function AddressCoverModal({ address, onClose, onUpdate, tx }) {
           {tx.deleteCover}
         </button>
       )}
-      {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+      {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(msg)}</p>}
     </Modal>
   );
 }
@@ -539,7 +544,7 @@ function AddressGalleryModal({ address, onClose, tx }) {
 
   return (
     <Modal title={`Gallery — ${addrLabel}`} onClose={onClose}>
-      {msg && <p style={{ ...(msg.startsWith("ok:") ? s.msgOk : s.msgErr), marginBottom: 12 }}>{msg.slice(3)}</p>}
+      {msg && <p style={{ ...(msg.startsWith("ok:") ? s.msgOk : s.msgErr), marginBottom: 12 }}>{msgTxt(msg)}</p>}
 
       {loading ? (
         <p style={{ color: C.muted, fontSize: 14, textAlign: "center", padding: "20px 0" }}>{tx.invLoading}</p>
@@ -603,8 +608,10 @@ function DoctorPhotoModal({ doctor, onClose, onUpdate, tx }) {
       const res = await authFetchFile(`${API_BASE}/api/doctors/${doctor.id}/photo`, "POST", file, "photo");
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { setMsg("err:" + (data.message || data.error || "Upload failed")); return; }
-      const url = data.url || data.photo_url || data.image_url || data.data?.url || "";
-      const fullUrl = url.startsWith("http") ? url : `${API_BASE}${url}`;
+      const docRes = await authFetch(`${API_BASE}/api/doctors/${doctor.id}`);
+      const docData = docRes.ok ? await docRes.json().catch(() => ({})) : {};
+      const url = docData.photo_url || "";
+      const fullUrl = url ? (url.startsWith("http") ? url : `${API_BASE}${url}`) : "";
       setPhotoUrl(fullUrl);
       onUpdate(doctor.id, url);
       setFile(null);
@@ -643,7 +650,7 @@ function DoctorPhotoModal({ doctor, onClose, onUpdate, tx }) {
           {tx.deletePhoto}
         </button>
       )}
-      {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+      {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(msg)}</p>}
     </Modal>
   );
 }
@@ -660,7 +667,7 @@ function ClinicsTab({ clinics, setClinics, tx, addresses, setAddresses }) {
     setClinics(prev => prev.map(c => c.id === clinicId ? { ...c, logo_url: url } : c));
   };
  
-  const EMPTY = { name: "", description: "", phone: "", email: "", website: "", is_active: true, address_id: "" };
+  const EMPTY = { name: "", description: "", phone: "", email: "", website: "", is_active: true, address_ids: [] };
   const [form, setForm] = useState(EMPTY);
   const [msg, setMsg] = useState("");
   const [saving, setSaving] = useState(false);
@@ -688,7 +695,6 @@ function ClinicsTab({ clinics, setClinics, tx, addresses, setAddresses }) {
         email:       form.email,
         website:     form.website,
         is_active:   form.is_active,
-        address_id:  form.address_id,
       };
       const res = await authFetch(`${API_BASE}/api/clinics`, {
         method: "POST",
@@ -704,19 +710,21 @@ function ClinicsTab({ clinics, setClinics, tx, addresses, setAddresses }) {
       const newClinic = { ...payload, id: clinicId };
       setClinics((prev) => [...prev, newClinic]);
 
-      if (form.address_id && clinicId) {
+      for (let i = 0; i < form.address_ids.length; i++) {
+        const addrId = form.address_ids[i];
         try {
           await authFetch(`${API_BASE}/api/clinics/${clinicId}/address`, {
             method: "POST",
-            body: JSON.stringify({ address_id: form.address_id, is_main: true }),
+            body: JSON.stringify({ address_id: addrId, is_main: i === 0 }),
           });
           setAddresses(prev => prev.map(a =>
-            a.id === form.address_id ? { ...a, clinic_id: clinicId } : a
+            a.id === addrId ? { ...a, clinic_id: clinicId } : a
           ));
         } catch (_) {}
       }
 
       setMsg("ok:" + tx.addedOk);
+      setTimeout(() => { setOpen(false); setForm(EMPTY); setMsg(""); }, 1200);
     } catch (e) {
       setMsg("err:" + e.message);
     } finally {
@@ -757,44 +765,25 @@ function ClinicsTab({ clinics, setClinics, tx, addresses, setAddresses }) {
           text={tx.noClinics}
         />
       ) : (
-        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-        <table style={s.table} cellSpacing={0}>
-          <thead style={s.thead}>
-            <tr>
-              <th style={s.th}>{tx.colName}</th>
-              <th style={s.th}>{tx.colDesc}</th>
-              <th style={s.th}>{tx.colPhone}</th>
-              <th style={s.th}>{tx.colEmail}</th>
-              <th style={s.th}>{tx.colWebsite}</th>
-              <th style={s.th}>{tx.colStatus}</th>
-              <th style={s.th}>{tx.colActions}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {clinics.map((c) => (
-              <tr key={c.id}>
-                <td style={s.td}><b>{c.name}</b></td>
-                <td style={s.td}>{c.description?.length > 30 ? c.description.slice(0,30)+"…" : c.description || "—"}</td>
-                <td style={s.td}>{c.phone || "—"}</td>
-                <td style={s.td}>{c.email || "—"}</td>
-                <td style={s.td}>{c.website || "—"}</td>
-                <td style={s.td}>
-                  <span style={s.badge(c.is_active ? "#22c55e" : "#94A3B8")}>
-                    {c.is_active ? tx.active : tx.inactive}
-                  </span>
-                </td>
-                <td style={s.td}>
-                  <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "nowrap" }}>
-                    <button style={s.editBtn} onClick={() => { setEditClinic(c); setEditForm2({...c}); setEditMsg2(""); }}>{tx.invEdit}</button>
-                    <button style={{ ...s.editBtn, marginRight: 0, background: "#E0F2FE", color: "#0369A1" }} onClick={() => setLogoClinic(c)}>{tx.btnLogo}</button>
-                    <button style={{ ...s.deleteBtn, marginLeft: 0 }} onClick={() => del(c.id)}>{tx.delete}</button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        </div>
+        <TableOrCards
+          cols={[
+            { key: "name",    label: tx.colName,    render: c => <b>{c.name}</b> },
+            { key: "desc",    label: tx.colDesc,    render: c => c.description?.length > 30 ? c.description.slice(0,30)+"…" : c.description || "—" },
+            { key: "phone",   label: tx.colPhone,   render: c => c.phone || "—" },
+            { key: "email",   label: tx.colEmail,   render: c => c.email || "—" },
+            { key: "website", label: tx.colWebsite, render: c => c.website || "—" },
+            { key: "status",  label: tx.colStatus,  render: c => <span style={s.badge(c.is_active ? "#22c55e" : "#94A3B8")}>{c.is_active ? tx.active : tx.inactive}</span> },
+          ]}
+          items={clinics}
+          keyFn={c => c.id}
+          actions={c => (
+            <>
+              <button style={s.editBtn} onClick={() => { setEditClinic(c); setEditForm2({...c}); setEditMsg2(""); }}>{tx.invEdit}</button>
+              <button style={{ ...s.editBtn, marginRight: 0, background: "#E0F2FE", color: "#0369A1" }} onClick={() => setLogoClinic(c)}>{tx.btnLogo}</button>
+              <button style={{ ...s.deleteBtn, marginLeft: 0 }} onClick={() => del(c.id)}>{tx.delete}</button>
+            </>
+          )}
+        />
       )}
 
       {/* Edit Clinic Modal */}
@@ -809,7 +798,7 @@ function ClinicsTab({ clinics, setClinics, tx, addresses, setAddresses }) {
           <FG label={tx.websiteUrl}><Input value={editForm2.website||""} onChange={(e)=>setEditForm2({...editForm2,website:e.target.value})} /></FG>
           <FG label=""><label style={{display:"flex",alignItems:"center",gap:8,fontSize:14,cursor:"pointer"}}><input type="checkbox" checked={!!editForm2.is_active} onChange={(e)=>setEditForm2({...editForm2,is_active:e.target.checked})} />{tx.setActive}</label></FG>
           <button style={s.submitBtn} onClick={updateClinic}>{tx.invSaveChanges}</button>
-          {editMsg2 && <p style={editMsg2.startsWith("ok:") ? s.msgOk : s.msgErr}>{editMsg2.slice(3)}</p>}
+          {editMsg2 && <p style={editMsg2.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(editMsg2)}</p>}
         </Modal>
       )}
 
@@ -841,14 +830,31 @@ function ClinicsTab({ clinics, setClinics, tx, addresses, setAddresses }) {
                 ⚠ {tx.noAddressesYet}
               </div>
             ) : (
-              <Sel name="address_id" value={form.address_id} onChange={hc}>
-                <option value="">{tx.selectAddress}</option>
-                {addresses.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {[a.street, a.building, a.city, a.country].filter(Boolean).join(", ")}
-                  </option>
-                ))}
-              </Sel>
+              <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, maxHeight: 160, overflowY: "auto", padding: "8px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
+                {addresses.map((a) => {
+                  const label = [a.street, a.building, a.city, a.country].filter(Boolean).join(", ");
+                  const checked = form.address_ids.includes(a.id);
+                  const isMain = form.address_ids[0] === a.id;
+                  return (
+                    <label key={a.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, cursor: "pointer" }}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => {
+                          setForm(prev => ({
+                            ...prev,
+                            address_ids: checked
+                              ? prev.address_ids.filter(id => id !== a.id)
+                              : [...prev.address_ids, a.id],
+                          }));
+                        }}
+                      />
+                      <span>{label}</span>
+                      {isMain && checked && <span style={{ fontSize: 11, color: C.primary, fontWeight: 700 }}>(главный)</span>}
+                    </label>
+                  );
+                })}
+              </div>
             )}
           </FG>
           <FG label="">
@@ -860,7 +866,7 @@ function ClinicsTab({ clinics, setClinics, tx, addresses, setAddresses }) {
           <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={submit} disabled={saving}>
             {saving ? tx.creating : tx.modalAddClinic}
           </button>
-          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(msg)}</p>}
         </Modal>
       )}
 
@@ -890,6 +896,8 @@ function DoctorsTab({ doctors, setDoctors, clinics, services, tx }) {
   const EMPTY = { name: "", email: "", specialization: "", experience: "", clinic_id: "", service_ids: [], password: "", is_active: true };
   const [form, setForm] = useState(EMPTY);
   const [msg, setMsg] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [clinicServices, setClinicServices] = useState([]);
   const [confirmationCode, setConfirmationCode] = useState("");
 
@@ -919,6 +927,7 @@ function DoctorsTab({ doctors, setDoctors, clinics, services, tx }) {
     if (doctors.some(d => d.email.toLowerCase() === form.email.toLowerCase())) {
       setMsg("err:" + tx.doctorEmailExists); return;
     }
+    setSaving(true);
     try {
       const res = await authFetch(`${API_BASE}/api/doctors`, {
         method: "POST",
@@ -929,12 +938,12 @@ function DoctorsTab({ doctors, setDoctors, clinics, services, tx }) {
       setDoctors((prev) => [...prev, { ...form, id: data.data?.id || data.data?.Id || data.doctor_id || data.id || data.Id || String(Date.now()) }]);
       if (data.confirmation_code) {
         setConfirmationCode(data.confirmation_code);
-        setMsg("ok:" + tx.addedOk);
       } else {
-        setMsg("ok:" + tx.addedOk);
-        setTimeout(() => { setOpen(false); setForm(EMPTY); setMsg(""); }, 1200);
+        setSaved(true);
+        setTimeout(() => { setOpen(false); setForm(EMPTY); setMsg(""); setSaved(false); }, 2000);
       }
-    } catch (e) { alert(e.message); }
+    } catch (e) { setMsg("err:" + e.message); }
+    finally { setSaving(false); }
   };
 
   const updateDoctor = async () => {
@@ -966,34 +975,28 @@ function DoctorsTab({ doctors, setDoctors, clinics, services, tx }) {
     <>
       <div style={s.sectionHeader}>
         <span style={s.sectionTitle}>{tx.manageDoctors}</span>
-        <button style={s.addBtn} onClick={() => setOpen(true)}>{tx.addDoctor}</button>
+        <button style={s.addBtn} onClick={() => { setOpen(true); setMsg(""); setConfirmationCode(""); setSaved(false); }}>{tx.addDoctor}</button>
       </div>
       {doctors.length === 0 ? (
         <Empty icon="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z" text={tx.noDoctors} />
       ) : (
-        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-        <table style={s.table} cellSpacing={0}>
-          <thead style={s.thead}><tr>
-            <th style={s.th}>{tx.colName}</th><th style={s.th}>{tx.colEmail}</th>
-            <th style={s.th}>{tx.colSpec}</th><th style={s.th}>{tx.colExp}</th><th style={s.th}>{tx.colActions}</th>
-          </tr></thead>
-          <tbody>{doctors.map((d) => (
-            <tr key={d.id}>
-              <td style={s.td}><b>{d.name}</b></td>
-              <td style={s.td}>{d.email}</td>
-              <td style={s.td}>{d.specialization || "—"}</td>
-              <td style={s.td}>{d.experience ? `${d.experience} ${tx.yearsAbbr}` : "—"}</td>
-              <td style={s.td}>
-                <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "nowrap" }}>
-                  <button style={s.editBtn} onClick={() => { setEditDoc(d); setEditDocForm({ ...d, new_password: "", is_active: d.is_active ?? true }); setEditDocMsg(""); }}>{tx.invEdit}</button>
-                  <button style={{ ...s.editBtn, marginRight: 0, background: "#FDF4FF", color: "#7C3AED" }} onClick={() => setPhotoDoc(d)}>{tx.btnPhoto}</button>
-                  <button style={{ ...s.deleteBtn, marginLeft: 0 }} onClick={() => del(d.id)}>{tx.delete}</button>
-                </div>
-              </td>
-            </tr>
-          ))}</tbody>
-        </table>
-        </div>
+        <TableOrCards
+          cols={[
+            { key: "name",  label: tx.colName,  render: d => <b>{d.name}</b> },
+            { key: "email", label: tx.colEmail, render: d => d.email },
+            { key: "spec",  label: tx.colSpec,  render: d => d.specialization || "—" },
+            { key: "exp",   label: tx.colExp,   render: d => d.experience ? `${d.experience} ${tx.yearsAbbr}` : "—" },
+          ]}
+          items={doctors}
+          keyFn={d => d.id}
+          actions={d => (
+            <>
+              <button style={s.editBtn} onClick={() => { setEditDoc(d); setEditDocForm({ ...d, new_password: "", is_active: d.is_active ?? true }); setEditDocMsg(""); }}>{tx.invEdit}</button>
+              <button style={{ ...s.editBtn, marginRight: 0, background: "#FDF4FF", color: "#7C3AED" }} onClick={() => setPhotoDoc(d)}>{tx.btnPhoto}</button>
+              <button style={{ ...s.deleteBtn, marginLeft: 0 }} onClick={() => del(d.id)}>{tx.delete}</button>
+            </>
+          )}
+        />
       )}
       {editDoc && (
         <Modal title={tx.editDoctor} onClose={() => { setEditDoc(null); setEditDocMsg(""); }}>
@@ -1007,7 +1010,7 @@ function DoctorsTab({ doctors, setDoctors, clinics, services, tx }) {
             {tx.accountActive}
           </label>
           <button style={s.submitBtn} onClick={updateDoctor}>{tx.invSaveChanges}</button>
-          {editDocMsg && <p style={editDocMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{editDocMsg.slice(3)}</p>}
+          {editDocMsg && <p style={editDocMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(editDocMsg)}</p>}
         </Modal>
       )}
       {photoDoc && (
@@ -1019,7 +1022,7 @@ function DoctorsTab({ doctors, setDoctors, clinics, services, tx }) {
         />
       )}
       {open && (
-        <Modal title={tx.modalAddDoctor} onClose={() => { setOpen(false); setForm(EMPTY); setMsg(""); setConfirmationCode(""); }}>
+        <Modal title={tx.modalAddDoctor} onClose={() => { setOpen(false); setForm(EMPTY); setMsg(""); setConfirmationCode(""); setSaved(false); }}>
           {confirmationCode ? (
             <div>
               <div style={{ textAlign: "center", marginBottom: 20 }}>
@@ -1045,10 +1048,15 @@ function DoctorsTab({ doctors, setDoctors, clinics, services, tx }) {
               </button>
               <button
                 style={{ ...s.submitBtn, background: C.muted, marginTop: 10 }}
-                onClick={() => { setOpen(false); setForm(EMPTY); setMsg(""); setConfirmationCode(""); }}
+                onClick={() => { setOpen(false); setForm(EMPTY); setMsg(""); setConfirmationCode(""); setSaved(false); }}
               >
                 {tx.close || "Закрыть"}
               </button>
+            </div>
+          ) : saved ? (
+            <div style={{ textAlign: "center", padding: "20px 0" }}>
+              <div style={{ fontSize: 64, marginBottom: 16 }}>✅</div>
+              <p style={{ fontSize: 20, fontWeight: 800, color: "#22c55e", marginBottom: 8 }}>{tx.addedOk}</p>
             </div>
           ) : (
             <>
@@ -1082,8 +1090,10 @@ function DoctorsTab({ doctors, setDoctors, clinics, services, tx }) {
                 <input type="checkbox" name="is_active" checked={!!form.is_active} onChange={(e) => setForm(f => ({ ...f, is_active: e.target.checked }))} />
                 {tx.accountActive}
               </label>
-              <button style={s.submitBtn} onClick={submit}>{tx.modalAddDoctor}</button>
-              {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+              <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={submit} disabled={saving}>
+                {saving ? (tx.invSaving || "...") : tx.modalAddDoctor}
+              </button>
+              {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(msg)}</p>}
             </>
           )}
         </Modal>
@@ -1098,7 +1108,7 @@ function ServicesTab({ services, setServices, clinics, tx }) {
   const [editSvc, setEditSvc] = useState(null);
   const [editSvcForm, setEditSvcForm] = useState({});
   const [editSvcMsg,  setEditSvcMsg]  = useState("");
-  const EMPTY = { name: "", description: "", price: "", duration: "", clinic_id: "", is_active: true };
+  const EMPTY = { name: "", description: "", is_active: true };
   const [form, setForm] = useState(EMPTY);
   const [msg, setMsg] = useState("");
   const [saving, setSaving] = useState(false);
@@ -1109,46 +1119,17 @@ function ServicesTab({ services, setServices, clinics, tx }) {
   };
 
   const submit = async () => {
-    if (!form.name || !form.price) { setMsg("err:" + tx.namePriceRequired); return; }
-    if (!form.clinic_id) { setMsg("err:" + tx.selectClinicRequired); return; }
-    const dur = parseInt(form.duration, 10) || 0;
-    if (dur > 0 && dur % 30 !== 0) { setMsg("err:" + tx.durationMultiple); return; }
+    if (!form.name) { setMsg("err:" + tx.namePriceRequired); return; }
     setSaving(true);
     try {
-      // Step 1: create global catalog entry (name + description only)
-      const res1 = await authFetch(`${API_BASE}/api/services`, {
+      const res = await authFetch(`${API_BASE}/api/services`, {
         method: "POST",
         body: JSON.stringify({ name: form.name, description: form.description }),
       });
-      const data1 = await res1.json().catch(() => ({}));
-      if (!res1.ok) { setMsg("err:" + (data1.message || data1.error || JSON.stringify(data1))); return; }
-
-      const catalogId = data1.service_id || data1.ServiceID || data1.id || data1.Id;
-      if (!catalogId) { setMsg("err:Failed to get service ID"); return; }
-
-      // Step 2: assign to clinic with price / duration
-      const res2 = await authFetch(`${API_BASE}/api/add-clinics/${form.clinic_id}/services`, {
-        method: "POST",
-        body: JSON.stringify({
-          service_id: catalogId,
-          price: parseFloat(form.price) || 0,
-          duration: dur,
-          is_active: form.is_active,
-        }),
-      });
-      const data2 = await res2.json().catch(() => ({}));
-      if (!res2.ok) { setMsg("err:" + (data2.message || data2.error || JSON.stringify(data2))); return; }
-
-      const clinicServiceId = data2.service_id || data2.ServiceID || data2.id || data2.Id || String(Date.now());
-      setServices((prev) => [...prev, {
-        id: clinicServiceId,
-        name: form.name,
-        description: form.description,
-        price: parseFloat(form.price) || 0,
-        duration: dur,
-        clinic_id: form.clinic_id,
-        is_active: form.is_active,
-      }]);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setMsg("err:" + (data.message || data.error || JSON.stringify(data))); return; }
+      const id = data.service_id || data.ServiceID || data.id || data.Id || String(Date.now());
+      setServices(prev => [...prev, { id, name: form.name, description: form.description, is_active: form.is_active }]);
       setMsg("ok:" + tx.addedOk);
       setTimeout(() => { setOpen(false); setForm(EMPTY); setMsg(""); }, 1200);
     } catch (e) { setMsg("err:" + e.message); }
@@ -1158,7 +1139,7 @@ function ServicesTab({ services, setServices, clinics, tx }) {
   const updateService = async () => {
     if (!editSvc) return;
     try {
-      const payload = { name: editSvcForm.name, description: editSvcForm.description, price: parseFloat(editSvcForm.price)||0, duration: parseInt(editSvcForm.duration,10)||0, is_active: editSvcForm.is_active };
+      const payload = { name: editSvcForm.name, description: editSvcForm.description, is_active: editSvcForm.is_active };
       const res = await authFetch(`${API_BASE}/api/services/${editSvc.id}`, { method: "PUT", body: JSON.stringify(payload) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { setEditSvcMsg("err:" + (data.message || "Failed")); return; }
@@ -1189,44 +1170,29 @@ function ServicesTab({ services, setServices, clinics, tx }) {
       {services.length === 0 ? (
         <Empty icon="M12 2a10 10 0 100 20A10 10 0 0012 2zM12 8v4l3 3" text={tx.noServices} />
       ) : (
-        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-        <table style={s.table} cellSpacing={0}>
-          <thead style={s.thead}><tr>
-            <th style={s.th}>{tx.colName}</th><th style={s.th}>{tx.colDesc}</th>
-            <th style={s.th}>{tx.colPrice}</th><th style={s.th}>{tx.colDuration}</th>
-            <th style={s.th}>{tx.colServiceStatus}</th><th style={s.th}>{tx.colActions}</th>
-          </tr></thead>
-          <tbody>{services.map((sv) => (
-            <tr key={sv.id}>
-              <td style={s.td}><b>{sv.name}</b></td>
-              <td style={s.td}>{sv.description?.length > 40 ? sv.description.slice(0, 40) + "…" : sv.description || "—"}</td>
-              <td style={s.td}><span style={s.badge()}>{Number(sv.price).toLocaleString()} ₸</span></td>
-              <td style={s.td}>{sv.duration ? `${sv.duration} ${tx.minLabel}` : "—"}</td>
-              <td style={s.td}>
-                <span style={s.badge(sv.is_active ? "#22c55e" : "#94A3B8")}>
-                  {sv.is_active ? tx.active : tx.inactive}
-                </span>
-              </td>
-              <td style={s.td}>
-                <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "nowrap" }}>
-                  <button style={s.editBtn} onClick={() => { setEditSvc(sv); setEditSvcForm({...sv, price: String(sv.price), duration: String(sv.duration)}); setEditSvcMsg(""); }}>{tx.invEdit}</button>
-                  <button style={{ ...s.deleteBtn, marginLeft: 0 }} onClick={() => del(sv.id)}>{tx.delete}</button>
-                </div>
-              </td>
-            </tr>
-          ))}</tbody>
-        </table>
-        </div>
+        <TableOrCards
+          cols={[
+            { key: "name",   label: tx.colName,          render: sv => <b>{sv.name}</b> },
+            { key: "desc",   label: tx.colDesc,          render: sv => sv.description?.length > 40 ? sv.description.slice(0,40)+"…" : sv.description || "—" },
+            { key: "status", label: tx.colServiceStatus, render: sv => <span style={s.badge(sv.is_active ? "#22c55e" : "#94A3B8")}>{sv.is_active ? tx.active : tx.inactive}</span> },
+          ]}
+          items={services}
+          keyFn={sv => sv.id}
+          actions={sv => (
+            <>
+              <button style={s.editBtn} onClick={() => { setEditSvc(sv); setEditSvcForm({...sv}); setEditSvcMsg(""); }}>{tx.invEdit}</button>
+              <button style={{ ...s.deleteBtn, marginLeft: 0 }} onClick={() => del(sv.id)}>{tx.delete}</button>
+            </>
+          )}
+        />
       )}
       {editSvc && (
         <Modal title={tx.editService} onClose={() => { setEditSvc(null); setEditSvcMsg(""); }}>
           <FG label={tx.serviceName}><Input value={editSvcForm.name||""} onChange={(e)=>setEditSvcForm({...editSvcForm,name:e.target.value})} /></FG>
           <FG label={tx.description}><textarea style={s.textarea} value={editSvcForm.description||""} onChange={(e)=>setEditSvcForm({...editSvcForm,description:e.target.value})} onFocus={(e)=>(e.target.style.borderColor=C.primary)} onBlur={(e)=>(e.target.style.borderColor=C.border)} /></FG>
-          <FG label={tx.price}><Input type="number" value={editSvcForm.price||""} onChange={(e)=>setEditSvcForm({...editSvcForm,price:e.target.value})} /></FG>
-          <FG label={tx.duration}><Sel value={editSvcForm.duration||""} onChange={(e)=>setEditSvcForm({...editSvcForm,duration:e.target.value})}><option value="">—</option>{[30,60,90,120,150,180].map(d=><option key={d} value={d}>{d} {tx.minLabel}</option>)}</Sel></FG>
           <FG label=""><label style={{display:"flex",alignItems:"center",gap:8,fontSize:14,cursor:"pointer"}}><input type="checkbox" checked={!!editSvcForm.is_active} onChange={(e)=>setEditSvcForm({...editSvcForm,is_active:e.target.checked})} />{tx.markActive}</label></FG>
           <button style={s.submitBtn} onClick={updateService}>{tx.invSaveChanges}</button>
-          {editSvcMsg && <p style={editSvcMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{editSvcMsg.slice(3)}</p>}
+          {editSvcMsg && <p style={editSvcMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(editSvcMsg)}</p>}
         </Modal>
       )}
       {open && (
@@ -1238,19 +1204,6 @@ function ServicesTab({ services, setServices, clinics, tx }) {
               onFocus={(e) => (e.target.style.borderColor = C.primary)}
               onBlur={(e) => (e.target.style.borderColor = C.border)} />
           </FG>
-          <FG label={tx.price}><Input name="price" type="number" value={form.price} onChange={hc} placeholder={tx.pricePh} /></FG>
-          <FG label={tx.duration}>
-            <Sel name="duration" value={form.duration} onChange={hc}>
-              <option value="">{tx.selectDurationPh}</option>
-              {[30,60,90,120,150,180].map(d => <option key={d} value={d}>{d} {tx.minLabel}</option>)}
-            </Sel>
-          </FG>
-          <FG label={tx.assignClinic}>
-            <Sel name="clinic_id" value={form.clinic_id} onChange={hc}>
-              <option value="">{tx.selectClinic}</option>
-              {clinics.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </Sel>
-          </FG>
           <FG label="">
             <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, cursor: "pointer" }}>
               <input type="checkbox" name="is_active" checked={form.is_active} onChange={hc} />
@@ -1260,7 +1213,7 @@ function ServicesTab({ services, setServices, clinics, tx }) {
           <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={submit} disabled={saving}>
             {saving ? tx.adding : tx.modalAddService}
           </button>
-          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(msg)}</p>}
         </Modal>
       )}
     </>
@@ -1378,40 +1331,28 @@ function AddressesTab({ addresses, setAddresses, clinics, tx }) {
       {addresses.length === 0 ? (
         <Empty icon="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z" text={tx.noAddresses} />
       ) : (
-        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-        <table style={s.table} cellSpacing={0}>
-          <thead style={s.thead}><tr>
-            <th style={s.th}>{tx.country}</th>
-            <th style={s.th}>{tx.city}</th>
-            <th style={s.th}>{tx.street}</th>
-            <th style={s.th}>{tx.building}</th>
-            <th style={s.th}>{tx.colClinic}</th>
-            <th style={s.th}>{tx.colActions}</th>
-          </tr></thead>
-          <tbody>{addresses.map((a) => (
-            <tr key={a.id}>
-              <td style={s.td}>{a.country  || "—"}</td>
-              <td style={s.td}>{a.city     || "—"}</td>
-              <td style={s.td}>{a.street   || "—"}</td>
-              <td style={s.td}>{a.building || "—"}</td>
-              <td style={s.td}>
-                {a.clinic_id
-                  ? <span style={s.badge()}>{clinics.find(c => c.id === a.clinic_id)?.name || "Assigned"}</span>
-                  : <span style={{ fontSize: 12, color: "#94A3B8" }}>—</span>
-                }
-              </td>
-              <td style={s.td}>
-                <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "nowrap" }}>
-                  <button style={s.editBtn} onClick={() => { setEditAddr(a); setEditAddrForm({...a}); setEditAddrMsg(""); }}>{tx.invEdit}</button>
-                  <button style={{ ...s.editBtn, marginRight: 0, background: "#FFF7ED", color: "#D97706" }} onClick={() => setCoverAddr(a)}>{tx.btnCover}</button>
-                  <button style={{ ...s.editBtn, marginRight: 0, background: "#F5F3FF", color: "#7C3AED" }} onClick={() => setGalleryAddr(a)}>{tx.btnGallery}</button>
-                  <button style={{ ...s.deleteBtn, marginLeft: 0 }} onClick={() => del(a.id, a.clinic_id)}>{tx.delete}</button>
-                </div>
-              </td>
-            </tr>
-          ))}</tbody>
-        </table>
-        </div>
+        <TableOrCards
+          cols={[
+            { key: "country",  label: tx.country,    render: a => a.country  || "—" },
+            { key: "city",     label: tx.city,       render: a => a.city     || "—" },
+            { key: "street",   label: tx.street,     render: a => a.street   || "—" },
+            { key: "building", label: tx.building,   render: a => a.building || "—" },
+            { key: "clinic",   label: tx.colClinic,  render: a => a.clinic_id
+              ? <span style={s.badge()}>{clinics.find(c => c.id === a.clinic_id)?.name || "Assigned"}</span>
+              : <span style={{ fontSize: 12, color: "#94A3B8" }}>—</span>
+            },
+          ]}
+          items={addresses}
+          keyFn={a => a.id}
+          actions={a => (
+            <>
+              <button style={s.editBtn} onClick={() => { setEditAddr(a); setEditAddrForm({...a}); setEditAddrMsg(""); }}>{tx.invEdit}</button>
+              <button style={{ ...s.editBtn, marginRight: 0, background: "#FFF7ED", color: "#D97706" }} onClick={() => setCoverAddr(a)}>{tx.btnCover}</button>
+              <button style={{ ...s.editBtn, marginRight: 0, background: "#F5F3FF", color: "#7C3AED" }} onClick={() => setGalleryAddr(a)}>{tx.btnGallery}</button>
+              <button style={{ ...s.deleteBtn, marginLeft: 0 }} onClick={() => del(a.id, a.clinic_id)}>{tx.delete}</button>
+            </>
+          )}
+        />
       )}
 
       {open && (
@@ -1427,7 +1368,7 @@ function AddressesTab({ addresses, setAddresses, clinics, tx }) {
           <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={submit} disabled={saving}>
             {saving ? tx.invSaving : tx.modalAddAddress}
           </button>
-          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(msg)}</p>}
         </Modal>
       )}
 
@@ -1442,7 +1383,7 @@ function AddressesTab({ addresses, setAddresses, clinics, tx }) {
             <FG label={tx.building}><Input value={editAddrForm.building||""} onChange={(e)=>setEditAddrForm({...editAddrForm,building:e.target.value})} placeholder={tx.buildingPh} /></FG>
           </div>
           <button style={s.submitBtn} onClick={updateAddr}>{tx.invSaveChanges}</button>
-          {editAddrMsg && <p style={editAddrMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{editAddrMsg.slice(3)}</p>}
+          {editAddrMsg && <p style={editAddrMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(editAddrMsg)}</p>}
         </Modal>
       )}
 
@@ -1490,6 +1431,7 @@ function fmtTime(iso) {
 }
 
 function AppointmentsTab({ appointments, setAppointments, addresses, doctors, services, clinics, tx }) {
+  const { isMobile } = useResponsive();
   const [baseDate,   setBaseDate]   = useState(new Date());
   const [showModal,  setShowModal]  = useState(false);
   const [saving,     setSaving]     = useState(false);
@@ -1619,7 +1561,7 @@ function AppointmentsTab({ appointments, setAppointments, addresses, doctors, se
   return (
     <div style={{ paddingTop: 24 }}>
       {/* ── Calendar header ── */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "flex-start" : "center", justifyContent: "space-between", gap: isMobile ? 12 : 0, marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <button style={{ width: 32, height: 32, border: `1px solid ${C.border}`, borderRadius: 8, background: "#fff", cursor: "pointer", fontSize: 16 }} onClick={prevWeek}>‹</button>
@@ -1769,7 +1711,7 @@ function AppointmentsTab({ appointments, setAppointments, addresses, doctors, se
               <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={submit} disabled={saving}>
                 {saving ? tx.booking : tx.addAppointment}
               </button>
-              {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+              {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(msg)}</p>}
             </div>
           </div>
         </div>
@@ -1789,7 +1731,7 @@ function AppointmentsTab({ appointments, setAppointments, addresses, doctors, se
             </Sel>
           </FG>
           <button style={s.submitBtn} onClick={updateStatus}>{tx.invSaveChanges}</button>
-          {statusMsg && <p style={statusMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{statusMsg.startsWith("ok:") ? tx.statusUpdated : statusMsg.slice(3)}</p>}
+          {statusMsg && <p style={statusMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{statusMsg.startsWith("ok:") ? tx.statusUpdated : msgTxt(statusMsg)}</p>}
         </Modal>
       )}
     </div>
@@ -1818,36 +1760,18 @@ function ReviewsTab({ appointments, doctors, tx }) {
       {reviews.length === 0 ? (
         <div style={{ textAlign: "center", padding: "60px 0", color: "#6B7280", fontSize: 14 }}>{tx.noReviews}</div>
       ) : (
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }} cellSpacing={0}>
-            <thead>
-              <tr style={{ background: "#F8F9FF" }}>
-                {[tx.colPatient, tx.colDoctor, tx.colDoctorRating, tx.colClinicRating, tx.colClinicComment, tx.colDate].map(h => (
-                  <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontWeight: 700, fontSize: 12, color: "#6B7280", letterSpacing: 0.5, borderBottom: "1px solid #E5E7EB", whiteSpace: "nowrap" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {reviews.map((a, i) => (
-                <tr key={a.id || i} style={{ borderBottom: "1px solid #F1F5F9" }}
-                  onMouseEnter={e => e.currentTarget.style.background = "#F8FAFF"}
-                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                >
-                  <td style={{ padding: "12px 14px", fontWeight: 600 }}>{a.name || a.Name || "—"}</td>
-                  <td style={{ padding: "12px 14px" }}>{getDoctor(a.doctor_id || a.Doctor_id)}</td>
-                  <td style={{ padding: "12px 14px" }}><Stars n={a.doctor_rating || 0} /></td>
-                  <td style={{ padding: "12px 14px" }}><Stars n={a.clinic_rating || 0} /></td>
-                  <td style={{ padding: "12px 14px", color: "#6B7280", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {a.clinic_comment || "—"}
-                  </td>
-                  <td style={{ padding: "12px 14px", color: "#6B7280", whiteSpace: "nowrap" }}>
-                    {(a.start_time || a.Start_time || "").slice(0, 10)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <TableOrCards
+          cols={[
+            { key: "patient",       label: tx.colPatient,      render: a => <b>{a.name || a.Name || "—"}</b> },
+            { key: "doctor",        label: tx.colDoctor,       render: a => getDoctor(a.doctor_id || a.Doctor_id) },
+            { key: "doctorRating",  label: tx.colDoctorRating, render: a => <Stars n={a.doctor_rating || 0} /> },
+            { key: "clinicRating",  label: tx.colClinicRating, render: a => <Stars n={a.clinic_rating || 0} /> },
+            { key: "comment",       label: tx.colClinicComment,render: a => a.clinic_comment || "—" },
+            { key: "date",          label: tx.colDate,         render: a => (a.start_time || a.Start_time || "").slice(0,10) },
+          ]}
+          items={reviews}
+          keyFn={(a, i) => a.id || i}
+        />
       )}
     </div>
   );
@@ -1979,7 +1903,7 @@ function ScheduleTab({ doctors, addresses, tx }) {
 
       {msg && (
         <p style={msg.startsWith("ok:") ? { ...s.msgOk, textAlign: "left", marginBottom: 16 } : { ...s.msgErr, textAlign: "left", marginBottom: 16 }}>
-          {msg.slice(3)}
+          {msgTxt(msg)}
         </p>
       )}
 
@@ -2013,39 +1937,22 @@ function ScheduleTab({ doctors, addresses, tx }) {
             : schedules.length === 0
             ? <p style={{ padding: 24, color: C.muted, fontSize: 14 }}>{tx.noWorkingHours}</p>
             : (
-              <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-              <table style={s.table} cellSpacing={0}>
-                <thead>
-                  <tr style={{ background: "#F8F9FF" }}>
-                    {[tx.colDay, tx.colAddress, tx.colStart, tx.colEnd, ""].map(h => (
-                      <th key={h} style={{ padding: "13px 18px", textAlign: "left", fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: 0.5 }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {schedules.map((sc, i) => (
-                    <tr key={sc.Id || sc.id || i} style={{ borderTop: `1px solid ${C.border}` }}>
-                      <td style={{ padding: "14px 18px", fontSize: 14 }}>{DAY_NAMES[sc.Day_of_week ?? sc.day_of_week] || sc.Day_of_week}</td>
-                      <td style={{ padding: "14px 18px", fontSize: 14 }}>{getAddrLabel(sc.Clinic_address_id || sc.clinic_address_id)}</td>
-                      <td style={{ padding: "14px 18px", fontSize: 14 }}>{(sc.Start_time || sc.start_time || "").slice(0, 5)}</td>
-                      <td style={{ padding: "14px 18px", fontSize: 14 }}>{(sc.End_time || sc.end_time || "").slice(0, 5)}</td>
-                      <td style={{ padding: "10px 18px" }}>
-                        <div style={{ display: "flex", gap: 8 }}>
-                          <button
-                            onClick={() => handleEdit(sc)}
-                            style={{ padding: "5px 12px", fontSize: 12, fontWeight: 600, background: C.primaryLight, color: C.primary, border: `1px solid ${C.primary}`, borderRadius: 7, cursor: "pointer" }}
-                          >{tx.invEdit}</button>
-                          <button
-                            onClick={() => handleDelete(sc)}
-                            style={{ padding: "5px 12px", fontSize: 12, fontWeight: 600, background: "#FEF2F2", color: "#DC2626", border: "1px solid #FCA5A5", borderRadius: 7, cursor: "pointer" }}
-                          >{tx.delete}</button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              </div>
+              <TableOrCards
+                cols={[
+                  { key: "day",   label: tx.colDay,     render: sc => DAY_NAMES[sc.Day_of_week ?? sc.day_of_week] || sc.Day_of_week },
+                  { key: "addr",  label: tx.colAddress, render: sc => getAddrLabel(sc.Clinic_address_id || sc.clinic_address_id) },
+                  { key: "start", label: tx.colStart,   render: sc => (sc.Start_time || sc.start_time || "").slice(0,5) },
+                  { key: "end",   label: tx.colEnd,     render: sc => (sc.End_time   || sc.end_time   || "").slice(0,5) },
+                ]}
+                items={schedules}
+                keyFn={(sc, i) => sc.Id || sc.id || i}
+                actions={sc => (
+                  <>
+                    <button onClick={() => handleEdit(sc)} style={{ padding: "5px 12px", fontSize: 12, fontWeight: 600, background: C.primaryLight, color: C.primary, border: `1px solid ${C.primary}`, borderRadius: 7, cursor: "pointer" }}>{tx.invEdit}</button>
+                    <button onClick={() => handleDelete(sc)} style={{ padding: "5px 12px", fontSize: 12, fontWeight: 600, background: "#FEF2F2", color: "#DC2626", border: "1px solid #FCA5A5", borderRadius: 7, cursor: "pointer" }}>{tx.delete}</button>
+                  </>
+                )}
+              />
             )
           }
         </div>
@@ -2091,7 +1998,7 @@ function ScheduleTab({ doctors, addresses, tx }) {
           <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={submitWorkingHours} disabled={saving}>
             {saving ? tx.invSaving : tx.saveWorkingHours}
           </button>
-          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(msg)}</p>}
         </Modal>
       )}
 
@@ -2114,7 +2021,7 @@ function ScheduleTab({ doctors, addresses, tx }) {
           <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={submitEdit} disabled={saving}>
             {saving ? tx.invSaving : tx.invSaveChanges}
           </button>
-          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(msg)}</p>}
         </Modal>
       )}
 
@@ -2137,7 +2044,7 @@ function ScheduleTab({ doctors, addresses, tx }) {
           <button style={{ ...s.submitBtn, background: "#10b981", opacity: saving ? 0.7 : 1 }} onClick={submitGenerate} disabled={saving}>
             {saving ? tx.generating : tx.generateSlots}
           </button>
-          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(msg)}</p>}
         </Modal>
       )}
     </div>
@@ -2206,25 +2113,20 @@ function ProductsSubTab({ products, setProducts, loading, tx }) {
       {products.length === 0 ? (
         <Empty icon="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zM16 3H8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z" text={tx.invNoProducts} />
       ) : (
-        <div style={{ overflowX: "auto" }}>
-          <table style={s.table} cellSpacing={0}>
-            <thead style={s.thead}><tr>
-              <th style={s.th}>{tx.colName}</th><th style={s.th}>{tx.invUnit}</th><th style={s.th}>{tx.colActions}</th>
-            </tr></thead>
-            <tbody>
-              {products.map(p => (
-                <tr key={p.id}>
-                  <td style={s.td}><b>{p.name}</b></td>
-                  <td style={s.td}><span style={s.badge()}>{p.unit || "—"}</span></td>
-                  <td style={s.td}>
-                    <button style={s.editBtn} onClick={() => { setEditProd(p); setEditForm({ name: p.name, unit: p.unit || "piece" }); setEditMsg(""); }}>{tx.invEdit}</button>
-                    <button style={s.deleteBtn} onClick={() => del(p.id)}>{tx.delete}</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <TableOrCards
+          cols={[
+            { key: "name", label: tx.colName,  render: p => <b>{p.name}</b> },
+            { key: "unit", label: tx.invUnit,  render: p => <span style={s.badge()}>{p.unit || "—"}</span> },
+          ]}
+          items={products}
+          keyFn={p => p.id}
+          actions={p => (
+            <>
+              <button style={s.editBtn} onClick={() => { setEditProd(p); setEditForm({ name: p.name, unit: p.unit || "piece" }); setEditMsg(""); }}>{tx.invEdit}</button>
+              <button style={s.deleteBtn} onClick={() => del(p.id)}>{tx.delete}</button>
+            </>
+          )}
+        />
       )}
 
       {editProd && (
@@ -2236,7 +2138,7 @@ function ProductsSubTab({ products, setProducts, loading, tx }) {
             </Sel>
           </FG>
           <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={updateProd} disabled={saving}>{tx.invSaveChanges}</button>
-          {editMsg && <p style={editMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{editMsg.slice(3)}</p>}
+          {editMsg && <p style={editMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(editMsg)}</p>}
         </Modal>
       )}
 
@@ -2251,7 +2153,7 @@ function ProductsSubTab({ products, setProducts, loading, tx }) {
           <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={submit} disabled={saving}>
             {saving ? tx.adding : tx.invAddProductModal}
           </button>
-          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(msg)}</p>}
         </Modal>
       )}
     </>
@@ -2328,7 +2230,7 @@ function StockSubTab({ addresses, clinics, products, tx }) {
         {selectedAddr && <button style={s.addBtn} onClick={() => { setOpen(true); setMsg(""); }}>{tx.invAddStock}</button>}
       </div>
 
-      {msg && <p style={{ ...(msg.startsWith("ok:") ? s.msgOk : s.msgErr), textAlign: "left", marginBottom: 16 }}>{msg.slice(3)}</p>}
+      {msg && <p style={{ ...(msg.startsWith("ok:") ? s.msgOk : s.msgErr), textAlign: "left", marginBottom: 16 }}>{msgTxt(msg)}</p>}
 
       <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 14, padding: "20px 24px", marginBottom: 20 }}>
         <FG label={tx.invSelectAddr}>
@@ -2348,33 +2250,18 @@ function StockSubTab({ addresses, clinics, products, tx }) {
         inventory.length === 0 ? (
           <Empty icon="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" text={tx.invNoStock} />
         ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table style={s.table} cellSpacing={0}>
-              <thead style={s.thead}><tr>
-                <th style={s.th}>{tx.invProduct}</th><th style={s.th}>{tx.invUnit}</th><th style={s.th}>{tx.invQty}</th><th style={s.th}>{tx.colActions}</th>
-              </tr></thead>
-              <tbody>
-                {inventory.map((item, i) => {
-                  const pid  = item.product_id || item.ProductId || item.product?.id;
-                  const prod = getProd(pid);
-                  return (
-                    <tr key={item.id || item.Id || i}>
-                      <td style={s.td}><b>{prod?.name || pid?.slice(0, 8) || "—"}</b></td>
-                      <td style={s.td}>{prod?.unit || "—"}</td>
-                      <td style={s.td}>
-                        <span style={{ ...s.badge(), background: "#EFF6FF", color: "#1D4ED8" }}>
-                          {item.quantity ?? item.Quantity ?? "—"}
-                        </span>
-                      </td>
-                      <td style={s.td}>
-                        <button style={s.editBtn} onClick={() => { setEditInv(item); setEditQty(String(item.quantity ?? item.Quantity ?? "")); setMsg(""); }}>{tx.invEdit}</button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <TableOrCards
+            cols={[
+              { key: "product", label: tx.invProduct, render: item => { const prod = getProd(item.product_id || item.ProductId || item.product?.id); return <b>{prod?.name || "—"}</b>; } },
+              { key: "unit",    label: tx.invUnit,    render: item => { const prod = getProd(item.product_id || item.ProductId || item.product?.id); return prod?.unit || "—"; } },
+              { key: "qty",     label: tx.invQty,     render: item => <span style={{ ...s.badge(), background: "#EFF6FF", color: "#1D4ED8" }}>{item.quantity ?? item.Quantity ?? "—"}</span> },
+            ]}
+            items={inventory}
+            keyFn={(item, i) => item.id || item.Id || i}
+            actions={item => (
+              <button style={s.editBtn} onClick={() => { setEditInv(item); setEditQty(String(item.quantity ?? item.Quantity ?? "")); setMsg(""); }}>{tx.invEdit}</button>
+            )}
+          />
         )
       )}
 
@@ -2389,7 +2276,7 @@ function StockSubTab({ addresses, clinics, products, tx }) {
           <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={updateStock} disabled={saving}>
             {saving ? tx.invSaving : tx.invSaveQty}
           </button>
-          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(msg)}</p>}
         </Modal>
       )}
 
@@ -2402,12 +2289,12 @@ function StockSubTab({ addresses, clinics, products, tx }) {
             </Sel>
           </FG>
           <FG label={tx.invQtyToAdd}>
-9
+            <Input type="number" value={addForm.quantity} onChange={e => setAddForm(f => ({ ...f, quantity: e.target.value }))} placeholder={tx.quantityAddPh} />
           </FG>
           <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={addStock} disabled={saving}>
             {saving ? tx.adding : tx.invAddStockModal}
           </button>
-          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(msg)}</p>}
         </Modal>
       )}
     </div>
@@ -2500,7 +2387,7 @@ function MaterialsSubTab({ clinics, products, tx }) {
         {selectedSvc && <button style={s.addBtn} onClick={() => { setOpen(true); setMsg(""); }}>{tx.invAssignMaterial}</button>}
       </div>
 
-      {msg && <p style={{ ...(msg.startsWith("ok:") ? s.msgOk : s.msgErr), textAlign: "left", marginBottom: 16 }}>{msg.slice(3)}</p>}
+      {msg && <p style={{ ...(msg.startsWith("ok:") ? s.msgOk : s.msgErr), textAlign: "left", marginBottom: 16 }}>{msgTxt(msg)}</p>}
 
       <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 14, padding: "20px 24px", marginBottom: 20 }}>
         <FG label={tx.colClinic}>
@@ -2574,7 +2461,7 @@ function MaterialsSubTab({ clinics, products, tx }) {
           <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={addMaterial} disabled={saving}>
             {saving ? tx.invSaving : tx.invAssignBtn}
           </button>
-          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(msg)}</p>}
         </Modal>
       )}
     </div>
@@ -2582,6 +2469,94 @@ function MaterialsSubTab({ clinics, products, tx }) {
 }
 
 // INVENTORY TAB
+function InventoryStatusSubTab({ clinics, addresses, tx }) {
+  const [selectedClinic, setSelectedClinic] = useState("");
+  const [selectedAddr,   setSelectedAddr]   = useState("");
+  const [status,         setStatus]         = useState([]);
+  const [loading,        setLoading]        = useState(false);
+  const [msg,            setMsg]            = useState("");
+
+  const clinicAddrs = addresses.filter(a => a.clinic_id === selectedClinic);
+
+  const loadStatus = async (clinicId, addrId) => {
+    if (!clinicId || !addrId) return;
+    setLoading(true); setMsg(""); setStatus([]);
+    try {
+      const r = await authFetch(`${API_BASE}/api/clinics/${clinicId}/clinic-addresses/${addrId}/inventory-status`);
+      const d = await r.json().catch(() => ({}));
+      if (r.ok) setStatus(Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : []));
+      else setMsg("err:" + (d.message || d.error || "Failed"));
+    } catch (e) { setMsg("err:" + e.message); }
+    finally { setLoading(false); }
+  };
+
+  const outOfStock = status.filter(item => item.color === "red" || (item.quantity ?? item.Quantity) === 0);
+  const inStock    = status.filter(item => item.color !== "red" && (item.quantity ?? item.Quantity) > 0);
+
+  const getAddrLabel = (a) => [a.street, a.building, a.city].filter(Boolean).join(", ") || a.id?.slice(0, 8);
+
+  return (
+    <div>
+      <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 14, padding: "20px 24px", marginBottom: 20 }}>
+        <FG label={tx.tabs?.clinics || "Клиника"}>
+          <Sel value={selectedClinic} onChange={e => { setSelectedClinic(e.target.value); setSelectedAddr(""); setStatus([]); }}>
+            <option value="">— {tx.tabs?.clinics || "Клиника"} —</option>
+            {clinics.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </Sel>
+        </FG>
+        {selectedClinic && (
+          <FG label={tx.invSelectAddr}>
+            <Sel value={selectedAddr} onChange={e => { setSelectedAddr(e.target.value); loadStatus(selectedClinic, e.target.value); }}>
+              <option value="">{tx.invChooseAddr}</option>
+              {clinicAddrs.map(a => <option key={a.id} value={a.id}>{getAddrLabel(a)}</option>)}
+            </Sel>
+          </FG>
+        )}
+      </div>
+
+      {msg && <p style={s.msgErr}>{msg.slice(4)}</p>}
+      {loading && <p style={{ color: C.muted, padding: "12px 0" }}>{tx.invLoading}</p>}
+
+      {selectedAddr && !loading && status.length > 0 && (
+        <div>
+          {outOfStock.length > 0 && (
+            <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 12, padding: "16px 20px", marginBottom: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#DC2626", display: "inline-block" }} />
+                <span style={{ fontWeight: 700, color: "#DC2626", fontSize: 15 }}>{tx.invOutOfStock} ({outOfStock.length})</span>
+              </div>
+              {outOfStock.map((item, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: i < outOfStock.length - 1 ? "1px solid #FECACA" : "none" }}>
+                  <span style={{ fontWeight: 600, color: "#991B1B" }}>{item.product_name || item.name || "—"}</span>
+                  <span style={{ background: "#DC2626", color: "#fff", borderRadius: 6, padding: "2px 10px", fontSize: 13, fontWeight: 700 }}>0 {item.unit || ""}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {inStock.length > 0 && (
+            <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 12, padding: "16px 20px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#16A34A", display: "inline-block" }} />
+                <span style={{ fontWeight: 700, color: "#16A34A", fontSize: 15 }}>{tx.invInStock} ({inStock.length})</span>
+              </div>
+              {inStock.map((item, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: i < inStock.length - 1 ? "1px solid #BBF7D0" : "none" }}>
+                  <span style={{ color: "#166534" }}>{item.product_name || item.name || "—"}</span>
+                  <span style={{ background: "#22C55E", color: "#fff", borderRadius: 6, padding: "2px 10px", fontSize: 13, fontWeight: 600 }}>{item.quantity ?? item.Quantity ?? 0} {item.unit || ""}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {outOfStock.length === 0 && (
+            <p style={{ color: "#16A34A", fontWeight: 600, fontSize: 15, padding: "12px 0" }}>✓ {tx.invAllInStock}</p>
+          )}
+        </div>
+      )}
+      {selectedAddr && !loading && status.length === 0 && !msg && <Empty text={tx.invNoStock || "Нет данных"} />}
+    </div>
+  );
+}
+
 function InventoryTab({ addresses, services, clinics, tx }) {
   const [subTab, setSubTab] = useState("products");
   const [products, setProducts]   = useState([]);
@@ -2600,6 +2575,7 @@ function InventoryTab({ addresses, services, clinics, tx }) {
     { key: "products",  label: tx.invProducts, icon: "M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zM16 3H8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z" },
     { key: "stock",     label: tx.invStock,    icon: "M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" },
     { key: "materials", label: tx.invMaterials, icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" },
+    { key: "status",    label: tx.invStatus,   icon: "M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" },
   ];
 
   return (
@@ -2628,6 +2604,7 @@ function InventoryTab({ addresses, services, clinics, tx }) {
       {subTab === "products"  && <ProductsSubTab products={products} setProducts={setProducts} loading={loadingProducts} tx={tx} />}
       {subTab === "stock"     && <StockSubTab    addresses={addresses} clinics={clinics} products={products} tx={tx} />}
       {subTab === "materials" && <MaterialsSubTab clinics={clinics} products={products} tx={tx} />}
+      {subTab === "status"    && <InventoryStatusSubTab clinics={clinics} addresses={addresses} tx={tx} />}
     </div>
   );
 }
@@ -2850,33 +2827,23 @@ function UsersTab({ users, setUsers, tx }) {
       {users.length === 0 ? (
         <Empty icon="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z" text={tx.noUsers} />
       ) : (
-        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-          <table style={s.table} cellSpacing={0}>
-            <thead style={s.thead}><tr>
-              <th style={s.th}>{tx.colName}</th>
-              <th style={s.th}>{tx.colEmail}</th>
-              <th style={s.th}>{tx.colRole}</th>
-              <th style={s.th}>{tx.colAge}</th>
-              <th style={s.th}>{tx.colGender}</th>
-              <th style={s.th}>{tx.colActions}</th>
-            </tr></thead>
-            <tbody>{users.map(u => (
-              <tr key={u.id}>
-                <td style={s.td}><b>{u.name || "—"}</b></td>
-                <td style={s.td}>{u.email}</td>
-                <td style={s.td}><span style={s.badge(u.role === "admin" ? "#7C3AED" : u.role === "doctor" ? "#0369A1" : u.role === "clinic_admin" ? "#D97706" : "#22c55e")}>{roleLabel(u.role)}</span></td>
-                <td style={s.td}>{u.age || "—"}</td>
-                <td style={s.td}>{u.gender || "—"}</td>
-                <td style={s.td}>
-                  <div style={{ display: "flex", gap: 4 }}>
-                    <button style={s.editBtn} onClick={() => openEdit(u)}>{tx.invEdit}</button>
-                    <button style={{ ...s.deleteBtn, marginLeft: 0 }} onClick={() => del(u.id)}>{tx.delete}</button>
-                  </div>
-                </td>
-              </tr>
-            ))}</tbody>
-          </table>
-        </div>
+        <TableOrCards
+          cols={[
+            { key: "name",   label: tx.colName,   render: u => <b>{u.name || "—"}</b> },
+            { key: "email",  label: tx.colEmail,  render: u => u.email },
+            { key: "role",   label: tx.colRole,   render: u => <span style={s.badge(u.role === "admin" ? "#7C3AED" : u.role === "doctor" ? "#0369A1" : u.role === "clinic_admin" ? "#D97706" : "#22c55e")}>{roleLabel(u.role)}</span> },
+            { key: "age",    label: tx.colAge,    render: u => u.age || "—" },
+            { key: "gender", label: tx.colGender, render: u => u.gender || "—" },
+          ]}
+          items={users}
+          keyFn={u => u.id}
+          actions={u => (
+            <>
+              <button style={s.editBtn} onClick={() => openEdit(u)}>{tx.invEdit}</button>
+              <button style={{ ...s.deleteBtn, marginLeft: 0 }} onClick={() => del(u.id)}>{tx.delete}</button>
+            </>
+          )}
+        />
       )}
       {editUser && (
         <Modal title={tx.editUser} onClose={() => { setEditUser(null); setEditMsg(""); }}>
@@ -2895,7 +2862,7 @@ function UsersTab({ users, setUsers, tx }) {
             <FG label={tx.colGender}><Input value={editForm.gender} onChange={e => setEditForm(f => ({ ...f, gender: e.target.value }))} /></FG>
           </div>
           <button style={s.submitBtn} onClick={save}>{tx.invSaveChanges}</button>
-          {editMsg && <p style={editMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{editMsg.startsWith("ok:") ? tx.addedOk : editMsg.slice(3)}</p>}
+          {editMsg && <p style={editMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{editMsg.startsWith("ok:") ? tx.addedOk : msgTxt(editMsg)}</p>}
         </Modal>
       )}
     </>
@@ -2966,35 +2933,22 @@ function ClinicAdminsTab({ clinicAdmins, setClinicAdmins, clinics, tx }) {
       {clinicAdmins.length === 0 ? (
         <Empty icon="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" text={tx.noClinicAdmins} />
       ) : (
-        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-          <table style={s.table} cellSpacing={0}>
-            <thead style={s.thead}><tr>
-              <th style={s.th}>{tx.colName}</th>
-              <th style={s.th}>{tx.colEmail}</th>
-              <th style={s.th}>{tx.colClinic}</th>
-              <th style={s.th}>{tx.colStatus}</th>
-              <th style={s.th}>{tx.colActions}</th>
-            </tr></thead>
-            <tbody>{clinicAdmins.map((a) => (
-              <tr key={a.id}>
-                <td style={s.td}><b>{a.name}</b></td>
-                <td style={s.td}>{a.email}</td>
-                <td style={s.td}>{clinics.find(c => c.id === a.clinic_id)?.name || "—"}</td>
-                <td style={s.td}>
-                  <span style={s.badge(a.is_active !== false ? "#22c55e" : "#94A3B8")}>
-                    {a.is_active !== false ? tx.active : tx.inactive}
-                  </span>
-                </td>
-                <td style={s.td}>
-                  <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "nowrap" }}>
-                    <button style={s.editBtn} onClick={() => { setEditAdmin(a); setEditForm({ ...a, new_password: "" }); setEditMsg(""); }}>{tx.invEdit}</button>
-                    <button style={{ ...s.deleteBtn, marginLeft: 0 }} onClick={() => del(a.id)}>{tx.delete}</button>
-                  </div>
-                </td>
-              </tr>
-            ))}</tbody>
-          </table>
-        </div>
+        <TableOrCards
+          cols={[
+            { key: "name",   label: tx.colName,   render: a => <b>{a.name}</b> },
+            { key: "email",  label: tx.colEmail,  render: a => a.email },
+            { key: "clinic", label: tx.colClinic, render: a => clinics.find(c => c.id === a.clinic_id)?.name || "—" },
+            { key: "status", label: tx.colStatus, render: a => <span style={s.badge(a.is_active !== false ? "#22c55e" : "#94A3B8")}>{a.is_active !== false ? tx.active : tx.inactive}</span> },
+          ]}
+          items={clinicAdmins}
+          keyFn={a => a.id}
+          actions={a => (
+            <>
+              <button style={s.editBtn} onClick={() => { setEditAdmin(a); setEditForm({ ...a, new_password: "" }); setEditMsg(""); }}>{tx.invEdit}</button>
+              <button style={{ ...s.deleteBtn, marginLeft: 0 }} onClick={() => del(a.id)}>{tx.delete}</button>
+            </>
+          )}
+        />
       )}
 
       {editAdmin && (
@@ -3013,7 +2967,7 @@ function ClinicAdminsTab({ clinicAdmins, setClinicAdmins, clinics, tx }) {
             {tx.accountActive}
           </label>
           <button style={s.submitBtn} onClick={updateAdmin}>{tx.invSaveChanges}</button>
-          {editMsg && <p style={editMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{editMsg.slice(3)}</p>}
+          {editMsg && <p style={editMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(editMsg)}</p>}
         </Modal>
       )}
 
@@ -3033,7 +2987,7 @@ function ClinicAdminsTab({ clinicAdmins, setClinicAdmins, clinics, tx }) {
             {tx.accountActive}
           </label>
           <button style={s.submitBtn} onClick={submit}>{tx.modalAddClinicAdmin}</button>
-          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(msg)}</p>}
         </Modal>
       )}
     </>
@@ -3172,72 +3126,60 @@ export default function AdminDashboard({ setPage, lang: propLang, setLang: propS
   };
 
   const { isMobile } = useResponsive();
-  const adminBarStyle = { ...s.adminBar, padding: isMobile ? "0 16px" : "0 48px", height: isMobile ? 58 : 72 };
-  const tabsRowStyle  = { ...s.tabsRow, padding: isMobile ? "0 8px" : "0 48px", overflowX: "auto", flexWrap: "nowrap", WebkitOverflowScrolling: "touch" };
-  const wrapStyle     = { ...s.wrap,    padding: isMobile ? "0 16px 40px" : "0 48px 56px" };
 
   return (
     <main style={s.page}>
-      <div style={adminBarStyle}>
+      {/* ── Header ── */}
+      <div style={{ ...s.adminBar, padding: isMobile ? "0 12px" : "0 48px", height: isMobile ? 56 : 72 }}>
         <div style={s.adminLeft}>
-          {!isMobile && (
-            <button
-              onClick={() => setSidebarOpen(o => !o)}
-              style={{ background: "transparent", border: "none", cursor: "pointer", padding: 6, borderRadius: 8, display: "flex", alignItems: "center", color: C.muted }}
-              title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <line x1="3" y1="6" x2="21" y2="6"/>
-                <line x1="3" y1="12" x2="21" y2="12"/>
-                <line x1="3" y1="18" x2="21" y2="18"/>
-              </svg>
-            </button>
-          )}
-          <div
-            style={{ display: "flex", alignItems: "center", gap: 14, cursor: "pointer" }}
-            onClick={() => setPage("home")}
-            title="Go to Home"
+          <button
+            onClick={() => setSidebarOpen(o => !o)}
+            style={{ background: "transparent", border: "none", cursor: "pointer", padding: 6, borderRadius: 8, display: "flex", alignItems: "center", color: C.muted, flexShrink: 0 }}
           >
-            <div style={s.adminIcon}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <line x1="3" y1="12" x2="21" y2="12"/>
+              <line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 14, cursor: "pointer" }} onClick={() => setPage("home")}>
+            <div style={{ ...s.adminIcon, width: isMobile ? 32 : 40, height: isMobile ? 32 : 40 }}>
+              <svg width={isMobile ? 16 : 20} height={isMobile ? 16 : 20} viewBox="0 0 24 24" fill="none">
                 <rect x="3" y="3" width="8" height="8" rx="2" stroke="#fff" strokeWidth="2"/>
                 <rect x="13" y="3" width="8" height="8" rx="2" stroke="#fff" strokeWidth="2"/>
                 <rect x="3" y="13" width="8" height="8" rx="2" stroke="#fff" strokeWidth="2"/>
                 <rect x="13" y="13" width="8" height="8" rx="2" stroke="#fff" strokeWidth="2"/>
               </svg>
             </div>
-            <span style={s.adminTitle}>{tx.title}</span>
+            <span style={{ ...s.adminTitle, fontSize: isMobile ? 15 : 20 }}>{tx.title}</span>
           </div>
         </div>
-        <div style={s.adminRight}>
-          {/* Language switcher */}
-          <div style={s.langWrap} ref={langRef}>
-            <button
-              style={{ ...s.langBtn, borderColor: langOpen ? C.primary : C.border }}
-              onClick={() => setLangOpen(o => !o)}
-            >
-              <GlobeIcon />
-              <span>{lang}</span>
-              <span style={{ fontSize: 10, marginLeft: 2, transition: "transform 0.2s", display: "inline-block", transform: langOpen ? "rotate(180deg)" : "rotate(0deg)" }}>▼</span>
-            </button>
-            {langOpen && (
-              <div style={s.langDrop}>
-                {LANGUAGES.map(l => (
-                  <div
-                    key={l.code}
-                    style={s.langItem(l.code === lang)}
-                    onClick={() => { setLang(l.code); setLangOpen(false); }}
-                    onMouseEnter={(e) => { if (l.code !== lang) e.currentTarget.style.background = "#F8F9FF"; }}
-                    onMouseLeave={(e) => { if (l.code !== lang) e.currentTarget.style.background = "transparent"; }}
-                  >
-                    <span style={{ fontSize: 20 }}>{l.flag}</span>
-                    <span>{l.label}</span>
-                    {l.code === lang && <span style={{ marginLeft: "auto", color: C.primary }}>✓</span>}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+        <div style={{ ...s.adminRight, gap: isMobile ? 8 : 16 }}>
+          {/* Language switcher — header only on desktop */}
+          {!isMobile && (
+            <div style={s.langWrap} ref={langRef}>
+              <button style={{ ...s.langBtn, borderColor: langOpen ? C.primary : C.border }} onClick={() => setLangOpen(o => !o)}>
+                <GlobeIcon />
+                <span>{lang}</span>
+                <span style={{ fontSize: 10, marginLeft: 2, transition: "transform 0.2s", display: "inline-block", transform: langOpen ? "rotate(180deg)" : "rotate(0deg)" }}>▼</span>
+              </button>
+              {langOpen && (
+                <div style={s.langDrop}>
+                  {LANGUAGES.map(l => (
+                    <div key={l.code} style={s.langItem(l.code === lang)}
+                      onClick={() => { setLang(l.code); setLangOpen(false); }}
+                      onMouseEnter={(e) => { if (l.code !== lang) e.currentTarget.style.background = "#F8F9FF"; }}
+                      onMouseLeave={(e) => { if (l.code !== lang) e.currentTarget.style.background = "transparent"; }}
+                    >
+                      <span style={{ fontSize: 20 }}>{l.flag}</span>
+                      <span>{l.label}</span>
+                      {l.code === lang && <span style={{ marginLeft: "auto", color: C.primary }}>✓</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           <button style={{ ...s.logoutBtn, color: C.primary }} onClick={() => setProfileOpen(true)} title={tx.profileSettings}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -3246,44 +3188,70 @@ export default function AdminDashboard({ setPage, lang: propLang, setLang: propS
           </button>
           <button style={s.logoutBtn} onClick={() => { sessionStorage.removeItem("token"); setPage("login"); }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M16 17l5-5-5-5M21 12H9M13 22H5a2 2 0 01-2-2V4a2 2 0 012-2h8"
-                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M16 17l5-5-5-5M21 12H9M13 22H5a2 2 0 01-2-2V4a2 2 0 012-2h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            {tx.logout}
+            {!isMobile && tx.logout}
           </button>
         </div>
       </div>
+
       {profileOpen && <ProfileModal tx={tx} onClose={() => setProfileOpen(false)} />}
 
-      {isMobile && (
-        <div style={tabsRowStyle}>
-          {TABS.map((t) => (
-            <button key={t.key} style={s.tab(tab === t.key)} onClick={() => setTab(t.key)}>
-              <Icon d={t.icon} size={15} />
-              {tx.tabs[t.key]} ({counts[t.key]})
-            </button>
-          ))}
-        </div>
+      {/* ── Mobile backdrop ── */}
+      {isMobile && sidebarOpen && (
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 150 }}
+          onClick={() => setSidebarOpen(false)}
+        />
       )}
 
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-        {!isMobile && (
-          <nav style={{ ...s.sidebar, width: sidebarOpen ? 240 : 0, overflow: "hidden", transition: "width 0.25s ease" }}>
-            <div style={s.sideBody}>
-              <div style={s.sideLabel}>{tx.sidebarNav}</div>
-              {TABS.map((t) => (
-                <button key={t.key} style={s.sideItem(tab === t.key)} onClick={() => setTab(t.key)}>
-                  <Icon d={t.icon} size={16} />
-                  <span style={{ flex: 1 }}>{tx.tabs[t.key]}</span>
-                  <span style={s.sideCount(tab === t.key)}>{counts[t.key]}</span>
-                </button>
-              ))}
-            </div>
-          </nav>
-        )}
+        {/* ── Sidebar — always rendered, overlay on mobile ── */}
+        <nav style={isMobile ? {
+          ...s.sidebar,
+          position: "fixed", left: 0, top: 56, bottom: 0,
+          zIndex: 200,
+          width: 260,
+          transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)",
+          transition: "transform 0.25s ease",
+          boxShadow: sidebarOpen ? "4px 0 24px rgba(0,0,0,0.15)" : "none",
+        } : {
+          ...s.sidebar,
+          width: sidebarOpen ? 240 : 0,
+          overflow: "hidden",
+          transition: "width 0.25s ease",
+          flexShrink: 0,
+        }}>
+          <div style={{ ...s.sideBody, paddingTop: 16 }}>
+            <div style={s.sideLabel}>{tx.sidebarNav}</div>
+            {TABS.map((t) => (
+              <button key={t.key} style={s.sideItem(tab === t.key)} onClick={() => { setTab(t.key); if (isMobile) setSidebarOpen(false); }}>
+                <Icon d={t.icon} size={16} />
+                <span style={{ flex: 1 }}>{tx.tabs[t.key]}</span>
+                {counts[t.key] > 0 && <span style={s.sideCount(tab === t.key)}>{counts[t.key]}</span>}
+              </button>
+            ))}
 
-        <div style={{ flex: 1, overflowY: "auto" }}>
-          <div style={wrapStyle}>
+            {/* Language switcher inside sidebar on mobile */}
+            {isMobile && (
+              <div style={{ marginTop: 24 }}>
+                <div style={s.sideLabel}>{tx.language || "ЯЗЫК"}</div>
+                {LANGUAGES.map(l => (
+                  <div key={l.code} style={{ ...s.langItem(l.code === lang), borderRadius: 10, marginBottom: 2 }}
+                    onClick={() => { setLang(l.code); setSidebarOpen(false); }}
+                  >
+                    <span style={{ fontSize: 20 }}>{l.flag}</span>
+                    <span style={{ fontSize: 14 }}>{l.label}</span>
+                    {l.code === lang && <span style={{ marginLeft: "auto", color: C.primary }}>✓</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </nav>
+
+        <div style={{ flex: 1, overflowY: "auto", minWidth: 0 }}>
+          <div style={{ ...s.wrap, padding: isMobile ? "0 12px 40px" : "0 48px 56px" }}>
             {tab === "clinics"      && <ClinicsTab      clinics={clinics}           setClinics={setClinics} setPage={setPage} tx={tx} addresses={addresses} setAddresses={setAddresses} />}
             {tab === "doctors"      && <DoctorsTab       doctors={doctors}           setDoctors={setDoctors}     clinics={clinics} services={services} tx={tx} />}
             {tab === "services"     && <ServicesTab      services={services}         setServices={setServices}   clinics={clinics} tx={tx} />}
@@ -3291,10 +3259,10 @@ export default function AdminDashboard({ setPage, lang: propLang, setLang: propS
             {tab === "appointments" && <AppointmentsTab  appointments={appointments} setAppointments={setAppointments} addresses={addresses} doctors={doctors} services={services} clinics={clinics} tx={tx} />}
             {tab === "reviews"      && <ReviewsTab       appointments={appointments} doctors={doctors} tx={tx} />}
             {tab === "schedule"     && <ScheduleTab      doctors={doctors} addresses={addresses} tx={tx} />}
-        {tab === "inventory"    && <InventoryTab     addresses={addresses} services={services} clinics={clinics} tx={tx} />}
-            {tab === "reports"       && <ReportsTab       clinics={clinics} addresses={addresses} tx={tx} />}
-            {tab === "clinic_admins" && <ClinicAdminsTab  clinicAdmins={clinicAdmins} setClinicAdmins={setClinicAdmins} clinics={clinics} tx={tx} />}
-            {tab === "users"         && <UsersTab          users={users} setUsers={setUsers} tx={tx} />}
+            {tab === "inventory"    && <InventoryTab     addresses={addresses} services={services} clinics={clinics} tx={tx} />}
+            {tab === "reports"      && <ReportsTab       clinics={clinics} addresses={addresses} tx={tx} />}
+            {tab === "clinic_admins" && <ClinicAdminsTab clinicAdmins={clinicAdmins} setClinicAdmins={setClinicAdmins} clinics={clinics} tx={tx} />}
+            {tab === "users"        && <UsersTab         users={users} setUsers={setUsers} tx={tx} />}
           </div>
         </div>
       </div>
