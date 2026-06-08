@@ -254,6 +254,8 @@ export default function BookingPage({ setPage, lang = "EN" }) {
 
   const patientToken = sessionStorage.getItem("patient_token");
 
+  const patientToken = sessionStorage.getItem("patient_token");
+
   return (
     <main style={bs.page}>
       <div style={bs.wrap}>
