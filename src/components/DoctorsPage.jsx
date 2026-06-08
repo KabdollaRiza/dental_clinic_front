@@ -14,10 +14,24 @@ function getSpecColor(idx) {
   return SPEC_COLORS[idx % SPEC_COLORS.length];
 }
 
-function AvatarPlaceholder({ name, size = 100 }) {
+const API_BASE_DOCTORS = "http://161.35.116.104:8080";
+
+function AvatarPlaceholder({ name, photoUrl, size = 100 }) {
+  const [imgError, setImgError] = useState(false);
   const initials = name
     ? name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase()
     : "DR";
+  const fullUrl = photoUrl && !imgError ? (photoUrl.startsWith("http") ? photoUrl : `${API_BASE_DOCTORS}${photoUrl}`) : null;
+  if (fullUrl) {
+    return (
+      <img
+        src={fullUrl}
+        alt={name}
+        style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
+        onError={() => setImgError(true)}
+      />
+    );
+  }
   return (
     <div
       style={{
@@ -86,7 +100,7 @@ function DoctorCard({ doctor, idx, onBook }) {
       )}
 
       <div style={{ marginBottom: 14, position: "relative" }}>
-        <AvatarPlaceholder name={doctor.name} size={96} />
+        <AvatarPlaceholder name={doctor.name} photoUrl={doctor.photo_url} size={96} />
       </div>
 
       <div style={{ fontSize: 18, fontWeight: 800, color: "#0F172A", marginBottom: 4 }}>

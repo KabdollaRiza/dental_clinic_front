@@ -1,7 +1,14 @@
-﻿import { useState, useEffect } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { COLORS } from "./constants";
 import Footer from "./Footer";
 import { useResponsive } from "./useResponsive";
+import { GlobeIcon } from "./Icons";
+
+const LANGUAGES = [
+  { code: "EN", label: "English" },
+  { code: "KZ", label: "Қазақша" },
+  { code: "RU", label: "Русский" },
+];
 
 const API_BASE = "http://161.35.116.104:8080";
 
@@ -12,7 +19,7 @@ const TX = {
     clinicDoctor: "CLINIC & DOCTOR", diagnosis: "DIAGNOSIS",
     appointments: "Appointments", medHistory: "Medical History",
     logout: "Logout", home: "Home", noUpcoming: "No upcoming appointments.", noPast: "No past appointments.",
-    loading: "Loading...", patientId: "Patient ID",
+    loading: "Loading...", hello: "Hello",
     leaveReview: "Leave a Review", reviewTitle: "Rate Your Visit",
     doctorRating: "Doctor Rating", clinicRating: "Clinic Rating",
     clinicComment: "Comment about the clinic", submitReview: "Submit Review",
@@ -26,7 +33,7 @@ const TX = {
     clinicDoctor: "КЛИНИКА & ДӘРІГЕР", diagnosis: "ДИАГНОЗ",
     appointments: "Жазылымдар", medHistory: "Медициналық тарих",
     logout: "Шығу", home: "Басты бет", noUpcoming: "Алдағы жазылымдар жоқ.", noPast: "Өткен жазылымдар жоқ.",
-    loading: "Жүктелуде...", patientId: "Пациент ID",
+    loading: "Жүктелуде...", hello: "Сәлем",
     leaveReview: "Пікір қалдыру", reviewTitle: "Қабылдауды бағалаңыз",
     doctorRating: "Дәрігер бағасы", clinicRating: "Клиника бағасы",
     clinicComment: "Клиника туралы пікір", submitReview: "Жіберу",
@@ -40,7 +47,7 @@ const TX = {
     clinicDoctor: "КЛИНИКА & ВРАЧ", diagnosis: "ДИАГНОЗ",
     appointments: "Записи", medHistory: "История болезней",
     logout: "Выйти", home: "Главная", noUpcoming: "Нет предстоящих записей.", noPast: "Нет прошедших записей.",
-    loading: "Загрузка...", patientId: "ID пациента",
+    loading: "Загрузка...", hello: "Привет",
     leaveReview: "Оставить отзыв", reviewTitle: "Оцените визит",
     doctorRating: "Оценка врача", clinicRating: "Оценка клиники",
     clinicComment: "Комментарий о клинике", submitReview: "Отправить",
@@ -85,7 +92,7 @@ const HomeIcon = () => (
 const labelStyle = { fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: 0.8, marginBottom: 4 };
 const valueStyle = { fontSize: 14, fontWeight: 500, color: "#1A1A2E" };
 
-export default function PatientDashboardPage({ setPage, lang = "EN" }) {
+export default function PatientDashboardPage({ setPage, lang = "EN", setLang }) {
   const tx = TX[lang] || TX.EN;
   const { isMobile } = useResponsive();
   const [tab,               setTab]               = useState("appointments");
@@ -101,6 +108,14 @@ export default function PatientDashboardPage({ setPage, lang = "EN" }) {
   const [reviewLoading,     setReviewLoading]     = useState(false);
   const [reviewMsg,         setReviewMsg]         = useState("");
   const [submittedReviews,  setSubmittedReviews]  = useState(new Set());
+  const [langOpen,          setLangOpen]          = useState(false);
+  const langRef = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => { if (langRef.current && !langRef.current.contains(e.target)) setLangOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const raw     = sessionStorage.getItem("patient_token") || "";
   const token   = raw.startsWith("Bearer ") ? raw.slice(7) : raw;
@@ -294,16 +309,27 @@ export default function PatientDashboardPage({ setPage, lang = "EN" }) {
     <div style={{ background: "#fff", borderBottom: `1px solid ${COLORS.border}`, padding: "12px 16px" }}>
       {/* User info row */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-        <div style={{ width: 40, height: 40, borderRadius: "50%", background: "linear-gradient(135deg, #6366F1, #3B5BDB)", color: "#fff", fontSize: 18, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          {initials}
+        <div onClick={() => setPage("home")} style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0, cursor: "pointer" }}>
+          <div style={{ width: 40, height: 40, borderRadius: "50%", background: "linear-gradient(135deg, #6366F1, #3B5BDB)", color: "#fff", fontSize: 18, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            {initials}
+          </div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.text, minWidth: 0 }}>{tx.hello}, <span style={{ display: "inline-block" }}>{name}!</span></div>
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</div>
-          <div style={{ fontSize: 12, color: COLORS.muted }}>{tx.patientId}: {shortId}</div>
+        <div style={{ position: "relative" }} ref={langRef}>
+          <button onClick={() => setLangOpen(o => !o)} style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 10px", borderRadius: 8, border: `1px solid ${COLORS.border}`, background: "transparent", color: COLORS.muted, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+            <GlobeIcon /><span>{lang}</span>
+          </button>
+          {langOpen && (
+            <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", minWidth: 130, zIndex: 200 }}>
+              {LANGUAGES.map(l => (
+                <div key={l.code} onClick={() => { setLang?.(l.code); setLangOpen(false); }}
+                  style={{ padding: "10px 16px", fontSize: 13, cursor: "pointer", fontWeight: l.code === lang ? 700 : 400, color: l.code === lang ? COLORS.primary : COLORS.text, background: l.code === lang ? "#EEF2FF" : "transparent" }}>
+                  {l.label}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-        <button onClick={() => setPage("home")} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, background: "transparent", color: COLORS.muted, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-          <HomeIcon /> {tx.home}
-        </button>
         <button onClick={logout} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 8, border: "none", background: "#FEF2F2", color: "#EF4444", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
           <LogoutIcon /> {tx.logout}
         </button>
@@ -329,12 +355,13 @@ export default function PatientDashboardPage({ setPage, lang = "EN" }) {
   // ── Desktop sidebar ────────────────────────────────────────────────
   const sidebar = !isMobile ? (
     <aside style={{ width: 220, minHeight: "calc(100vh - 72px)", background: "#fff", borderRight: `1px solid ${COLORS.border}`, display: "flex", flexDirection: "column", padding: "28px 16px", position: "sticky", top: 0, alignSelf: "flex-start" }}>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 32 }}>
+      <div onClick={() => setPage("home")} style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 32, cursor: "pointer", padding: "8px", borderRadius: 12, transition: "background 0.15s" }}
+        onMouseEnter={e => e.currentTarget.style.background = "#F1F5F9"}
+        onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
         <div style={{ width: 52, height: 52, borderRadius: "50%", background: "linear-gradient(135deg, #6366F1, #3B5BDB)", color: "#fff", fontSize: 22, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
           {initials}
         </div>
-        <div style={{ fontSize: 15, fontWeight: 700, color: COLORS.text, textAlign: "center" }}>{name}</div>
-        <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 2 }}>{tx.patientId}: {shortId}</div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: COLORS.text, textAlign: "center" }}>{tx.hello}, {name}!</div>
       </div>
 
       <nav style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
@@ -353,12 +380,21 @@ export default function PatientDashboardPage({ setPage, lang = "EN" }) {
       </nav>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: "auto" }}>
-        <button
-          onClick={() => setPage("home")}
-          style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, border: `1px solid ${COLORS.border}`, background: "transparent", color: COLORS.muted, fontSize: 14, fontWeight: 600, cursor: "pointer" }}
-        >
-          <HomeIcon /> {tx.home}
-        </button>
+        <div style={{ position: "relative" }} ref={langRef}>
+          <button onClick={() => setLangOpen(o => !o)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, border: `1px solid ${COLORS.border}`, background: "transparent", color: COLORS.muted, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+            <GlobeIcon /> {LANGUAGES.find(l => l.code === lang)?.label || lang}
+          </button>
+          {langOpen && (
+            <div style={{ position: "absolute", bottom: "calc(100% + 6px)", left: 0, right: 0, background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", zIndex: 200 }}>
+              {LANGUAGES.map(l => (
+                <div key={l.code} onClick={() => { setLang?.(l.code); setLangOpen(false); }}
+                  style={{ padding: "10px 16px", fontSize: 13, cursor: "pointer", fontWeight: l.code === lang ? 700 : 400, color: l.code === lang ? COLORS.primary : COLORS.text, background: l.code === lang ? "#EEF2FF" : "transparent" }}>
+                  {l.label}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         <button
           onClick={logout}
           style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, border: "none", background: "transparent", color: "#EF4444", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
@@ -464,7 +500,7 @@ export default function PatientDashboardPage({ setPage, lang = "EN" }) {
         <>
           <h2 style={{ fontSize: isMobile ? 17 : 20, fontWeight: 800, color: COLORS.text, marginBottom: 16 }}>{tx.medHistory}</h2>
           {past.length === 0 ? (
-            <div style={{ color: COLORS.muted, fontSize: 14 }}>No past appointments yet.</div>
+            <div style={{ color: COLORS.muted, fontSize: 14 }}>{tx.noPast}</div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {past.map((a, i) => {

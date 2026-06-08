@@ -121,7 +121,6 @@ export default function Header({ page, setPage, lang, setLang }) {
               <button style={h.outlineBtn(page === "clinics")} onClick={() => setPage("clinics")}>{t.clinics}</button>
               <button style={h.outlineBtn(page === "doctors")} onClick={() => setPage("doctors")}>{t.doctors}</button>
               <button style={h.outlineBtn(page === "services")} onClick={() => setPage("services")}>{t.services}</button>
-              <button style={h.outlineBtn(page === "patientLogin" || page === "patientDashboard")} onClick={() => handleNavClick("patientPortal")}>{t.portal}</button>
             </nav>
           )}
 
@@ -177,7 +176,6 @@ export default function Header({ page, setPage, lang, setLang }) {
             <button style={h.mobileNavBtn(page === "clinics")}  onClick={() => handleNavClick("clinics")}>{t.clinics}</button>
             <button style={h.mobileNavBtn(page === "doctors")}  onClick={() => handleNavClick("doctors")}>{t.doctors}</button>
             <button style={h.mobileNavBtn(page === "services")} onClick={() => handleNavClick("services")}>{t.services}</button>
-            <button style={h.mobileNavBtn(page === "patientLogin" || page === "patientDashboard")} onClick={() => handleNavClick("patientPortal")}>{t.portal}</button>
           </div>
         </div>
       )}

@@ -1,5 +1,6 @@
 ﻿import { useState } from "react";
 import { COLORS, styles } from "./constants";
+import { useResponsive } from "./useResponsive";
 
 const API_BASE = "http://161.35.116.104:8080";
 
@@ -37,6 +38,7 @@ const inputStyle = { flex: 1, border: "none", outline: "none", fontSize: 14, col
 
 export default function PatientLoginPage({ setPage, lang = "EN" }) {
   const tx = TX[lang] || TX.EN;
+  const { isMobile } = useResponsive();
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
   const [showPw,   setShowPw]   = useState(false);
@@ -69,7 +71,7 @@ export default function PatientLoginPage({ setPage, lang = "EN" }) {
 
   return (
     <main style={styles.main}>
-      <div style={styles.authWrap}>
+      <div style={{ ...styles.authWrap, alignItems: isMobile ? "flex-start" : "center", padding: isMobile ? "32px 16px 80px" : "60px 24px", overflowY: "auto" }}>
         <div style={{ ...styles.authCard, maxWidth: 480 }}>
           <h2 style={{ ...styles.authTitle, marginBottom: 6 }}>{tx.title}</h2>
           <p style={{ ...styles.authSub, marginBottom: 32 }}>{tx.sub}</p>

@@ -40,8 +40,18 @@ function SkeletonCard() {
   );
 }
 
-function DoctorAvatar({ name, size = 80 }) {
+const API_BASE_HOME = "http://161.35.116.104:8080";
+
+function DoctorAvatar({ name, photoUrl, size = 80 }) {
+  const [imgError, setImgError] = useState(false);
   const initials = name ? name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase() : "DR";
+  const fullUrl = photoUrl && !imgError ? (photoUrl.startsWith("http") ? photoUrl : `${API_BASE_HOME}${photoUrl}`) : null;
+  if (fullUrl) {
+    return (
+      <img src={fullUrl} alt={name} style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", flexShrink: 0, margin: "0 auto", display: "block" }}
+        onError={() => setImgError(true)} />
+    );
+  }
   return (
     <div style={{ width: size, height: size, borderRadius: "50%", background: "linear-gradient(135deg, #3B5BDB 0%, #6B8EFF 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: size * 0.3, fontWeight: 800, color: "#fff", flexShrink: 0, margin: "0 auto" }}>
       {initials}
@@ -113,17 +123,27 @@ export default function HomePage({ setPage, lang = "EN" }) {
       .catch(() => {});
   }, []);
 
+  const carouselTimerRef = useRef(null);
+
+  const resetCarouselTimer = () => {
+    if (carouselTimerRef.current) clearInterval(carouselTimerRef.current);
+    if (doctors.length < 2) return;
+    carouselTimerRef.current = setInterval(() => {
+      setCarouselIdx((i) => (i + 1) % doctors.length);
+    }, 4000);
+  };
+
   // Auto-advance carousel
   useEffect(() => {
     if (doctors.length < 2) return;
-    const id = setInterval(() => {
+    carouselTimerRef.current = setInterval(() => {
       setCarouselIdx((i) => (i + 1) % doctors.length);
     }, 4000);
-    return () => clearInterval(id);
+    return () => clearInterval(carouselTimerRef.current);
   }, [doctors.length]);
 
-  const prevDoc = () => setCarouselIdx((i) => (i - 1 + doctors.length) % doctors.length);
-  const nextDoc = () => setCarouselIdx((i) => (i + 1) % doctors.length);
+  const prevDoc = () => { setCarouselIdx((i) => (i - 1 + doctors.length) % doctors.length); resetCarouselTimer(); };
+  const nextDoc = () => { setCarouselIdx((i) => (i + 1) % doctors.length); resetCarouselTimer(); };
 
   const displayed = showAll ? services : services.slice(0, 6);
 
@@ -350,7 +370,7 @@ export default function HomePage({ setPage, lang = "EN" }) {
                       Top Rated
                     </div>
                   )}
-                  <DoctorAvatar name={doc.name} size={isCenter ? 88 : 64} />
+                  <DoctorAvatar name={doc.name} photoUrl={doc.photo_url} size={isCenter ? 88 : 64} />
                   <div style={{ fontSize: isCenter ? 16 : 13, fontWeight: 800, color: "#0F172A", marginTop: 12, marginBottom: 3 }}>
                     {doc.name}
                   </div>
@@ -427,7 +447,7 @@ export default function HomePage({ setPage, lang = "EN" }) {
             {doctors.map((_, i) => (
               <button
                 key={i}
-                onClick={() => setCarouselIdx(i)}
+                onClick={() => { setCarouselIdx(i); resetCarouselTimer(); }}
                 style={{
                   width: i === carouselIdx ? 24 : 8,
                   height: 8,

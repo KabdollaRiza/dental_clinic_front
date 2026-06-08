@@ -2,6 +2,7 @@
 import { COLORS, styles } from "./constants";
 import { PersonIcon } from "./Icons";
 import { T } from "./translation";
+import { useResponsive } from "./useResponsive";
 
 const EyeIcon = ({ show }) => (
   <svg width="16" height="16" fill="none" stroke="#94A3B8" strokeWidth="1.8" viewBox="0 0 24 24" style={{ cursor: "pointer", flexShrink: 0 }}>
@@ -15,6 +16,7 @@ const EyeIcon = ({ show }) => (
 export default function LoginPage({ setPage, lang = "EN" }) {
   const tx = T[lang]?.login || T.EN.login;
   const API_BASE = "http://161.35.116.104:8080";
+  const { isMobile } = useResponsive();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [showPw, setShowPw] = useState(false);
   const [message, setMessage] = useState("");
@@ -26,8 +28,6 @@ export default function LoginPage({ setPage, lang = "EN" }) {
     if (!formData.email || !formData.password) { setMessage(tx.fillAll); return; }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) { setMessage(tx.invalidEmail); return; }
-    const passwordRegex = /^[a-zA-Z0-9]+$/;
-    if (!passwordRegex.test(formData.password) || formData.password.length < 8) { setMessage(tx.invalidPass); return; }
 
     try {
       const res = await fetch(`${API_BASE}/api/login`, {
@@ -36,22 +36,24 @@ export default function LoginPage({ setPage, lang = "EN" }) {
       });
       let data = {};
       try { data = await res.json(); } catch (_) {}
-      if (!res.ok) { sessionStorage.removeItem("token"); setMessage(data.message || "Login failed"); return; }
+      if (!res.ok) { setMessage(data.message || "Login failed"); return; }
 
       const token = data.token || data.access_token || data.Token || data.AccessToken || data.jwt || "";
-      if (token) {
-        sessionStorage.setItem("token", token);
-      } else {
-        sessionStorage.removeItem("token");
-      }
       const role = (data.role || data.Role || "").toLowerCase();
-      if (role === "patient") { sessionStorage.removeItem("token"); setMessage("Access denied. Please use the patient login portal."); return; }
-      setMessage(tx.success);
-      setTimeout(() => {
-        if (role === "doctor") setPage("doctor");
-        else if (role === "clinic_admin") setPage("clinicAdmin");
-        else setPage("admin");
-      }, 800);
+
+      if (role === "patient") {
+        if (token) sessionStorage.setItem("patient_token", token);
+        setMessage(tx.success);
+        setTimeout(() => setPage("patientDashboard"), 700);
+      } else {
+        if (token) sessionStorage.setItem("token", token);
+        setMessage(tx.success);
+        setTimeout(() => {
+          if (role === "doctor") setPage("doctor");
+          else if (role === "clinic_admin") setPage("clinicAdmin");
+          else setPage("admin");
+        }, 700);
+      }
     } catch (error) {
       setMessage(error?.message || "Network error");
     }
@@ -59,7 +61,7 @@ export default function LoginPage({ setPage, lang = "EN" }) {
 
   return (
     <main style={styles.main}>
-      <div style={styles.authWrap}>
+      <div style={{ ...styles.authWrap, alignItems: isMobile ? "flex-start" : "center", padding: isMobile ? "32px 16px 80px" : "60px 24px", overflowY: "auto" }}>
         <div style={styles.authCard}>
           <div style={styles.authIcon}><PersonIcon size={30} /></div>
           <h2 style={styles.authTitle}>{tx.title}</h2>

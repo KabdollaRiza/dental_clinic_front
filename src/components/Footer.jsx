@@ -10,7 +10,7 @@ export default function Footer({ lang = "EN" }) {
   const heading = { fontSize: 15, fontWeight: 700, color: "#CBD5E1", marginBottom: 16 };
 
   const padding = isMobile ? "36px 20px 24px" : isTablet ? "40px 40px 24px" : "48px 80px 28px";
-  const gridCols = isMobile ? "1fr" : isTablet ? "1fr 1fr" : "1.4fr 1fr 1fr";
+  const gridCols = isMobile ? "1fr" : isTablet ? "1fr 1fr" : "1.4fr 1fr";
   const gridGap = isMobile ? 28 : isTablet ? 32 : 48;
 
   return (
@@ -24,11 +24,6 @@ export default function Footer({ lang = "EN" }) {
             <span style={{ fontSize: 17, fontWeight: 700, color: "#fff" }}>Dental Clinic</span>
           </div>
           <p style={{ fontSize: 14, color: "#94A3B8", lineHeight: 1.75, maxWidth: isMobile ? "100%" : 280, margin: 0 }}>{tx.desc}</p>
-        </div>
-
-        <div>
-          <div style={heading}>{tx.quickLinks}</div>
-          {tx.links.map((l) => <div key={l} style={col}>{l}</div>)}
         </div>
 
         <div>

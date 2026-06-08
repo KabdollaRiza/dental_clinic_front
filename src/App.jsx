@@ -57,9 +57,9 @@ export default function App() {
       {page === "admin"    && <AdminDashboard key="admin-dashboard" setPage={setPage} lang={lang} setLang={setLang} />}
       {page === "doctor"      && <DoctorDashboard      setPage={setPage} lang={lang} />}
       {page === "clinicAdmin" && <ClinicAdminDashboard setPage={setPage} lang={lang} setLang={setLang} />}
-      {page === "patientLogin"      && <PatientLoginPage      setPage={setPage} lang={lang} />}
+      {page === "patientLogin"      && <LoginPage             setPage={setPage} lang={lang} />}
       {page === "patientRegister"   && <PatientRegisterPage   setPage={setPage} lang={lang} />}
-      {page === "patientDashboard"  && <PatientDashboardPage  setPage={setPage} lang={lang} />}
+      {page === "patientDashboard"  && <PatientDashboardPage  setPage={setPage} lang={lang} setLang={setLang} />}
       
       {!noFooter && <Footer lang={lang} />}
       <ChatWidget page={page} setPage={setPage} lang={lang} />

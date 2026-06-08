@@ -1,6 +1,6 @@
 ﻿import { useState } from "react";
 import { COLORS, styles } from "./constants";
-import { PersonIcon, DoctorIcon, AdminIcon } from "./Icons";
+import { PersonIcon, DoctorIcon } from "./Icons";
 import { T } from "./translation";
 
 const EyeIcon = ({ show }) => (
@@ -32,11 +32,9 @@ export default function RegisterPage({ setPage, lang = "EN" }) {
     if (formData.password !== formData.confirm) { setMessage(tx.passNoMatch); return; }
 
     try {
-      const payload = {
-        email: formData.email, name: formData.name, phone: formData.phone,
-        specialization: role === "Doctor" ? formData.specialization : undefined,
-        password: formData.password, role: role.toLowerCase(),
-      };
+      const payload = role === "Patient"
+        ? { name: formData.name, email: formData.email, password: formData.password, role: "patient", gender: "", age: 0, push_consent: false }
+        : { email: formData.email, name: formData.name, phone: formData.phone, specialization: formData.specialization, password: formData.password, role: "doctor" };
       const res = await fetch(`${API_BASE}/api/register`, {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
       });
@@ -65,23 +63,23 @@ export default function RegisterPage({ setPage, lang = "EN" }) {
                 <DoctorIcon size={26} color={role === "Doctor" ? COLORS.primary : COLORS.muted} />
                 {tx.doctor}
               </button>
-              <button type="button" style={styles.roleBtn(role === "Admin")} onClick={() => setRole("Admin")}>
-                <AdminIcon size={26} color={role === "Admin" ? COLORS.primary : COLORS.muted} />
-                {tx.admin}
+              <button type="button" style={styles.roleBtn(role === "Patient")} onClick={() => setRole("Patient")}>
+                <PersonIcon size={26} color={role === "Patient" ? COLORS.primary : COLORS.muted} />
+                {tx.patient}
               </button>
             </div>
           </div>
 
           {[
-            { label: tx.name, name: "name", type: "text", ph: tx.namePh, filter: (v) => /^[A-Za-z\s]*$/.test(v) },
+            { label: tx.name, name: "name", type: "text", ph: tx.namePh },
             { label: tx.email, name: "email", type: "email", ph: tx.emailPh },
-            { label: tx.phone, name: "phone", type: "tel", ph: tx.phonePh },
-          ].map(({ label, name, type, ph, filter }) => (
+            ...(role !== "Patient" ? [{ label: tx.phone, name: "phone", type: "tel", ph: tx.phonePh }] : []),
+          ].map(({ label, name, type, ph }) => (
             <div key={name} style={styles.formGroup}>
               <label style={styles.label}>{label}</label>
               <input style={styles.input} type={type} name={name} placeholder={ph}
                 value={formData[name]}
-                onChange={(e) => { if (!filter || filter(e.target.value)) handleChange(e); }}
+                onChange={handleChange}
                 onFocus={(e) => (e.target.style.borderColor = COLORS.primary)}
                 onBlur={(e) => (e.target.style.borderColor = COLORS.border)} required />
             </div>

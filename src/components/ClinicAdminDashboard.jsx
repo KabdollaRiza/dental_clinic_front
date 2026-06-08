@@ -3,9 +3,12 @@ import { COLORS } from "./constants";
 import { ADMIN_T } from "./translation";
 import { GlobeIcon } from "./Icons";
 import { useResponsive } from "./useResponsive";
+import { TableOrCards } from "./TableOrCards";
 
 const API_BASE = "http://161.35.116.104:8080";
 const C = COLORS;
+
+const msgTxt = m => m.slice(m.indexOf(':') + 1);
 
 function authFetch(url, options = {}) {
   const raw = sessionStorage.getItem("token") || "";
@@ -50,7 +53,7 @@ const s = {
   sideLabel: { fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: 1.2, textTransform: "uppercase", padding: "0 14px", marginBottom: 8 },
   sideItem: (active) => ({ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "11px 14px", borderRadius: 10, marginBottom: 3, fontSize: 14, fontWeight: active ? 700 : 500, color: active ? C.primary : "#374151", background: active ? C.primaryLight : "transparent", border: "none", cursor: "pointer", textAlign: "left", boxSizing: "border-box" }),
   content: { flex: 1, overflowY: "auto", padding: "0 48px 56px" },
-  sectionHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, marginTop: 32 },
+  sectionHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 20, marginTop: 32 },
   sectionTitle: { fontSize: 22, fontWeight: 800, color: C.text },
   table: { width: "100%", background: "#fff", border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.04)", borderCollapse: "collapse" },
   thead: { background: "#F8F9FF" },
@@ -195,13 +198,13 @@ function ProfileModal({ tx, onClose }) {
         <FG label={tx.oldPassword || "Current Password"}><Inp type="password" name="old_password" value={pwForm.old_password} onChange={e => setPwForm(f => ({ ...f, old_password: e.target.value }))} placeholder={tx.oldPasswordPh || "Enter current password"} /></FG>
         <FG label={tx.newPasswordLabel || "New Password"}><Inp type="password" name="new_password" value={pwForm.new_password} onChange={e => setPwForm(f => ({ ...f, new_password: e.target.value }))} placeholder={tx.passwordPlaceholder || "Enter new password"} /></FG>
         <button style={{ ...s.submitBtn, opacity: savingPw ? 0.7 : 1 }} onClick={changePassword} disabled={savingPw}>{tx.changePassword || "Change Password"}</button>
-        {pwMsg && <p style={pwMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{pwMsg.startsWith("ok:") ? (tx.passwordChanged || "Password changed!") : pwMsg.slice(3)}</p>}
+        {pwMsg && <p style={pwMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{pwMsg.startsWith("ok:") ? (tx.passwordChanged || "Password changed!") : msgTxt(pwMsg)}</p>}
       </div>
       <div>
         <p style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 14 }}>{tx.changeEmail || "Change Email"}</p>
         <FG label={tx.newEmail || "New Email"}><Inp type="email" name="new_email" value={emailForm.new_email} onChange={e => setEmailForm({ new_email: e.target.value })} placeholder={tx.newEmailPh || "Enter new email"} /></FG>
         <button style={{ ...s.submitBtn, opacity: savingEmail ? 0.7 : 1 }} onClick={changeEmail} disabled={savingEmail}>{tx.changeEmail || "Change Email"}</button>
-        {emailMsg && <p style={emailMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{emailMsg.startsWith("ok:") ? (tx.emailChanged || "Verification sent!") : emailMsg.slice(3)}</p>}
+        {emailMsg && <p style={emailMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{emailMsg.startsWith("ok:") ? (tx.emailChanged || "Verification sent!") : msgTxt(emailMsg)}</p>}
       </div>
     </Modal>
   );
@@ -291,34 +294,21 @@ function AppointmentsView({ appointments, setAppointments, doctors, services, ad
       </div>
 
       {appointments.length === 0 ? <Empty text={tx.noAppointments} /> : (
-        <div style={{ overflowX: "auto" }}>
-          <table style={s.table} cellSpacing={0}>
-            <thead style={s.thead}><tr>
-              <th style={s.th}>{tx.patientName}</th>
-              <th style={s.th}>{tx.colDoctor}</th>
-              <th style={s.th}>{tx.colService}</th>
-              <th style={s.th}>{tx.colTime}</th>
-              <th style={s.th}>{tx.colStatus || "Status"}</th>
-              <th style={s.th}>{tx.colActions}</th>
-            </tr></thead>
-            <tbody>{appointments.map((a) => {
-              const doc = doctors.find(d => d.id === a.doctor_id);
-              const svc = services.find(sv => sv.id === a.service_id);
-              return (
-                <tr key={a.id}>
-                  <td style={s.td}><b>{a.name || a.email || "—"}</b></td>
-                  <td style={s.td}>{doc?.name || "—"}</td>
-                  <td style={s.td}>{svc?.name || "—"}</td>
-                  <td style={s.td}>{a.start_time ? a.start_time.slice(0, 16).replace("T", " ") : "—"}</td>
-                  <td style={s.td}><span style={s.badge(statusColor(a.status))}>{a.status || "—"}</span></td>
-                  <td style={s.td}>
-                    <button style={s.editBtn} onClick={() => { setEditStatusAppt(a); setEditStatus(a.status || ""); setStatusMsg(""); }}>{tx.editApptStatus || "Edit Status"}</button>
-                  </td>
-                </tr>
-              );
-            })}</tbody>
-          </table>
-        </div>
+        <TableOrCards
+          cols={[
+            { key: "name",    label: tx.patientName,      render: a => <b>{a.name || a.email || "—"}</b> },
+            { key: "doctor",  label: tx.colDoctor,        render: a => doctors.find(d => d.id === a.doctor_id)?.name || "—" },
+            { key: "service", label: tx.colService,       render: a => services.find(sv => sv.id === a.service_id)?.name || "—" },
+            { key: "time",    label: tx.colTime,          render: a => a.start_time ? a.start_time.slice(0,16).replace("T"," ") : "—" },
+            { key: "status",  label: tx.colStatus||"Status", render: a => <span style={s.badge(statusColor(a.status))}>{a.status || "—"}</span> },
+          ]}
+          items={appointments}
+          keyFn={a => a.id}
+          actions={a => (
+            <button style={s.editBtn} onClick={() => { setEditStatusAppt(a); setEditStatus(a.status || ""); setStatusMsg(""); }}>{tx.editApptStatus || "Edit Status"}</button>
+          )}
+          th={s.th} td={s.td}
+        />
       )}
 
       {editStatusAppt && (
@@ -334,7 +324,7 @@ function AppointmentsView({ appointments, setAppointments, doctors, services, ad
             </Sel>
           </FG>
           <button style={s.submitBtn} onClick={updateStatus}>{tx.invSaveChanges}</button>
-          {statusMsg && <p style={statusMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{statusMsg.startsWith("ok:") ? (tx.statusUpdated || "Updated!") : statusMsg.slice(3)}</p>}
+          {statusMsg && <p style={statusMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{statusMsg.startsWith("ok:") ? (tx.statusUpdated || "Updated!") : msgTxt(statusMsg)}</p>}
         </Modal>
       )}
 
@@ -382,7 +372,7 @@ function AppointmentsView({ appointments, setAppointments, doctors, services, ad
           <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={submit} disabled={saving}>
             {saving ? tx.booking : tx.modalAddAppointment}
           </button>
-          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(msg)}</p>}
         </Modal>
       )}
     </>
@@ -396,6 +386,8 @@ function DoctorsView({ doctors, setDoctors, clinicId, services, tx }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY);
   const [msg, setMsg] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [confirmCode, setConfirmCode] = useState("");
   const [editDoc, setEditDoc] = useState(null);
   const [editForm, setEditForm] = useState({});
@@ -408,6 +400,7 @@ function DoctorsView({ doctors, setDoctors, clinicId, services, tx }) {
     if (!form.name || !form.email) { setMsg("err:" + tx.nameEmailRequired); return; }
     if (!form.password) { setMsg("err:" + tx.passwordRequired); return; }
     if (doctors.some(d => d.email.toLowerCase() === form.email.toLowerCase())) { setMsg("err:" + tx.doctorEmailExists); return; }
+    setSaving(true);
     try {
       const r = await authFetch(`${API_BASE}/api/doctors`, {
         method: "POST",
@@ -417,8 +410,9 @@ function DoctorsView({ doctors, setDoctors, clinicId, services, tx }) {
       if (!r.ok) { setMsg("err:" + (d.message || "Failed")); return; }
       setDoctors(prev => [...prev, { ...form, clinic_id: clinicId, id: d.data?.id || d.data?.Id || d.doctor_id || d.id || String(Date.now()) }]);
       if (d.confirmation_code) { setConfirmCode(d.confirmation_code); }
-      else { setMsg("ok:" + tx.addedOk); setTimeout(() => { setOpen(false); setForm(EMPTY); setMsg(""); }, 1200); }
+      else { setSaved(true); setTimeout(() => { setOpen(false); setForm(EMPTY); setMsg(""); setSaved(false); }, 2000); }
     } catch (e) { setMsg("err:" + e.message); }
+    finally { setSaving(false); }
   };
 
   const updateDoctor = async () => {
@@ -446,32 +440,28 @@ function DoctorsView({ doctors, setDoctors, clinicId, services, tx }) {
     <>
       <div style={s.sectionHeader}>
         <span style={s.sectionTitle}>{tx.manageDoctors}</span>
-        <button style={s.addBtn} onClick={() => { setOpen(true); setMsg(""); setConfirmCode(""); }}>{tx.addDoctor}</button>
+        <button style={s.addBtn} onClick={() => { setOpen(true); setMsg(""); setConfirmCode(""); setSaved(false); }}>{tx.addDoctor}</button>
       </div>
 
       {doctors.length === 0 ? <Empty text={tx.noDoctors} /> : (
-        <div style={{ overflowX: "auto" }}>
-          <table style={s.table} cellSpacing={0}>
-            <thead style={s.thead}><tr>
-              <th style={s.th}>{tx.colName}</th><th style={s.th}>{tx.colEmail}</th>
-              <th style={s.th}>{tx.colSpec}</th><th style={s.th}>{tx.colExp}</th>
-              <th style={s.th}>{tx.colStatus}</th><th style={s.th}>{tx.colActions}</th>
-            </tr></thead>
-            <tbody>{doctors.map(d => (
-              <tr key={d.id}>
-                <td style={s.td}><b>{d.name}</b></td>
-                <td style={s.td}>{d.email}</td>
-                <td style={s.td}>{d.specialization || "—"}</td>
-                <td style={s.td}>{d.experience ? `${d.experience} ${tx.yearsAbbr}` : "—"}</td>
-                <td style={s.td}><span style={s.badge(d.is_active !== false ? "#22c55e" : "#94A3B8")}>{d.is_active !== false ? tx.active : tx.inactive}</span></td>
-                <td style={s.td}>
-                  <button style={s.editBtn} onClick={() => { setEditDoc(d); setEditForm({ ...d, new_password: "" }); setEditMsg(""); }}>{tx.invEdit}</button>
-                  <button style={s.deleteBtn} onClick={() => del(d.id)}>{tx.delete}</button>
-                </td>
-              </tr>
-            ))}</tbody>
-          </table>
-        </div>
+        <TableOrCards
+          cols={[
+            { key: "name",   label: tx.colName,   render: d => <b>{d.name}</b> },
+            { key: "email",  label: tx.colEmail,  render: d => d.email },
+            { key: "spec",   label: tx.colSpec,   render: d => d.specialization || "—" },
+            { key: "exp",    label: tx.colExp,    render: d => d.experience ? `${d.experience} ${tx.yearsAbbr}` : "—" },
+            { key: "status", label: tx.colStatus, render: d => <span style={s.badge(d.is_active !== false ? "#22c55e" : "#94A3B8")}>{d.is_active !== false ? tx.active : tx.inactive}</span> },
+          ]}
+          items={doctors}
+          keyFn={d => d.id}
+          actions={d => (
+            <>
+              <button style={s.editBtn} onClick={() => { setEditDoc(d); setEditForm({ ...d, new_password: "" }); setEditMsg(""); }}>{tx.invEdit}</button>
+              <button style={s.deleteBtn} onClick={() => del(d.id)}>{tx.delete}</button>
+            </>
+          )}
+          th={s.th} td={s.td}
+        />
       )}
 
       {editDoc && (
@@ -486,12 +476,12 @@ function DoctorsView({ doctors, setDoctors, clinicId, services, tx }) {
             {tx.accountActive}
           </label>
           <button style={s.submitBtn} onClick={updateDoctor}>{tx.invSaveChanges}</button>
-          {editMsg && <p style={editMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{editMsg.slice(3)}</p>}
+          {editMsg && <p style={editMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(editMsg)}</p>}
         </Modal>
       )}
 
       {open && (
-        <Modal title={tx.modalAddDoctor} onClose={() => { setOpen(false); setForm(EMPTY); setMsg(""); setConfirmCode(""); }}>
+        <Modal title={tx.modalAddDoctor} onClose={() => { setOpen(false); setForm(EMPTY); setMsg(""); setConfirmCode(""); setSaved(false); }}>
           {confirmCode ? (
             <div style={{ textAlign: "center" }}>
               <div style={{ fontSize: 48, marginBottom: 8 }}>✅</div>
@@ -502,7 +492,12 @@ function DoctorsView({ doctors, setDoctors, clinicId, services, tx }) {
                 <div style={{ fontSize: 36, fontWeight: 900, letterSpacing: 8, color: "#166534", fontFamily: "monospace" }}>{confirmCode}</div>
               </div>
               <button style={{ ...s.submitBtn, background: "#22c55e" }} onClick={() => navigator.clipboard?.writeText(confirmCode)}>{tx.copyCode}</button>
-              <button style={{ ...s.submitBtn, background: C.muted, marginTop: 10 }} onClick={() => { setOpen(false); setForm(EMPTY); setMsg(""); setConfirmCode(""); }}>{tx.close}</button>
+              <button style={{ ...s.submitBtn, background: C.muted, marginTop: 10 }} onClick={() => { setOpen(false); setForm(EMPTY); setMsg(""); setConfirmCode(""); setSaved(false); }}>{tx.close}</button>
+            </div>
+          ) : saved ? (
+            <div style={{ textAlign: "center", padding: "20px 0" }}>
+              <div style={{ fontSize: 64, marginBottom: 16 }}>✅</div>
+              <p style={{ fontSize: 20, fontWeight: 800, color: "#22c55e", marginBottom: 8 }}>{tx.addedOk}</p>
             </div>
           ) : (
             <>
@@ -528,8 +523,10 @@ function DoctorsView({ doctors, setDoctors, clinicId, services, tx }) {
                 <input type="checkbox" name="is_active" checked={!!form.is_active} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} />
                 {tx.accountActive}
               </label>
-              <button style={s.submitBtn} onClick={submit}>{tx.modalAddDoctor}</button>
-              {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+              <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={submit} disabled={saving}>
+                {saving ? (tx.invSaving || "...") : tx.modalAddDoctor}
+              </button>
+              {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(msg)}</p>}
             </>
           )}
         </Modal>
@@ -541,49 +538,55 @@ function DoctorsView({ doctors, setDoctors, clinicId, services, tx }) {
 // ── Services ───────────────────────────────────────────────────────────────────
 
 function ServicesView({ services, setServices, clinicId, tx }) {
-  const EMPTY = { name: "", description: "", price: "", duration: "", is_active: true };
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState(EMPTY);
-  const [msg, setMsg] = useState("");
-  const [saving, setSaving] = useState(false);
   const [editSvc, setEditSvc] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [editMsg, setEditMsg] = useState("");
 
-  const hc = (e) => {
-    const { name, value, type, checked } = e.target;
-    setForm(f => ({ ...f, [name]: type === "checkbox" ? checked : value }));
+  const [attachOpen, setAttachOpen] = useState(false);
+  const [allServices, setAllServices] = useState([]);
+  const [attachForm, setAttachForm] = useState({ service_id: "", price: "", duration: "", is_active: true });
+  const [attachMsg, setAttachMsg] = useState("");
+  const [attachSaving, setAttachSaving] = useState(false);
+
+  const openAttach = async () => {
+    setAttachOpen(true);
+    setAttachMsg("");
+    setAttachForm({ service_id: "", price: "", duration: "", is_active: true });
+    try {
+      const r = await authFetch(`${API_BASE}/api/services`);
+      const d = await r.json().catch(() => []);
+      const list = Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : []);
+      const attachedIds = new Set(services.map(s => s.id));
+      setAllServices(list.filter(s => !attachedIds.has(s.id)));
+    } catch (_) { setAllServices([]); }
   };
 
-  const submit = async () => {
-    if (!form.name || !form.price) { setMsg("err:" + tx.namePriceRequired); return; }
-    const dur = parseInt(form.duration, 10) || 0;
-    if (dur > 0 && dur % 30 !== 0) { setMsg("err:" + tx.durationMultiple); return; }
-    setSaving(true);
+  const attachSubmit = async () => {
+    if (!attachForm.service_id || !attachForm.price) { setAttachMsg("err:" + tx.namePriceRequired); return; }
+    const dur = parseInt(attachForm.duration, 10) || 0;
+    if (dur > 0 && dur % 30 !== 0) { setAttachMsg("err:" + tx.durationMultiple); return; }
+    setAttachSaving(true);
     try {
-      const r1 = await authFetch(`${API_BASE}/api/services`, { method: "POST", body: JSON.stringify({ name: form.name, description: form.description }) });
-      const d1 = await r1.json().catch(() => ({}));
-      if (!r1.ok) { setMsg("err:" + (d1.message || d1.error || "Failed")); return; }
-      const catalogId = d1.service_id || d1.ServiceID || d1.id || d1.Id;
-      if (!catalogId) { setMsg("err:No service_id returned"); return; }
-      const r2 = await authFetch(`${API_BASE}/api/add-clinics/${clinicId}/services`, {
-        method: "POST", body: JSON.stringify({ service_id: catalogId, price: parseFloat(form.price) || 0, duration: dur, is_active: form.is_active }),
+      const r = await authFetch(`${API_BASE}/api/add-clinics/${clinicId}/services`, {
+        method: "POST",
+        body: JSON.stringify({ service_id: attachForm.service_id, price: parseFloat(attachForm.price) || 0, duration: dur, is_active: attachForm.is_active }),
       });
-      const d2 = await r2.json().catch(() => ({}));
-      if (!r2.ok) { setMsg("err:" + (d2.message || d2.error || "Failed")); return; }
-      const newId = d2.service_id || d2.id || catalogId;
-      setServices(prev => [...prev, { id: newId, name: form.name, description: form.description, price: parseFloat(form.price) || 0, duration: dur, is_active: form.is_active }]);
-      setMsg("ok:" + tx.addedOk);
-      setTimeout(() => { setOpen(false); setForm(EMPTY); setMsg(""); }, 1200);
-    } catch (e) { setMsg("err:" + e.message); }
-    finally { setSaving(false); }
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { setAttachMsg("err:" + (d.message || d.error || "Failed")); return; }
+      const svc = allServices.find(s => s.id === attachForm.service_id);
+      const newId = d.service_id || d.id || attachForm.service_id;
+      setServices(prev => [...prev, { id: newId, name: svc?.name || "", description: svc?.description || "", price: parseFloat(attachForm.price) || 0, duration: dur, is_active: attachForm.is_active }]);
+      setAttachMsg("ok:" + tx.addedOk);
+      setTimeout(() => { setAttachOpen(false); setAttachForm({ service_id: "", price: "", duration: "", is_active: true }); setAttachMsg(""); }, 1200);
+    } catch (e) { setAttachMsg("err:" + e.message); }
+    finally { setAttachSaving(false); }
   };
 
   const updateService = async () => {
     if (!editSvc) return;
     try {
-      const payload = { name: editForm.name, description: editForm.description, price: parseFloat(editForm.price) || 0, duration: parseInt(editForm.duration, 10) || 0, is_active: editForm.is_active };
-      const r = await authFetch(`${API_BASE}/api/services/${editSvc.id}`, { method: "PUT", body: JSON.stringify(payload) });
+      const payload = { price: parseFloat(editForm.price) || 0, duration: parseInt(editForm.duration, 10) || 0, is_active: editForm.is_active };
+      const r = await authFetch(`${API_BASE}/api/clinics/${clinicId}/services/${editSvc.id}`, { method: "PUT", body: JSON.stringify(payload) });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setEditMsg("err:" + (d.message || "Failed")); return; }
       setServices(prev => prev.map(sv => sv.id === editSvc.id ? { ...sv, ...payload } : sv));
@@ -603,38 +606,35 @@ function ServicesView({ services, setServices, clinicId, tx }) {
     <>
       <div style={s.sectionHeader}>
         <span style={s.sectionTitle}>{tx.manageServices}</span>
-        <button style={s.addBtn} onClick={() => { setOpen(true); setMsg(""); }}>{tx.addService}</button>
+        <button style={s.addBtn} onClick={openAttach}>{tx.attachService || "Прикрепить услугу"}</button>
       </div>
 
       {services.length === 0 ? <Empty text={tx.noServices} /> : (
-        <div style={{ overflowX: "auto" }}>
-          <table style={s.table} cellSpacing={0}>
-            <thead style={s.thead}><tr>
-              <th style={s.th}>{tx.colName}</th><th style={s.th}>{tx.colDesc}</th>
-              <th style={s.th}>{tx.colPrice}</th><th style={s.th}>{tx.colDuration}</th>
-              <th style={s.th}>{tx.colStatus}</th><th style={s.th}>{tx.colActions}</th>
-            </tr></thead>
-            <tbody>{services.map(sv => (
-              <tr key={sv.id}>
-                <td style={s.td}><b>{sv.name}</b></td>
-                <td style={s.td}>{sv.description?.length > 40 ? sv.description.slice(0, 40) + "…" : sv.description || "—"}</td>
-                <td style={s.td}><span style={s.badge()}>{Number(sv.price || 0).toLocaleString()} ₸</span></td>
-                <td style={s.td}>{sv.duration ? `${sv.duration} ${tx.minLabel}` : "—"}</td>
-                <td style={s.td}><span style={s.badge(sv.is_active !== false ? "#22c55e" : "#94A3B8")}>{sv.is_active !== false ? tx.active : tx.inactive}</span></td>
-                <td style={s.td}>
-                  <button style={s.editBtn} onClick={() => { setEditSvc(sv); setEditForm({ ...sv, price: String(sv.price), duration: String(sv.duration) }); setEditMsg(""); }}>{tx.invEdit}</button>
-                  <button style={s.deleteBtn} onClick={() => del(sv.id)}>{tx.delete}</button>
-                </td>
-              </tr>
-            ))}</tbody>
-          </table>
-        </div>
+        <TableOrCards
+          cols={[
+            { key: "name",     label: tx.colName,     render: sv => <b>{sv.name}</b> },
+            { key: "desc",     label: tx.colDesc,     render: sv => sv.description?.length > 40 ? sv.description.slice(0,40)+"…" : sv.description || "—" },
+            { key: "price",    label: tx.colPrice,    render: sv => <span style={s.badge()}>{Number(sv.price || 0).toLocaleString()} ₸</span> },
+            { key: "duration", label: tx.colDuration, render: sv => sv.duration ? `${sv.duration} ${tx.minLabel}` : "—" },
+            { key: "status",   label: tx.colStatus,   render: sv => <span style={s.badge(sv.is_active !== false ? "#22c55e" : "#94A3B8")}>{sv.is_active !== false ? tx.active : tx.inactive}</span> },
+          ]}
+          items={services}
+          keyFn={sv => sv.id}
+          actions={sv => (
+            <>
+              <button style={s.editBtn} onClick={() => { setEditSvc(sv); setEditForm({ price: String(sv.price), duration: String(sv.duration), is_active: sv.is_active }); setEditMsg(""); }}>{tx.invEdit}</button>
+              <button style={s.deleteBtn} onClick={() => del(sv.id)}>{tx.delete}</button>
+            </>
+          )}
+          th={s.th} td={s.td}
+        />
       )}
 
       {editSvc && (
         <Modal title={tx.editService} onClose={() => { setEditSvc(null); setEditMsg(""); }}>
-          <FG label={tx.serviceName}><Inp value={editForm.name || ""} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} /></FG>
-          <FG label={tx.description}><textarea style={s.textarea} value={editForm.description || ""} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} /></FG>
+          <div style={{ marginBottom: 12, padding: "10px 14px", background: "#F8FAFC", borderRadius: 8, fontSize: 14, color: "#374151" }}>
+            <b>{editSvc.name}</b>{editSvc.description ? ` — ${editSvc.description}` : ""}
+          </div>
           <FG label={tx.price}><Inp type="number" value={editForm.price || ""} onChange={e => setEditForm(f => ({ ...f, price: e.target.value }))} /></FG>
           <FG label={tx.duration}>
             <Sel value={editForm.duration || ""} onChange={e => setEditForm(f => ({ ...f, duration: e.target.value }))}>
@@ -646,26 +646,38 @@ function ServicesView({ services, setServices, clinicId, tx }) {
             <input type="checkbox" checked={!!editForm.is_active} onChange={e => setEditForm(f => ({ ...f, is_active: e.target.checked }))} />{tx.markActive}
           </label>
           <button style={s.submitBtn} onClick={updateService}>{tx.invSaveChanges}</button>
-          {editMsg && <p style={editMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{editMsg.slice(3)}</p>}
+          {editMsg && <p style={editMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(editMsg)}</p>}
         </Modal>
       )}
 
-      {open && (
-        <Modal title={tx.modalAddService} onClose={() => { setOpen(false); setForm(EMPTY); setMsg(""); }}>
-          <FG label={tx.serviceName}><Inp name="name" value={form.name} onChange={hc} placeholder={tx.serviceNamePh} /></FG>
-          <FG label={tx.description}><textarea style={s.textarea} name="description" value={form.description} onChange={hc} placeholder={tx.serviceDescPh} /></FG>
-          <FG label={tx.price}><Inp name="price" type="number" value={form.price} onChange={hc} placeholder={tx.pricePh} /></FG>
+      {attachOpen && (
+        <Modal title={tx.attachService || "Прикрепить услугу"} onClose={() => { setAttachOpen(false); setAttachMsg(""); }}>
+          <FG label={tx.serviceName || "Услуга"}>
+            {allServices.length === 0 ? (
+              <div style={{ padding: "10px 14px", background: "#FFF7ED", border: "1px solid #FED7AA", borderRadius: 8, fontSize: 13, color: "#92400E" }}>
+                ⚠ Нет доступных услуг для прикрепления
+              </div>
+            ) : (
+              <Sel value={attachForm.service_id} onChange={e => setAttachForm(f => ({ ...f, service_id: e.target.value }))}>
+                <option value="">Выберите услугу…</option>
+                {allServices.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </Sel>
+            )}
+          </FG>
+          <FG label={tx.price}><Inp type="number" value={attachForm.price} onChange={e => setAttachForm(f => ({ ...f, price: e.target.value }))} placeholder={tx.pricePh} /></FG>
           <FG label={tx.duration}>
-            <Sel name="duration" value={form.duration} onChange={hc}>
+            <Sel value={attachForm.duration} onChange={e => setAttachForm(f => ({ ...f, duration: e.target.value }))}>
               <option value="">{tx.selectDurationPh}</option>
               {[30,60,90,120,150,180].map(d => <option key={d} value={d}>{d} {tx.minLabel}</option>)}
             </Sel>
           </FG>
           <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, cursor: "pointer", marginBottom: 16 }}>
-            <input type="checkbox" name="is_active" checked={!!form.is_active} onChange={hc} />{tx.markActive}
+            <input type="checkbox" checked={!!attachForm.is_active} onChange={e => setAttachForm(f => ({ ...f, is_active: e.target.checked }))} />{tx.markActive}
           </label>
-          <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={submit} disabled={saving}>{saving ? tx.adding : tx.modalAddService}</button>
-          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+          <button style={{ ...s.submitBtn, opacity: attachSaving ? 0.7 : 1 }} onClick={attachSubmit} disabled={attachSaving}>
+            {attachSaving ? tx.adding : (tx.attachService || "Прикрепить")}
+          </button>
+          {attachMsg && <p style={attachMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(attachMsg)}</p>}
         </Modal>
       )}
     </>
@@ -760,7 +772,7 @@ function ScheduleView({ doctors, addresses, tx }) {
         </button>
       </div>
 
-      {msg && <p style={{ ...(msg.startsWith("ok:") ? s.msgOk : s.msgErr), textAlign: "left", marginBottom: 16 }}>{msg.slice(3)}</p>}
+      {msg && <p style={{ ...(msg.startsWith("ok:") ? s.msgOk : s.msgErr), textAlign: "left", marginBottom: 16 }}>{msgTxt(msg)}</p>}
 
       <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 14, padding: "24px 28px", marginBottom: 20 }}>
         <FG label={tx.selectDoctorLabel}>
@@ -785,29 +797,23 @@ function ScheduleView({ doctors, addresses, tx }) {
             : schedules.length === 0
             ? <p style={{ padding: 24, color: C.muted }}>{tx.noWorkingHours}</p>
             : (
-              <div style={{ overflowX: "auto" }}>
-                <table style={s.table} cellSpacing={0}>
-                  <thead><tr style={{ background: "#F8F9FF" }}>
-                    {[tx.colDay, tx.colAddress, tx.colStart, tx.colEnd, ""].map((h, i) => (
-                      <th key={i} style={{ padding: "13px 18px", textAlign: "left", fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: 0.5 }}>{h}</th>
-                    ))}
-                  </tr></thead>
-                  <tbody>{schedules.map((sc, i) => (
-                    <tr key={sc.Id || sc.id || i} style={{ borderTop: `1px solid ${C.border}` }}>
-                      <td style={{ padding: "14px 18px", fontSize: 14 }}>{DAY_NAMES[sc.Day_of_week ?? sc.day_of_week]}</td>
-                      <td style={{ padding: "14px 18px", fontSize: 14 }}>{getAddrLabel(sc.Clinic_address_id || sc.clinic_address_id)}</td>
-                      <td style={{ padding: "14px 18px", fontSize: 14 }}>{(sc.Start_time || sc.start_time || "").slice(0, 5)}</td>
-                      <td style={{ padding: "14px 18px", fontSize: 14 }}>{(sc.End_time || sc.end_time || "").slice(0, 5)}</td>
-                      <td style={{ padding: "10px 18px" }}>
-                        <div style={{ display: "flex", gap: 8 }}>
-                          <button style={{ padding: "5px 12px", fontSize: 12, fontWeight: 600, background: C.primaryLight, color: C.primary, border: `1px solid ${C.primary}`, borderRadius: 7, cursor: "pointer" }} onClick={() => { setEditSc(sc); setEditForm({ start_time: (sc.Start_time || sc.start_time || "09:00").slice(0, 5), end_time: (sc.End_time || sc.end_time || "18:00").slice(0, 5) }); setMsg(""); }}>{tx.invEdit}</button>
-                          <button style={{ padding: "5px 12px", fontSize: 12, fontWeight: 600, background: "#FEF2F2", color: "#DC2626", border: "1px solid #FCA5A5", borderRadius: 7, cursor: "pointer" }} onClick={() => handleDelete(sc)}>{tx.delete}</button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}</tbody>
-                </table>
-              </div>
+              <TableOrCards
+                cols={[
+                  { key: "day",   label: tx.colDay,     render: sc => DAY_NAMES[sc.Day_of_week ?? sc.day_of_week] },
+                  { key: "addr",  label: tx.colAddress, render: sc => getAddrLabel(sc.Clinic_address_id || sc.clinic_address_id) },
+                  { key: "start", label: tx.colStart,   render: sc => (sc.Start_time || sc.start_time || "").slice(0,5) },
+                  { key: "end",   label: tx.colEnd,     render: sc => (sc.End_time   || sc.end_time   || "").slice(0,5) },
+                ]}
+                items={schedules}
+                keyFn={(sc, i) => sc.Id || sc.id || i}
+                actions={sc => (
+                  <>
+                    <button style={{ padding: "5px 12px", fontSize: 12, fontWeight: 600, background: C.primaryLight, color: C.primary, border: `1px solid ${C.primary}`, borderRadius: 7, cursor: "pointer" }} onClick={() => { setEditSc(sc); setEditForm({ start_time: (sc.Start_time || sc.start_time || "09:00").slice(0,5), end_time: (sc.End_time || sc.end_time || "18:00").slice(0,5) }); setMsg(""); }}>{tx.invEdit}</button>
+                    <button style={{ padding: "5px 12px", fontSize: 12, fontWeight: 600, background: "#FEF2F2", color: "#DC2626", border: "1px solid #FCA5A5", borderRadius: 7, cursor: "pointer" }} onClick={() => handleDelete(sc)}>{tx.delete}</button>
+                  </>
+                )}
+                th={s.th} td={s.td}
+              />
             )
           }
         </div>
@@ -833,7 +839,7 @@ function ScheduleView({ doctors, addresses, tx }) {
             <FG label={tx.endTimeLabel}><Inp name="end_time" type="time" value={whForm.end_time} onChange={e => setWhForm(f => ({ ...f, end_time: e.target.value }))} /></FG>
           </div>
           <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={submitWorkingHours} disabled={saving}>{saving ? tx.invSaving : tx.saveWorkingHours}</button>
-          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(msg)}</p>}
         </Modal>
       )}
 
@@ -844,7 +850,7 @@ function ScheduleView({ doctors, addresses, tx }) {
             <FG label={tx.endTimeLabel}><Inp type="time" value={editForm.end_time} onChange={e => setEditForm(f => ({ ...f, end_time: e.target.value }))} /></FG>
           </div>
           <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={submitEdit} disabled={saving}>{saving ? tx.invSaving : tx.invSaveChanges}</button>
-          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(msg)}</p>}
         </Modal>
       )}
 
@@ -854,7 +860,7 @@ function ScheduleView({ doctors, addresses, tx }) {
           <FG label={tx.fromDate}><Inp type="date" value={genForm.from_date} onChange={e => setGenForm(f => ({ ...f, from_date: e.target.value }))} /></FG>
           <FG label={tx.toDate}><Inp type="date" value={genForm.to_date} onChange={e => setGenForm(f => ({ ...f, to_date: e.target.value }))} /></FG>
           <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={submitGenerate} disabled={saving}>{saving ? tx.generating : tx.generateSlots}</button>
-          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(msg)}</p>}
         </Modal>
       )}
     </div>
@@ -904,22 +910,18 @@ function AddressesView({ clinicId, addresses, setAddresses, tx }) {
         <button style={s.addBtn} onClick={() => setOpen(true)}>{tx.addAddress}</button>
       </div>
       {addresses.length === 0 ? <Empty text={tx.noAddresses} /> : (
-        <div style={{ overflowX: "auto" }}>
-          <table style={s.table} cellSpacing={0}>
-            <thead style={s.thead}><tr>
-              <th style={s.th}>{tx.country}</th><th style={s.th}>{tx.city}</th>
-              <th style={s.th}>{tx.street}</th><th style={s.th}>{tx.building}</th>
-              <th style={s.th}>{tx.colActions}</th>
-            </tr></thead>
-            <tbody>{addresses.map(a => (
-              <tr key={a.id}>
-                <td style={s.td}>{a.country || "—"}</td><td style={s.td}>{a.city || "—"}</td>
-                <td style={s.td}>{a.street || "—"}</td><td style={s.td}>{a.building || "—"}</td>
-                <td style={s.td}><button style={s.deleteBtn} onClick={() => del(a.id)}>{tx.delete}</button></td>
-              </tr>
-            ))}</tbody>
-          </table>
-        </div>
+        <TableOrCards
+          cols={[
+            { key: "country",  label: tx.country,  render: a => a.country  || "—" },
+            { key: "city",     label: tx.city,     render: a => a.city     || "—" },
+            { key: "street",   label: tx.street,   render: a => a.street   || "—" },
+            { key: "building", label: tx.building, render: a => a.building || "—" },
+          ]}
+          items={addresses}
+          keyFn={a => a.id}
+          actions={a => <button style={s.deleteBtn} onClick={() => del(a.id)}>{tx.delete}</button>}
+          th={s.th} td={s.td}
+        />
       )}
       {open && (
         <Modal title={tx.modalAddAddress} onClose={() => { setOpen(false); setForm({ country: "", city: "", street: "", building: "" }); setMsg(""); }}>
@@ -932,7 +934,7 @@ function AddressesView({ clinicId, addresses, setAddresses, tx }) {
             <FG label={tx.building}><Inp name="building" value={form.building} onChange={hc} placeholder={tx.buildingPh} /></FG>
           </div>
           <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={submit} disabled={saving}>{saving ? tx.invSaving : tx.modalAddAddress}</button>
-          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(msg)}</p>}
         </Modal>
       )}
     </>
@@ -997,7 +999,7 @@ function ClinicView({ clinicData, setClinicData, tx }) {
           <FG label={tx.emailAddr}><Inp name="email" type="email" value={form.email} onChange={hc} placeholder={tx.emailClinicPh} /></FG>
           <FG label={tx.websiteUrl}><Inp name="website" value={form.website} onChange={hc} placeholder={tx.websitePh} /></FG>
           <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={save} disabled={saving}>{saving ? tx.invSaving : tx.invSaveChanges}</button>
-          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(msg)}</p>}
         </Modal>
       )}
     </>
@@ -1057,30 +1059,28 @@ function ProductsSubTab({ products, setProducts, loading, tx }) {
         <button style={s.addBtn} onClick={() => setOpen(true)}>{tx.invAddProduct}</button>
       </div>
       {products.length === 0 ? <Empty text={tx.invNoProducts} /> : (
-        <div style={{ overflowX: "auto" }}>
-          <table style={s.table} cellSpacing={0}>
-            <thead style={s.thead}><tr>
-              <th style={s.th}>{tx.colName}</th><th style={s.th}>{tx.invUnit}</th><th style={s.th}>{tx.colActions}</th>
-            </tr></thead>
-            <tbody>{products.map(p => (
-              <tr key={p.id}>
-                <td style={s.td}><b>{p.name}</b></td>
-                <td style={s.td}><span style={s.badge()}>{p.unit || "—"}</span></td>
-                <td style={s.td}>
-                  <button style={s.editBtn} onClick={() => { setEditProd(p); setEditForm({ name: p.name, unit: p.unit || "piece" }); setEditMsg(""); }}>{tx.invEdit}</button>
-                  <button style={s.deleteBtn} onClick={() => del(p.id)}>{tx.delete}</button>
-                </td>
-              </tr>
-            ))}</tbody>
-          </table>
-        </div>
+        <TableOrCards
+          cols={[
+            { key: "name", label: tx.colName,  render: p => <b>{p.name}</b> },
+            { key: "unit", label: tx.invUnit,  render: p => <span style={s.badge()}>{p.unit || "—"}</span> },
+          ]}
+          items={products}
+          keyFn={p => p.id}
+          actions={p => (
+            <>
+              <button style={s.editBtn} onClick={() => { setEditProd(p); setEditForm({ name: p.name, unit: p.unit || "piece" }); setEditMsg(""); }}>{tx.invEdit}</button>
+              <button style={s.deleteBtn} onClick={() => del(p.id)}>{tx.delete}</button>
+            </>
+          )}
+          th={s.th} td={s.td}
+        />
       )}
       {editProd && (
         <Modal title={tx.invEditProduct} onClose={() => setEditProd(null)}>
           <FG label={tx.colName}><Inp value={editForm.name || ""} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} /></FG>
           <FG label={tx.invUnit}><Sel value={editForm.unit || "piece"} onChange={e => setEditForm(f => ({ ...f, unit: e.target.value }))}>{UNITS.map(u => <option key={u} value={u}>{u}</option>)}</Sel></FG>
           <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={updateProd} disabled={saving}>{tx.invSaveChanges}</button>
-          {editMsg && <p style={editMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{editMsg.slice(3)}</p>}
+          {editMsg && <p style={editMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(editMsg)}</p>}
         </Modal>
       )}
       {open && (
@@ -1088,7 +1088,7 @@ function ProductsSubTab({ products, setProducts, loading, tx }) {
           <FG label={tx.invProductName}><Inp name="name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder={tx.productNamePh} /></FG>
           <FG label={tx.invUnit}><Sel name="unit" value={form.unit} onChange={e => setForm(f => ({ ...f, unit: e.target.value }))}>{UNITS.map(u => <option key={u} value={u}>{u}</option>)}</Sel></FG>
           <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={submit} disabled={saving}>{saving ? tx.adding : tx.invAddProductModal}</button>
-          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(msg)}</p>}
         </Modal>
       )}
     </>
@@ -1150,7 +1150,7 @@ function StockSubTab({ addresses, products, tx }) {
         <span style={s.sectionTitle}>{tx.invStock}</span>
         {selectedAddr && <button style={s.addBtn} onClick={() => { setOpen(true); setMsg(""); }}>{tx.invAddStock}</button>}
       </div>
-      {msg && <p style={{ ...(msg.startsWith("ok:") ? s.msgOk : s.msgErr), textAlign: "left", marginBottom: 16 }}>{msg.slice(3)}</p>}
+      {msg && <p style={{ ...(msg.startsWith("ok:") ? s.msgOk : s.msgErr), textAlign: "left", marginBottom: 16 }}>{msgTxt(msg)}</p>}
       <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 14, padding: "20px 24px", marginBottom: 20 }}>
         <FG label={tx.invSelectAddr}>
           <Sel value={selectedAddr} onChange={e => { setSelectedAddr(e.target.value); loadInv(e.target.value); setMsg(""); }}>
@@ -1160,31 +1160,26 @@ function StockSubTab({ addresses, products, tx }) {
         </FG>
       </div>
       {selectedAddr && (loading ? <p style={{ color: C.muted, padding: "16px 0" }}>{tx.invLoading}</p> : inventory.length === 0 ? <Empty text={tx.invNoStock} /> : (
-        <div style={{ overflowX: "auto" }}>
-          <table style={s.table} cellSpacing={0}>
-            <thead style={s.thead}><tr>
-              <th style={s.th}>{tx.invProduct}</th><th style={s.th}>{tx.invUnit}</th><th style={s.th}>{tx.invQty}</th><th style={s.th}>{tx.colActions}</th>
-            </tr></thead>
-            <tbody>{inventory.map((item, i) => {
-              const prod = getProd(item.product_id || item.ProductId);
-              return (
-                <tr key={item.id || item.Id || i}>
-                  <td style={s.td}><b>{prod?.name || "—"}</b></td>
-                  <td style={s.td}>{prod?.unit || "—"}</td>
-                  <td style={s.td}><span style={{ ...s.badge(), background: "#EFF6FF", color: "#1D4ED8" }}>{item.quantity ?? item.Quantity ?? "—"}</span></td>
-                  <td style={s.td}><button style={s.editBtn} onClick={() => { setEditInv(item); setEditQty(String(item.quantity ?? item.Quantity ?? "")); setMsg(""); }}>{tx.invEdit}</button></td>
-                </tr>
-              );
-            })}</tbody>
-          </table>
-        </div>
+        <TableOrCards
+          cols={[
+            { key: "product", label: tx.invProduct, render: item => { const prod = getProd(item.product_id || item.ProductId); return <b>{prod?.name || "—"}</b>; } },
+            { key: "unit",    label: tx.invUnit,    render: item => { const prod = getProd(item.product_id || item.ProductId); return prod?.unit || "—"; } },
+            { key: "qty",     label: tx.invQty,     render: item => <span style={{ ...s.badge(), background: "#EFF6FF", color: "#1D4ED8" }}>{item.quantity ?? item.Quantity ?? "—"}</span> },
+          ]}
+          items={inventory}
+          keyFn={(item, i) => item.id || item.Id || i}
+          actions={item => (
+            <button style={s.editBtn} onClick={() => { setEditInv(item); setEditQty(String(item.quantity ?? item.Quantity ?? "")); setMsg(""); }}>{tx.invEdit}</button>
+          )}
+          th={s.th} td={s.td}
+        />
       ))}
       {editInv && (
         <Modal title={tx.invUpdateStock} onClose={() => setEditInv(null)}>
           <p style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>{getProd(editInv.product_id || editInv.ProductId)?.name || tx.invProduct}</p>
           <FG label={tx.invNewQty}><Inp type="number" value={editQty} onChange={e => setEditQty(e.target.value)} placeholder={tx.quantityPh} /></FG>
           <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={updateStock} disabled={saving}>{saving ? tx.invSaving : tx.invSaveQty}</button>
-          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(msg)}</p>}
         </Modal>
       )}
       {open && (
@@ -1197,7 +1192,7 @@ function StockSubTab({ addresses, products, tx }) {
           </FG>
           <FG label={tx.invQtyToAdd}><Inp type="number" value={addForm.quantity} onChange={e => setAddForm(f => ({ ...f, quantity: e.target.value }))} placeholder={tx.quantityAddPh} /></FG>
           <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={addStock} disabled={saving}>{saving ? tx.adding : tx.invAddStockModal}</button>
-          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(msg)}</p>}
         </Modal>
       )}
     </div>
@@ -1251,7 +1246,7 @@ function MaterialsSubTab({ services, products, tx }) {
         <span style={s.sectionTitle}>{tx.invMaterials}</span>
         {selectedSvc && <button style={s.addBtn} onClick={() => { setOpen(true); setMsg(""); }}>{tx.invAssignMaterial}</button>}
       </div>
-      {msg && <p style={{ ...(msg.startsWith("ok:") ? s.msgOk : s.msgErr), textAlign: "left", marginBottom: 16 }}>{msg.slice(3)}</p>}
+      {msg && <p style={{ ...(msg.startsWith("ok:") ? s.msgOk : s.msgErr), textAlign: "left", marginBottom: 16 }}>{msgTxt(msg)}</p>}
       <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 14, padding: "20px 24px", marginBottom: 20 }}>
         <FG label={tx.invService}>
           <Sel value={selectedSvc} onChange={e => { setSelectedSvc(e.target.value); loadMats(e.target.value); setMsg(""); }}>
@@ -1261,23 +1256,16 @@ function MaterialsSubTab({ services, products, tx }) {
         </FG>
       </div>
       {selectedSvc && (loadingMats ? <p style={{ color: C.muted, padding: "16px 0" }}>{tx.invLoading}</p> : materials.length === 0 ? <Empty text={tx.invNoMaterials} /> : (
-        <div style={{ overflowX: "auto" }}>
-          <table style={s.table} cellSpacing={0}>
-            <thead style={s.thead}><tr>
-              <th style={s.th}>{tx.invProduct}</th><th style={s.th}>{tx.invPerAppt}</th><th style={s.th}>{tx.colActions}</th>
-            </tr></thead>
-            <tbody>{materials.map((m, i) => {
-              const prod = getProd(m.product_id || m.ProductId);
-              return (
-                <tr key={m.id || m.Id || i}>
-                  <td style={s.td}><b>{prod?.name || "—"}</b></td>
-                  <td style={s.td}><span style={{ ...s.badge(), background: "#F0FDF4", color: "#16A34A" }}>{m.quantity_required ?? m.QuantityRequired ?? "—"} {prod?.unit || ""}</span></td>
-                  <td style={s.td}><button style={s.deleteBtn} onClick={() => delMat(m.id || m.Id)}>{tx.invRemove}</button></td>
-                </tr>
-              );
-            })}</tbody>
-          </table>
-        </div>
+        <TableOrCards
+          cols={[
+            { key: "product", label: tx.invProduct, render: m => { const prod = getProd(m.product_id || m.ProductId); return <b>{prod?.name || "—"}</b>; } },
+            { key: "qty",     label: tx.invPerAppt, render: m => { const prod = getProd(m.product_id || m.ProductId); return <span style={{ ...s.badge(), background: "#F0FDF4", color: "#16A34A" }}>{m.quantity_required ?? m.QuantityRequired ?? "—"} {prod?.unit || ""}</span>; } },
+          ]}
+          items={materials}
+          keyFn={(m, i) => m.id || m.Id || i}
+          actions={m => <button style={s.deleteBtn} onClick={() => delMat(m.id || m.Id)}>{tx.invRemove}</button>}
+          th={s.th} td={s.td}
+        />
       ))}
       {open && (
         <Modal title={tx.invAssignMaterialModal} onClose={() => { setOpen(false); setForm({ product_id: "", quantity_required: "" }); setMsg(""); }}>
@@ -1289,14 +1277,90 @@ function MaterialsSubTab({ services, products, tx }) {
           </FG>
           <FG label={tx.invQtyPerAppt}><Inp type="number" value={form.quantity_required} onChange={e => setForm(f => ({ ...f, quantity_required: e.target.value }))} placeholder={tx.quantityPerApptPh} /></FG>
           <button style={{ ...s.submitBtn, opacity: saving ? 0.7 : 1 }} onClick={addMaterial} disabled={saving}>{saving ? tx.invSaving : tx.invAssignBtn}</button>
-          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msg.slice(3)}</p>}
+          {msg && <p style={msg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(msg)}</p>}
         </Modal>
       )}
     </div>
   );
 }
 
-function InventoryView({ addresses, services, tx }) {
+function InventoryStatusSubTab({ clinicId, addresses, tx }) {
+  const [selectedAddr, setSelectedAddr] = useState("");
+  const [status,       setStatus]       = useState([]);
+  const [loading,      setLoading]      = useState(false);
+  const [msg,          setMsg]          = useState("");
+
+  const loadStatus = async (addrId) => {
+    if (!clinicId || !addrId) return;
+    setLoading(true); setMsg(""); setStatus([]);
+    try {
+      const r = await authFetch(`${API_BASE}/api/clinics/${clinicId}/clinic-addresses/${addrId}/inventory-status`);
+      const d = await r.json().catch(() => ({}));
+      if (r.ok) setStatus(Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : []));
+      else setMsg("err:" + (d.message || d.error || "Failed"));
+    } catch (e) { setMsg("err:" + e.message); }
+    finally { setLoading(false); }
+  };
+
+  const outOfStock = status.filter(item => item.color === "red" || (item.quantity ?? item.Quantity) === 0);
+  const inStock    = status.filter(item => item.color !== "red" && (item.quantity ?? item.Quantity) > 0);
+  const getAddrLabel = (a) => [a.street, a.building, a.city].filter(Boolean).join(", ") || a.id?.slice(0, 8);
+
+  return (
+    <div>
+      <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 14, padding: "20px 24px", marginBottom: 20 }}>
+        <FG label={tx.invSelectAddr}>
+          <Sel value={selectedAddr} onChange={e => { setSelectedAddr(e.target.value); loadStatus(e.target.value); }}>
+            <option value="">{tx.invChooseAddr}</option>
+            {addresses.map(a => <option key={a.id} value={a.id}>{getAddrLabel(a)}</option>)}
+          </Sel>
+        </FG>
+      </div>
+
+      {msg && <p style={s.msgErr}>{msg.slice(4)}</p>}
+      {loading && <p style={{ color: C.muted, padding: "12px 0" }}>{tx.invLoading}</p>}
+
+      {selectedAddr && !loading && status.length > 0 && (
+        <div>
+          {outOfStock.length > 0 && (
+            <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 12, padding: "16px 20px", marginBottom: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#DC2626", display: "inline-block" }} />
+                <span style={{ fontWeight: 700, color: "#DC2626", fontSize: 15 }}>{tx.invOutOfStock} ({outOfStock.length})</span>
+              </div>
+              {outOfStock.map((item, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: i < outOfStock.length - 1 ? "1px solid #FECACA" : "none" }}>
+                  <span style={{ fontWeight: 600, color: "#991B1B" }}>{item.product_name || item.name || "—"}</span>
+                  <span style={{ background: "#DC2626", color: "#fff", borderRadius: 6, padding: "2px 10px", fontSize: 13, fontWeight: 700 }}>0 {item.unit || ""}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {inStock.length > 0 && (
+            <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 12, padding: "16px 20px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#16A34A", display: "inline-block" }} />
+                <span style={{ fontWeight: 700, color: "#16A34A", fontSize: 15 }}>{tx.invInStock} ({inStock.length})</span>
+              </div>
+              {inStock.map((item, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: i < inStock.length - 1 ? "1px solid #BBF7D0" : "none" }}>
+                  <span style={{ color: "#166534" }}>{item.product_name || item.name || "—"}</span>
+                  <span style={{ background: "#22C55E", color: "#fff", borderRadius: 6, padding: "2px 10px", fontSize: 13, fontWeight: 600 }}>{item.quantity ?? item.Quantity ?? 0} {item.unit || ""}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {outOfStock.length === 0 && (
+            <p style={{ color: "#16A34A", fontWeight: 600, fontSize: 15, padding: "12px 0" }}>✓ {tx.invAllInStock}</p>
+          )}
+        </div>
+      )}
+      {selectedAddr && !loading && status.length === 0 && !msg && <Empty text={tx.invNoStock || "Нет данных"} />}
+    </div>
+  );
+}
+
+function InventoryView({ addresses, services, clinicId, tx }) {
   const [subTab, setSubTab] = useState("products");
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLP] = useState(true);
@@ -1310,6 +1374,7 @@ function InventoryView({ addresses, services, tx }) {
     { key: "products",  label: tx.invProducts,  icon: "M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zM16 3H8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z" },
     { key: "stock",     label: tx.invStock,     icon: "M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" },
     { key: "materials", label: tx.invMaterials, icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" },
+    { key: "status",    label: tx.invStatus,    icon: "M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" },
   ];
 
   return (
@@ -1324,6 +1389,7 @@ function InventoryView({ addresses, services, tx }) {
       {subTab === "products"  && <ProductsSubTab products={products} setProducts={setProducts} loading={loadingProducts} tx={tx} />}
       {subTab === "stock"     && <StockSubTab addresses={addresses} products={products} tx={tx} />}
       {subTab === "materials" && <MaterialsSubTab services={services} products={products} tx={tx} />}
+      {subTab === "status"    && <InventoryStatusSubTab clinicId={clinicId} addresses={addresses} tx={tx} />}
     </div>
   );
 }
@@ -1525,30 +1591,24 @@ export default function ClinicAdminDashboard({ setPage, lang: propLang, setLang:
     reports:      tx.tabs?.reports      || "Reports",
   })[key] || key;
 
-  const barStyle = { ...s.bar, padding: isMobile ? "0 16px" : "0 48px", height: isMobile ? 58 : 72 };
-  const tabsRowStyle = { ...s.tabsRow, padding: isMobile ? "0 8px" : "0 48px", overflowX: "auto", flexWrap: "nowrap", WebkitOverflowScrolling: "touch" };
-  const contentStyle = { ...s.content, padding: isMobile ? "0 16px 40px" : "0 48px 56px" };
-
   return (
     <div style={s.page}>
-      <div style={barStyle}>
+      {/* ── Header ── */}
+      <div style={{ ...s.bar, padding: isMobile ? "0 12px" : "0 48px", height: isMobile ? 56 : 72 }}>
         <div style={s.barLeft}>
-          {!isMobile && (
-            <button
-              onClick={() => setSidebarOpen(o => !o)}
-              style={{ background: "transparent", border: "none", cursor: "pointer", padding: 6, borderRadius: 8, display: "flex", alignItems: "center", color: C.muted }}
-              title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <line x1="3" y1="6" x2="21" y2="6"/>
-                <line x1="3" y1="12" x2="21" y2="12"/>
-                <line x1="3" y1="18" x2="21" y2="18"/>
-              </svg>
-            </button>
-          )}
-          <div style={{ display: "flex", alignItems: "center", gap: 14, cursor: "pointer" }} onClick={() => setPage("home")}>
-            <div style={s.barIcon}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <button
+            onClick={() => setSidebarOpen(o => !o)}
+            style={{ background: "transparent", border: "none", cursor: "pointer", padding: 6, borderRadius: 8, display: "flex", alignItems: "center", color: C.muted, flexShrink: 0 }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <line x1="3" y1="12" x2="21" y2="12"/>
+              <line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 14, cursor: "pointer" }} onClick={() => setPage("home")}>
+            <div style={{ ...s.barIcon, width: isMobile ? 32 : 40, height: isMobile ? 32 : 40 }}>
+              <svg width={isMobile ? 16 : 20} height={isMobile ? 16 : 20} viewBox="0 0 24 24" fill="none">
                 <rect x="3" y="3" width="8" height="8" rx="2" stroke="#fff" strokeWidth="2"/>
                 <rect x="13" y="3" width="8" height="8" rx="2" stroke="#fff" strokeWidth="2"/>
                 <rect x="3" y="13" width="8" height="8" rx="2" stroke="#fff" strokeWidth="2"/>
@@ -1556,33 +1616,36 @@ export default function ClinicAdminDashboard({ setPage, lang: propLang, setLang:
               </svg>
             </div>
             <div>
-              <div style={s.barTitle}>{adminInfo?.name || "Clinic Admin"}</div>
-              {clinicName && <div style={s.barSub}>{clinicName}</div>}
+              <div style={{ ...s.barTitle, fontSize: isMobile ? 14 : undefined }}>{adminInfo?.name || "Clinic Admin"}</div>
+              {clinicName && !isMobile && <div style={s.barSub}>{clinicName}</div>}
             </div>
           </div>
         </div>
-        <div style={s.barRight}>
-          <div style={s.langWrap} ref={langRef}>
-            <button style={{ ...s.langBtn, borderColor: langOpen ? C.primary : C.border }} onClick={() => setLangOpen(o => !o)}>
-              <GlobeIcon />
-              <span>{lang}</span>
-              <span style={{ fontSize: 10, marginLeft: 2, display: "inline-block", transform: langOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▼</span>
-            </button>
-            {langOpen && (
-              <div style={s.langDrop}>
-                {LANGUAGES.map(l => (
-                  <div key={l.code} style={s.langItem(l.code === lang)}
-                    onClick={() => { setLang(l.code); setLangOpen(false); }}
-                    onMouseEnter={(e) => { if (l.code !== lang) e.currentTarget.style.background = "#F8F9FF"; }}
-                    onMouseLeave={(e) => { if (l.code !== lang) e.currentTarget.style.background = "transparent"; }}
-                  >
-                    <span style={{ fontSize: 20 }}>{l.flag}</span><span>{l.label}</span>
-                    {l.code === lang && <span style={{ marginLeft: "auto", color: C.primary }}>✓</span>}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+        <div style={{ ...s.barRight, gap: isMobile ? 8 : 16 }}>
+          {/* Language switcher — header only on desktop */}
+          {!isMobile && (
+            <div style={s.langWrap} ref={langRef}>
+              <button style={{ ...s.langBtn, borderColor: langOpen ? C.primary : C.border }} onClick={() => setLangOpen(o => !o)}>
+                <GlobeIcon />
+                <span>{lang}</span>
+                <span style={{ fontSize: 10, marginLeft: 2, display: "inline-block", transform: langOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▼</span>
+              </button>
+              {langOpen && (
+                <div style={s.langDrop}>
+                  {LANGUAGES.map(l => (
+                    <div key={l.code} style={s.langItem(l.code === lang)}
+                      onClick={() => { setLang(l.code); setLangOpen(false); }}
+                      onMouseEnter={(e) => { if (l.code !== lang) e.currentTarget.style.background = "#F8F9FF"; }}
+                      onMouseLeave={(e) => { if (l.code !== lang) e.currentTarget.style.background = "transparent"; }}
+                    >
+                      <span style={{ fontSize: 20 }}>{l.flag}</span><span>{l.label}</span>
+                      {l.code === lang && <span style={{ marginLeft: "auto", color: C.primary }}>✓</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           <button style={{ ...s.logoutBtn, color: C.primary }} onClick={() => setProfileOpen(true)} title={tx.profileSettings || "Profile Settings"}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -1593,44 +1656,78 @@ export default function ClinicAdminDashboard({ setPage, lang: propLang, setLang:
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <path d="M16 17l5-5-5-5M21 12H9M13 22H5a2 2 0 01-2-2V4a2 2 0 012-2h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
-            {tx.logout}
+            {!isMobile && tx.logout}
           </button>
         </div>
       </div>
       {profileOpen && <ProfileModal tx={tx} onClose={() => setProfileOpen(false)} />}
 
-      {isMobile && (
-        <div style={tabsRowStyle}>
-          {CLINIC_TABS.map(t => (
-            <button key={t.key} style={s.tab(tab === t.key)} onClick={() => setTab(t.key)}>
-              <Icon d={t.icon} size={15} />
-              {tabLabel(t.key)}
-            </button>
-          ))}
-        </div>
+      {/* ── Mobile backdrop ── */}
+      {isMobile && sidebarOpen && (
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 150 }}
+          onClick={() => setSidebarOpen(false)}
+        />
       )}
 
       <div style={s.body}>
-        {!isMobile && (
-          <nav style={{ ...s.sidebar, width: sidebarOpen ? 220 : 0, overflow: "hidden", transition: "width 0.25s ease" }}>
-            <div style={s.sideBody}>
-              <div style={s.sideLabel}>{tx.sidebarNav}</div>
-              {CLINIC_TABS.map(t => (
-                <button key={t.key} style={s.sideItem(tab === t.key)} onClick={() => setTab(t.key)}>
-                  <Icon d={t.icon} size={16} />
-                  <span style={{ flex: 1 }}>{tabLabel(t.key)}</span>
-                  {counts[t.key] > 0 && <span style={s.sideCount(tab === t.key)}>{counts[t.key]}</span>}
-                </button>
-              ))}
+        {/* ── Sidebar — always rendered, overlay on mobile ── */}
+        <nav style={isMobile ? {
+          ...s.sidebar,
+          position: "fixed", left: 0, top: 0, bottom: 0,
+          height: "100dvh", zIndex: 200,
+          width: 260,
+          transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)",
+          transition: "transform 0.25s ease",
+          boxShadow: sidebarOpen ? "4px 0 24px rgba(0,0,0,0.15)" : "none",
+        } : {
+          ...s.sidebar,
+          width: sidebarOpen ? 220 : 0,
+          overflow: "hidden",
+          transition: "width 0.25s ease",
+          flexShrink: 0,
+        }}>
+          <div style={{ ...s.sideBody, paddingTop: isMobile ? 60 : 20 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 14px", marginBottom: 20 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #6C63FF 0%, #4F46E5 100%)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2C8 2 5 5 5 8c0 2.5 1.5 4.5 3 5.5V20a1 1 0 002 0v-2h4v2a1 1 0 002 0v-6.5c1.5-1 3-3 3-5.5 0-3-3-6-7-6z" fill="white"/>
+                </svg>
+              </div>
+              <span style={{ fontWeight: 700, fontSize: 15, color: "#1E293B", letterSpacing: 0.2 }}>Dental Clinic</span>
             </div>
-          </nav>
-        )}
+            <div style={s.sideLabel}>{tx.sidebarNav}</div>
+            {CLINIC_TABS.map(t => (
+              <button key={t.key} style={s.sideItem(tab === t.key)} onClick={() => { setTab(t.key); if (isMobile) setSidebarOpen(false); }}>
+                <Icon d={t.icon} size={16} />
+                <span style={{ flex: 1 }}>{tabLabel(t.key)}</span>
+                {counts[t.key] > 0 && <span style={s.sideCount(tab === t.key)}>{counts[t.key]}</span>}
+              </button>
+            ))}
 
-        <div style={{ flex: 1, overflowY: "auto" }}>
+            {/* Language switcher inside sidebar on mobile */}
+            {isMobile && (
+              <div style={{ marginTop: 24 }}>
+                <div style={s.sideLabel}>{tx.language || "ЯЗЫК"}</div>
+                {LANGUAGES.map(l => (
+                  <div key={l.code} style={{ ...s.langItem(l.code === lang), borderRadius: 10, marginBottom: 2 }}
+                    onClick={() => { setLang(l.code); setSidebarOpen(false); }}
+                  >
+                    <span style={{ fontSize: 20 }}>{l.flag}</span>
+                    <span style={{ fontSize: 14 }}>{l.label}</span>
+                    {l.code === lang && <span style={{ marginLeft: "auto", color: C.primary }}>✓</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </nav>
+
+        <div style={{ flex: 1, overflowY: "auto", minWidth: 0 }}>
           {loading ? (
             <div style={s.loading}>{tx.invLoading}</div>
           ) : (
-            <div style={contentStyle}>
+            <div style={{ ...s.content, padding: isMobile ? "0 12px 40px" : "0 48px 56px" }}>
               {tab === "appointments" && clinicId && (
                 <AppointmentsView appointments={filteredAppointments} setAppointments={setAppointments} doctors={doctors} services={services} addresses={addresses} tx={tx} />
               )}
@@ -1652,7 +1749,7 @@ export default function ClinicAdminDashboard({ setPage, lang: propLang, setLang:
               {tab === "inventory" && (
                 <>
                   <div style={s.sectionHeader}><span style={s.sectionTitle}>{tx.tabs?.inventory || "Inventory"}</span></div>
-                  <InventoryView addresses={addresses} services={services} tx={tx} />
+                  <InventoryView addresses={addresses} services={services} clinicId={clinicId} tx={tx} />
                 </>
               )}
               {tab === "reports" && clinicId && (

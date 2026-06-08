@@ -147,7 +147,7 @@ const st = {
   content:  { flex: 1, padding: "32px 40px", overflowY: "auto" },
 
   // Page header
-  pageHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 },
+  pageHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 28 },
   pageTitleRow:{ display: "flex", alignItems: "center", gap: 14 },
   pageTitleIcon:{ width: 44, height: 44, background: P.primaryLight, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center" },
   pageTitle: { fontSize: 28, fontWeight: 900, color: "#0F172A" },
@@ -207,7 +207,7 @@ const st = {
   closeBtn: { position: "absolute", top: 16, right: 20, background: "none", border: "none", color: "#fff", fontSize: 24, cursor: "pointer", opacity: 0.8 },
   modalBody:{ padding: "28px 32px" },
   section:  { marginBottom: 24 },
-  secHead:  { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 },
+  secHead:  { display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 14 },
   secTitle: { fontSize: 17, fontWeight: 800, color: "#0F172A" },
   infoBox:  { background: "#F8F9FF", borderRadius: 10, padding: "16px 20px" },
   infoRow:  { fontSize: 14, color: "#0F172A", lineHeight: 2.1 },
