@@ -608,9 +608,9 @@ function MedicalRecordsView({ t }) {
             const done = isDone(r);
             const patientName = r.name || r.email || "—";
             const color = avatarColor(patientName);
-            const startT = r.start_time || r.created_at || "";
+            const startT = r.start_time || "";
             const endT = r.end_time || "";
-            const dateStr = startT ? startT.slice(0, 10) : "—";
+            const dateStr = (startT || r.created_at || "").slice(0, 10) || "—";
             const startTime = startT.length > 10 ? startT.slice(11, 16) : "";
             const endTime = endT.length > 10 ? endT.slice(11, 16) : "";
             const timeRange = startTime && endTime ? `${startTime} – ${endTime}` : startTime;
