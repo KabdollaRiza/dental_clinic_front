@@ -1113,9 +1113,76 @@ function ServicesTab({ services, setServices, clinics, tx }) {
   const [msg, setMsg] = useState("");
   const [saving, setSaving] = useState(false);
 
+  const [clinicModal, setClinicModal] = useState(null);
+  const [clinicAttachments, setClinicAttachments] = useState([]);
+  const [clinicModalLoading, setClinicModalLoading] = useState(false);
+  const [attachClinicId, setAttachClinicId] = useState("");
+  const [attachPrice, setAttachPrice] = useState("");
+  const [attachDuration, setAttachDuration] = useState("");
+  const [clinicModalMsg, setClinicModalMsg] = useState("");
+  const [attachSaving, setAttachSaving] = useState(false);
+
   const hc = (e) => {
     const { name, value, type, checked } = e.target;
     setForm({ ...form, [name]: type === "checkbox" ? checked : value });
+  };
+
+  const openClinicModal = async (svc) => {
+    setClinicModal(svc);
+    setClinicModalLoading(true);
+    setClinicModalMsg("");
+    setAttachClinicId("");
+    setAttachPrice("");
+    setAttachDuration("");
+    try {
+      const results = await Promise.all(
+        clinics.map(c =>
+          authFetch(`${API_BASE}/api/clinics/${c.id}/services`)
+            .then(r => r.json().catch(() => []))
+            .then(d => ({ clinic: c, svcs: Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : []) }))
+            .catch(() => ({ clinic: c, svcs: [] }))
+        )
+      );
+      setClinicAttachments(results.map(({ clinic, svcs }) => ({
+        clinic,
+        attached: svcs.some(s => s.id === svc.id),
+      })));
+    } finally {
+      setClinicModalLoading(false);
+    }
+  };
+
+  const detachFromClinic = async (clinicId) => {
+    if (!window.confirm(tx.svcDetachConfirm)) return;
+    try {
+      await authFetch(`${API_BASE}/api/clinics/${clinicId}/services/${clinicModal.id}`, { method: "DELETE" });
+      setClinicAttachments(prev => prev.map(ca =>
+        ca.clinic.id === clinicId ? { ...ca, attached: false } : ca
+      ));
+    } catch (e) { alert(e.message); }
+  };
+
+  const attachToClinic = async () => {
+    if (!attachClinicId || !attachPrice) { setClinicModalMsg("err:" + tx.svcSelectClinicAndPrice); return; }
+    const dur = parseInt(attachDuration, 10) || 0;
+    setAttachSaving(true);
+    try {
+      const r = await authFetch(`${API_BASE}/api/add-clinics/${attachClinicId}/services`, {
+        method: "POST",
+        body: JSON.stringify({ service_id: clinicModal.id, price: parseFloat(attachPrice) || 0, duration: dur, is_active: true }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { setClinicModalMsg("err:" + (d.message || d.error || "Failed")); return; }
+      setClinicAttachments(prev => prev.map(ca =>
+        ca.clinic.id === attachClinicId ? { ...ca, attached: true } : ca
+      ));
+      setAttachClinicId("");
+      setAttachPrice("");
+      setAttachDuration("");
+      setClinicModalMsg("ok:" + tx.svcAttached);
+      setTimeout(() => setClinicModalMsg(""), 1500);
+    } catch (e) { setClinicModalMsg("err:" + e.message); }
+    finally { setAttachSaving(false); }
   };
 
   const submit = async () => {
@@ -1172,19 +1239,62 @@ function ServicesTab({ services, setServices, clinics, tx }) {
       ) : (
         <TableOrCards
           cols={[
-            { key: "name",   label: tx.colName,          render: sv => <b>{sv.name}</b> },
-            { key: "desc",   label: tx.colDesc,          render: sv => sv.description?.length > 40 ? sv.description.slice(0,40)+"…" : sv.description || "—" },
-            { key: "status", label: tx.colServiceStatus, render: sv => <span style={s.badge(sv.is_active ? "#22c55e" : "#94A3B8")}>{sv.is_active ? tx.active : tx.inactive}</span> },
+            { key: "name", label: tx.colName, render: sv => <b>{sv.name}</b> },
+            { key: "desc", label: tx.colDesc, render: sv => sv.description?.length > 40 ? sv.description.slice(0,40)+"…" : sv.description || "—" },
           ]}
           items={services}
           keyFn={sv => sv.id}
           actions={sv => (
             <>
+              <button style={{ ...s.editBtn, background: "#F0FDF4", color: "#16A34A" }} onClick={() => openClinicModal(sv)}>{tx.tabs.clinics}</button>
               <button style={s.editBtn} onClick={() => { setEditSvc(sv); setEditSvcForm({...sv}); setEditSvcMsg(""); }}>{tx.invEdit}</button>
               <button style={{ ...s.deleteBtn, marginLeft: 0 }} onClick={() => del(sv.id)}>{tx.delete}</button>
             </>
           )}
         />
+      )}
+      {clinicModal && (
+        <Modal title={`${tx.tabs.clinics} — ${clinicModal.name}`} onClose={() => { setClinicModal(null); setClinicModalMsg(""); }}>
+          {clinicModalLoading ? (
+            <div style={{ textAlign: "center", padding: 24, color: "#94A3B8" }}>{tx.invLoading}</div>
+          ) : (
+            <>
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 8 }}>{tx.svcAttachedTo}</div>
+                {clinicAttachments.filter(ca => ca.attached).length === 0 ? (
+                  <div style={{ fontSize: 13, color: "#94A3B8", padding: "8px 0" }}>{tx.svcNotAttached}</div>
+                ) : clinicAttachments.filter(ca => ca.attached).map(ca => (
+                  <div key={ca.clinic.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 8, marginBottom: 6 }}>
+                    <span style={{ fontSize: 14, color: "#166534", fontWeight: 500 }}>{ca.clinic.name}</span>
+                    <button style={{ ...s.deleteBtn, marginLeft: 0, padding: "4px 10px", fontSize: 12 }} onClick={() => detachFromClinic(ca.clinic.id)}>{tx.svcDetach}</button>
+                  </div>
+                ))}
+              </div>
+              <div style={{ borderTop: "1px solid #E5E7EB", paddingTop: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 10 }}>{tx.svcAttachToClinic}</div>
+                <FG label={tx.colClinic}>
+                  <Sel value={attachClinicId} onChange={e => setAttachClinicId(e.target.value)}>
+                    <option value="">{tx.invChooseClinic}</option>
+                    {clinicAttachments.filter(ca => !ca.attached).map(ca => (
+                      <option key={ca.clinic.id} value={ca.clinic.id}>{ca.clinic.name}</option>
+                    ))}
+                  </Sel>
+                </FG>
+                <FG label={tx.price}><Input type="number" value={attachPrice} onChange={e => setAttachPrice(e.target.value)} placeholder="0" /></FG>
+                <FG label={tx.duration}>
+                  <Sel value={attachDuration} onChange={e => setAttachDuration(e.target.value)}>
+                    <option value="">—</option>
+                    {[30,60,90,120,150,180].map(d => <option key={d} value={d}>{d} {tx.minLabel}</option>)}
+                  </Sel>
+                </FG>
+                <button style={{ ...s.submitBtn, opacity: attachSaving ? 0.7 : 1 }} onClick={attachToClinic} disabled={attachSaving}>
+                  {attachSaving ? tx.svcAttaching : tx.svcAttachBtn}
+                </button>
+              </div>
+              {clinicModalMsg && <p style={clinicModalMsg.startsWith("ok:") ? s.msgOk : s.msgErr}>{msgTxt(clinicModalMsg)}</p>}
+            </>
+          )}
+        </Modal>
       )}
       {editSvc && (
         <Modal title={tx.editService} onClose={() => { setEditSvc(null); setEditSvcMsg(""); }}>

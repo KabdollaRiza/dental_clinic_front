@@ -26,6 +26,8 @@ const TX = {
     cancel: "Cancel", reviewSent: "Review submitted! Thank you.",
     reviewError: "Failed to submit. Please try again.",
     reviewed: "Reviewed",
+    notes: "NOTES", notFilled: "The doctor hasn't filled in the record yet.",
+    noRecord: "Medical record not available.", loadError: "Failed to load your data. Please refresh.",
   },
   KZ: {
     upcoming: "Алдағы жазылымдар", past: "Өткен жазылымдар",
@@ -40,6 +42,8 @@ const TX = {
     cancel: "Болдырмау", reviewSent: "Пікір жіберілді! Рахмет.",
     reviewError: "Жіберу сәтсіз болды. Қайталап көріңіз.",
     reviewed: "Бағаланды",
+    notes: "ЕСКЕРТПЕЛЕР", notFilled: "Дәрігер медициналық карточканы толтырмаған.",
+    noRecord: "Медициналық карточка қол жетімді емес.", loadError: "Деректер жүктелмеді. Беттi жаңартыңыз.",
   },
   RU: {
     upcoming: "Предстоящие записи", past: "Прошедшие записи",
@@ -54,6 +58,8 @@ const TX = {
     cancel: "Отмена", reviewSent: "Отзыв отправлен! Спасибо.",
     reviewError: "Не удалось отправить. Попробуйте снова.",
     reviewed: "Оценено",
+    notes: "ЗАМЕТКИ", notFilled: "Врач ещё не заполнил медицинскую карточку.",
+    noRecord: "Медицинская карточка недоступна.", loadError: "Не удалось загрузить данные. Обновите страницу.",
   },
 };
 

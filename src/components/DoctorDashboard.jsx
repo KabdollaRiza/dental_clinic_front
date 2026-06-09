@@ -606,16 +606,22 @@ function MedicalRecordsView({ t }) {
         <div style={st.recGrid}>
           {filtered.map(r => {
             const done = isDone(r);
-            const patientName = r.patient_name || r.name || r.email || "Patient";
+            const patientName = r.name || r.email || "—";
             const color = avatarColor(patientName);
-            const date = r.appointment_date || r.created_at || "";
+            const startT = r.start_time || r.created_at || "";
+            const endT = r.end_time || "";
+            const dateStr = startT ? startT.slice(0, 10) : "—";
+            const startTime = startT.length > 10 ? startT.slice(11, 16) : "";
+            const endTime = endT.length > 10 ? endT.slice(11, 16) : "";
+            const timeRange = startTime && endTime ? `${startTime} – ${endTime}` : startTime;
             return (
               <div key={r.id} style={st.recCard(done)}>
                 <div style={st.recLeft}>
                   <div style={st.recAvatar(color)}>{initials(patientName)}</div>
                   <div style={{ minWidth: 0 }}>
                     <div style={st.recPatient}>{patientName}</div>
-                    <div style={st.recDate}>{date ? date.slice(0, 10) : "—"}</div>
+                    {r.service_name && <div style={{ fontSize: 12, color: "#6366F1", fontWeight: 600, marginTop: 1 }}>{r.service_name}</div>}
+                    <div style={st.recDate}>{dateStr}{timeRange ? ` | ${timeRange}` : ""}</div>
                     {r.diagnosis && <div style={st.recDiag}>{r.diagnosis}</div>}
                   </div>
                 </div>
